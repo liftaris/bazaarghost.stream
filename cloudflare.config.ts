@@ -8,6 +8,7 @@ export default defineConfig({
     ...cache,
     name: "bazaarghost",
     entrypoint: "vinext/server/fetch-handler",
+    domains: ["bazaarghost.stream", "www.bazaarghost.stream"],
     compatibilityDate: "2026-10-17",
     compatibilityFlags: ["nodejs_compat"],
     assets: {
