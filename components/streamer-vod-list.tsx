@@ -171,7 +171,7 @@ export function StreamerVodList({
               mode="range"
               selected={dateRange}
               onSelect={setDateRange}
-              initialFocus
+              autoFocus
             />
           </PopoverContent>
         </Popover>
