@@ -1,8 +1,4 @@
-import type { NextConfig } from "next";
-import createMDX from "@next/mdx";
-import { withVercelToolbar } from "@vercel/toolbar/plugins/next";
-
-const nextConfig: NextConfig = {
+const nextConfig = {
   // output: "export", // Forces static HTML export
   // images: { unoptimized: true },
   pageExtensions: ["ts", "tsx", "js", "jsx", "md", "mdx"],
@@ -27,12 +23,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-const withMDX = createMDX({
-  // Markdown options
-  options: {
-    remarkPlugins: [],
-    rehypePlugins: [],
-  },
-});
-
-export default withVercelToolbar()(withMDX(nextConfig));
+export default nextConfig;
