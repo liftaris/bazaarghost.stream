@@ -1,6 +1,9 @@
 import type React from "react";
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 
+import { AppShell } from "@/components/app-shell";
+import { GlobalStats, GlobalStatsFallback } from "@/components/global-stats";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { BookmarksProvider } from "@/components/social/bookmarks-provider";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -155,7 +158,17 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <BookmarksProvider>
-              <div className="min-h-screen bg-background">{children}</div>
+              <div className="min-h-screen bg-background">
+                <AppShell
+                  stats={
+                    <Suspense fallback={<GlobalStatsFallback />}>
+                      <GlobalStats />
+                    </Suspense>
+                  }
+                >
+                  {children}
+                </AppShell>
+              </div>
             </BookmarksProvider>
           </AuthProvider>
           <Toaster />

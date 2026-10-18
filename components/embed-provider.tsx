@@ -10,6 +10,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
+import { PlayerHost } from "@/components/player/player-host";
 import { usePlayback } from "@/hooks/use-playback";
 import type { Playback } from "@/lib/api-contract";
 
@@ -52,6 +54,8 @@ interface EmbedContextValue extends EmbedState {
   error: string | null;
   /** Stable container ID for the Twitch player div. */
   containerId: string;
+  /** Register the PlayerSlot element the persistent host should cover. */
+  registerSlot: (el: HTMLElement | null) => void;
 
   // ---- Player controls ----
   play: () => void;
@@ -170,6 +174,13 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   const currentVideoRef = useRef<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const seekTargetRef = useRef<number | null>(null);
+  const containerElRef = useRef<HTMLElement | null>(null);
+  const slotRef = useRef<HTMLElement | null>(null);
+  const router = useRouter();
+
+  const registerSlot = useCallback((el: HTMLElement | null) => {
+    slotRef.current = el;
+  }, []);
 
   // ---- Poll player state ----
   useEffect(() => {
@@ -239,6 +250,14 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
       return ()=>frame.remove();
     }
     let cancelled=false;
+    // The player lives in a persistent host, but if its container ever changes
+    // or the iframe is gone, drop stale refs so this load re-inits.
+    const liveContainer=document.getElementById(CONTAINER_ID);
+    if (liveContainer!==containerElRef.current || (playerRef.current && !liveContainer?.querySelector("iframe"))) {
+      containerElRef.current=liveContainer;
+      playerRef.current=null;
+      currentVideoRef.current=null;
+    }
     const sameVideo = state.videoId === currentVideoRef.current;
 
     if (sameVideo && playerRef.current && state.timestamp != null) {
@@ -418,6 +437,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
         error: error ?? playback.error,
       playback: playback.data,
         containerId: CONTAINER_ID,
+        registerSlot,
         play,
         pause,
         togglePlay,
@@ -434,6 +454,20 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      <PlayerHost
+        containerId={CONTAINER_ID}
+        slotRef={slotRef}
+        show={isVisible && !!state.videoId}
+        error={error ?? playback.error}
+        onExpand={() => {
+          const url = activeGhost?.matchup_id ? `/matchups/${activeGhost.matchup_id}` : state.videoId?.startsWith("v:") ? `/videos/${state.videoId.slice(2)}` : null;
+          if (url) router.push(url, { scroll: false });
+        }}
+        onClose={() => {
+          pause();
+          hideEmbed();
+        }}
+      />
     </EmbedContext.Provider>
   );
 }

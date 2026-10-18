@@ -25,6 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useEmbed, type EmbedGhost } from "@/components/embed-provider";
+import { PlayerSlot } from "@/components/player/player-slot";
 import { BookmarkButton } from "@/components/social/bookmark-button";
 import { cn, secondsToTwitchTimestamp } from "@/lib/utils";
 
@@ -475,8 +476,6 @@ export function EmbedPanel() {
     meta,
     isVisible,
     hideEmbed,
-    containerId,
-    error,
     isReady,
     isPaused,
     isMuted,
@@ -617,15 +616,8 @@ export function EmbedPanel() {
         !showChrome && "invisible h-0 overflow-hidden"
       )}
     >
-      {/* Player area — always mounted so the Twitch iframe is never destroyed */}
-      <div className="relative aspect-video w-full">
-        <div id={containerId} className="size-full" />
-        {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-sm text-destructive">
-            Error loading player: {error}
-          </div>
-        )}
-      </div>
+      {/* The persistent PlayerHost is positioned over this slot */}
+      <PlayerSlot />
 
       {playback && playback.processing.remainingRanges.length > 0 && (
         <p className="px-3 py-1 text-xs text-muted-foreground">Processing is incomplete. More matchups may appear as the remaining sections finish.</p>

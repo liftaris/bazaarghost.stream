@@ -10,6 +10,8 @@ const STATIC_PREFIXES = [
   "/vods",
   "/saved",
   "/ghost",
+  "/login",
+  "/account",
   "/contact",
   "/donate",
   "/how-it-works",
