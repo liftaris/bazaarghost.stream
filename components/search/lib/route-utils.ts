@@ -1,24 +1,26 @@
 import type { SearchMode, RouteContext } from "../types";
 
 /**
- * Static route prefixes that must NOT be matched by the dynamic `[streamer]`
- * catch-all. Used by {@link deriveRouteContext} to avoid false positives.
+ * Reserved top-level names that must NOT be matched by the dynamic `[streamer]`
+ * catch-all. Used by {@link deriveRouteContext} and the `[streamer]` page.
  */
-const STATIC_PREFIXES = [
-  "/search",
-  "/streamers",
-  "/vods",
-  "/saved",
-  "/ghost",
-  "/login",
-  "/account",
-  "/contact",
-  "/donate",
-  "/how-it-works",
-  "/api",
-  "/matchups",
-  "/videos",
+export const RESERVED_TOP_LEVEL = [
+  "search",
+  "streamers",
+  "vods",
+  "saved",
+  "ghost",
+  "login",
+  "account",
+  "contact",
+  "donate",
+  "how-it-works",
+  "api",
+  "matchups",
+  "videos",
 ];
+
+const STATIC_PREFIXES = RESERVED_TOP_LEVEL.map((name) => `/${name}`);
 
 /**
  * Derive the active {@link SearchMode} from the current pathname.
