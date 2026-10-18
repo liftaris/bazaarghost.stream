@@ -1,6 +1,5 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { VirtualizedResultList } from "@/components/virtualized-result-list";
 import {
   GhostResultRow,
@@ -9,6 +8,7 @@ import {
 import { VodResultRow, type VodResult } from "@/components/vod-result-row";
 import { StreamerResultRow } from "@/components/streamer-result-row";
 import { Bookmark } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { SearchMode, StreamerOption } from "./types";
 
 /**
@@ -224,8 +224,10 @@ export function SearchResults({
       )}
 
       {isLoading && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <div className="flex flex-col gap-2 p-2" aria-busy="true">
+          {Array.from({ length: 8 }, (_, i) => (
+            <Skeleton key={i} className="h-[72px] w-full" />
+          ))}
         </div>
       )}
     </>

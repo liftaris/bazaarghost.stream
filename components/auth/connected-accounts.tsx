@@ -60,7 +60,10 @@ export function ConnectedAccounts({ fresh }: { fresh: boolean }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {accounts === null ? (
-          <Skeleton className="h-10 w-full" />
+          <>
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-28 w-full" />
+          </>
         ) : (
           <ul className="flex flex-col">
             {accounts.map((account, index) => {

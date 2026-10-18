@@ -27,38 +27,20 @@ const jetbrainsMono = JetBrains_Mono({
 const averiaLibre = localFont({
   src: [
     {
-      path: "../public/Averia_Libre/AveriaLibre-Light.ttf",
-      weight: "300",
-      style: "normal",
-    },
-    {
-      path: "../public/Averia_Libre/AveriaLibre-LightItalic.ttf",
-      weight: "300",
-      style: "italic",
-    },
-    {
       path: "../public/Averia_Libre/AveriaLibre-Regular.ttf",
       weight: "400",
       style: "normal",
-    },
-    {
-      path: "../public/Averia_Libre/AveriaLibre-Italic.ttf",
-      weight: "400",
-      style: "italic",
     },
     {
       path: "../public/Averia_Libre/AveriaLibre-Bold.ttf",
       weight: "700",
       style: "normal",
     },
-    {
-      path: "../public/Averia_Libre/AveriaLibre-BoldItalic.ttf",
-      weight: "700",
-      style: "italic",
-    },
   ],
   variable: "--font-averia-libre",
-  preload: false,
+  preload: true,
+  fallback: ["Georgia", "serif"],
+  adjustFontFallback: "Times New Roman",
 });
 
 export const metadata: Metadata = {

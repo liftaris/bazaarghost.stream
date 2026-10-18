@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
@@ -618,11 +619,12 @@ export function EmbedPanel() {
       )}
     >
       {/* The persistent PlayerHost is positioned over this slot */}
-      <PlayerSlot />
-
-      {playback && playback.processing.remainingRanges.length > 0 && (
-        <p className="px-3 py-1 text-xs text-muted-foreground">Processing is incomplete. More matchups may appear as the remaining sections finish.</p>
-      )}
+      <div className="relative">
+        <PlayerSlot />
+        {playback && playback.processing.remainingRanges.length > 0 && (
+          <p className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-card/80 px-3 py-1 text-xs text-muted-foreground">Processing is incomplete. More matchups may appear as the remaining sections finish.</p>
+        )}
+      </div>
       {/* Controls area */}
       <div>
         {/* Row 1: Meta + current ghost + controls — 3-col grid for true centering */}
@@ -700,13 +702,14 @@ export function EmbedPanel() {
           {/* Right: controls */}
           <div className="flex items-center justify-end gap-0.5">
             {/* Play / Pause */}
-            {isReady && playback?.player.platform === "twitch" && (
+            {(!playback || playback.player.platform === "twitch") && (
               <Button
                 variant="ghost"
                 size="icon"
                 className="size-7 text-muted-foreground hover:text-foreground"
                 title={isPaused ? "Play" : "Pause"}
                 onClick={togglePlay}
+                disabled={!isReady}
               >
                 {isPaused ? (
                   <Play className="size-3" />
@@ -717,13 +720,14 @@ export function EmbedPanel() {
             )}
 
             {/* Mute / Unmute */}
-            {isReady && playback?.player.platform === "twitch" && (
+            {(!playback || playback.player.platform === "twitch") && (
               <Button
                 variant="ghost"
                 size="icon"
                 className="size-7 text-muted-foreground hover:text-foreground"
                 title={isMuted ? "Unmute" : "Mute"}
                 onClick={toggleMute}
+                disabled={!isReady}
               >
                 {isMuted ? (
                   <VolumeX className="size-3" />
@@ -772,36 +776,46 @@ export function EmbedPanel() {
           </div>
         </div>
 
-        {/* Timeline — always visible */}
-        {isReady && playback?.player.platform === "twitch" && duration > 0 && (
+        {/* Timeline — fixed-height slot so late data doesn't shift layout */}
+        {(!playback || playback.player.platform === "twitch") && (
           <>
-            <div className="flex items-center justify-between px-3 pt-2 pb-1 text-xs text-muted-foreground">
-              <span className="truncate">
-                {meta?.vodTitle ?? `Video ${videoId}`}
-                {meta?.date && <span className="ml-1.5">{meta.date}</span>}
-              </span>
-              <span className="shrink-0 ml-2 tabular-nums">
-                {sortedGhosts.length} ghost{sortedGhosts.length !== 1 && "s"}
-                {" · "}
-                {formatTimestamp(duration)}
-              </span>
+            <div className="flex h-7 items-center justify-between px-3 pt-2 pb-1 text-xs text-muted-foreground">
+              {isReady && duration > 0 ? (
+                <>
+                  <span className="truncate">
+                    {meta?.vodTitle ?? `Video ${videoId}`}
+                    {meta?.date && <span className="ml-1.5">{meta.date}</span>}
+                  </span>
+                  <span className="shrink-0 ml-2 tabular-nums">
+                    {sortedGhosts.length} ghost{sortedGhosts.length !== 1 && "s"}
+                    {" · "}
+                    {formatTimestamp(duration)}
+                  </span>
+                </>
+              ) : (
+                <Skeleton className="h-3 w-48" />
+              )}
             </div>
-            <div className="px-3 py-3">
-              <EmbedTimeline
-                currentTime={currentTime}
-                duration={duration}
-                bazaarChapters={bazaarChapters}
-                ghosts={sortedGhosts}
-                currentGhostId={currentGhost?.detection_id ?? null}
-                onSeekGhost={seekToGhost}
-              />
+            <div className="h-[52px] px-3 py-3">
+              {isReady && duration > 0 ? (
+                <EmbedTimeline
+                  currentTime={currentTime}
+                  duration={duration}
+                  bazaarChapters={bazaarChapters}
+                  ghosts={sortedGhosts}
+                  currentGhostId={currentGhost?.detection_id ?? null}
+                  onSeekGhost={seekToGhost}
+                />
+              ) : (
+                <Skeleton className="h-full w-full" />
+              )}
             </div>
           </>
         )}
 
         {/* Contextual explore pills — quick filters for related results */}
-        {(currentGhost || meta) && (
-          <div className="flex flex-wrap items-center gap-1.5 border-t border-border px-3 py-2">
+        {(currentGhost || meta) ? (
+          <div className="flex min-h-[41px] flex-wrap items-center gap-1.5 border-t border-border px-3 py-2">
             <span className="mr-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
               See more
             </span>
@@ -838,6 +852,8 @@ export function EmbedPanel() {
               </button>
             )}
           </div>
+        ) : (
+          <div className="min-h-[41px] border-t border-border" />
         )}
       </div>
     </div>
