@@ -21,13 +21,17 @@ import { PROVIDERS, isKnownProvider } from "@/components/auth/provider-icons";
 import { authClient, type AuthProviderId, type LinkedAccount } from "@/lib/auth-client";
 
 export function ConnectedAccounts({ fresh }: { fresh: boolean }) {
-  const { providers, post } = useAuth();
+  const { providers, post, ensureProviders } = useAuth();
   const [accounts, setAccounts] = useState<LinkedAccount[] | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await authClient.$fetch<{ accounts: LinkedAccount[] }>("/accounts");
     setAccounts(data?.accounts ?? []);
   }, []);
+
+  useEffect(() => {
+    void ensureProviders();
+  }, [ensureProviders]);
 
   useEffect(() => {
     void load();

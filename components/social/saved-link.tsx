@@ -4,12 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useBookmarks } from "@/components/social/bookmarks-provider";
+import { useBookmarkActions } from "@/components/social/bookmarks-provider";
+import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
 
 export function SavedLink({ onNavigate }: { onNavigate?: () => void }) {
-  const { signedIn } = useBookmarks();
+  const { signedIn } = useBookmarkActions();
+  const { state } = useAuth();
   const active = usePathname() === "/saved";
+  if (state.status === "loading") return <span className="size-9 shrink-0" aria-hidden />;
   if (!signedIn) return null;
   return (
     <Button

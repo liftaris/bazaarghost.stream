@@ -24,12 +24,14 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
 
   if (state.status === "disabled") return null;
-  if (state.status === "loading") return <Skeleton className="size-9 rounded-full" />;
+  if (state.status === "loading") return <Slot><Skeleton className="size-9 rounded-full" /></Slot>;
   if (state.status === "anonymous") {
     return (
-      <Button asChild size="sm" onClick={onNavigate}>
-        <Link href="/login">Sign in</Link>
-      </Button>
+      <Slot>
+        <Button asChild size="sm" onClick={onNavigate}>
+          <Link href="/login">Sign in</Link>
+        </Button>
+      </Slot>
     );
   }
 
@@ -47,6 +49,7 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
+    <Slot>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
@@ -78,5 +81,11 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
+    </Slot>
   );
+}
+
+/** Fixed footprint so loading, signed-out and signed-in states never move the navbar. */
+function Slot({ children }: { children: React.ReactNode }) {
+  return <div className="flex h-9 w-[4.5rem] shrink-0 items-center justify-end">{children}</div>;
 }
