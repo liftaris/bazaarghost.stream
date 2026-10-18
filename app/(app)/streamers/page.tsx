@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function StreamersPage() {
-  const tabs = await showSearchTabs();
+  const tabs = showSearchTabs;
   if (!tabs) redirect("/search");
   return null;
 }
