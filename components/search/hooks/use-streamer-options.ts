@@ -17,7 +17,7 @@ export function useStreamerOptions({ effectiveStreamer, searchMode, queryParam, 
  const [resolveError,setResolveError]=useState<string|null>(null);
  const [resolving,setResolving]=useState(false);
  const [revision,setRevision]=useState(0);
- const result=useApiPage("/creators", {q: searchMode === "streamers" ? queryParam : debouncedQuery});
+ const result=useApiPage("/creators", {q: searchMode === "streamers" ? queryParam : debouncedQuery}, openStreamerPopover || searchMode === "streamers");
  useEffect(()=>{
    const controller=new AbortController(); setResolveError(null); setSelected(null);
    if(!effectiveStreamer) {setResolving(false);return;}
