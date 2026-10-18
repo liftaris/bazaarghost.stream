@@ -143,7 +143,7 @@ export const SearchHeader = forwardRef<HTMLDivElement, SearchHeaderProps>(
             <SearchInput
               value={inputValue}
               onChange={onInputChange}
-              placeholder="Search streamers..."
+              placeholder={searchMode === "saved" ? "Search saved..." : "Search streamers..."}
               isLoading={isLoading}
             />
           )}

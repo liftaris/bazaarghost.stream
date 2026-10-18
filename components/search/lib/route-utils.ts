@@ -8,6 +8,7 @@ const STATIC_PREFIXES = [
   "/search",
   "/streamers",
   "/vods",
+  "/saved",
   "/ghost",
   "/contact",
   "/donate",
@@ -30,6 +31,7 @@ const STATIC_PREFIXES = [
 export function deriveSearchMode(pathname: string): SearchMode {
   if (pathname.startsWith("/streamers")) return "streamers";
   if (pathname.startsWith("/vods")) return "vods";
+  if (pathname.startsWith("/saved")) return "saved";
   return "ghosts";
 }
 

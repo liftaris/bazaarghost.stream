@@ -25,6 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useEmbed, type EmbedGhost } from "@/components/embed-provider";
+import { BookmarkButton } from "@/components/social/bookmark-button";
 import { cn, secondsToTwitchTimestamp } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -737,6 +738,10 @@ export function EmbedPanel() {
                   <Volume2 className="size-3" />
                 )}
               </Button>
+            )}
+
+            {currentGhost?.matchup_id && (
+              <BookmarkButton matchupId={currentGhost.matchup_id} size="icon-sm" className="size-7" />
             )}
 
             {/* Copy shareable link */}

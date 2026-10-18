@@ -2,6 +2,7 @@ import type React from "react";
 import type { Metadata, Viewport } from "next";
 
 import { AuthProvider } from "@/components/auth/auth-provider";
+import { BookmarksProvider } from "@/components/social/bookmarks-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -153,7 +154,9 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <AuthProvider>
-            <div className="min-h-screen bg-background">{children}</div>
+            <BookmarksProvider>
+              <div className="min-h-screen bg-background">{children}</div>
+            </BookmarksProvider>
           </AuthProvider>
           <Toaster />
         </ThemeProvider>

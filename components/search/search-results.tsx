@@ -8,6 +8,7 @@ import {
 } from "@/components/ghost-result-row";
 import { VodResultRow, type VodResult } from "@/components/vod-result-row";
 import { StreamerResultRow } from "@/components/streamer-result-row";
+import { Bookmark } from "lucide-react";
 import type { SearchMode, StreamerOption } from "./types";
 
 /**
@@ -16,6 +17,11 @@ import type { SearchMode, StreamerOption } from "./types";
 interface SearchResultsProps {
   searchMode: SearchMode;
   queryParam: string;
+
+  // Saved state
+  savedResults: GhostResult[];
+  isSavedLoading: boolean;
+  isSavedEmpty: boolean;
 
   // Ghost state
   ghostResults: GhostResult[];
@@ -61,6 +67,9 @@ interface SearchResultsProps {
 export function SearchResults({
   searchMode,
   queryParam,
+  savedResults,
+  isSavedLoading,
+  isSavedEmpty,
   ghostResults,
   ghostTotalResults,
   isGhostLoading,
@@ -83,10 +92,42 @@ export function SearchResults({
 }: SearchResultsProps) {
   const isLoading =
     (searchMode === "ghosts" && isGhostLoading) ||
-    (searchMode === "vods" && isVodLoading);
+    (searchMode === "vods" && isVodLoading) ||
+    (searchMode === "saved" && isSavedLoading);
 
   return (
     <>
+      {searchMode === "saved" && (
+        <>
+          {savedResults.length > 0 && (
+            <VirtualizedResultList
+              items={savedResults}
+              totalCount={savedResults.length}
+              quiet
+              getItemKey={(g) => g.matchup_id}
+              renderItem={(ghost) => (
+                <GhostResultRow
+                  ghost={ghost}
+                  isActive={
+                    activeVideoId === ghost.vod_source_id &&
+                    Math.abs(activeTime - ghost.frame_time_seconds) < 5
+                  }
+                  onNavigateToStreamer={onNavigateToStreamer}
+                />
+              )}
+              onLoadMore={() => {}}
+              isLoadingMore={false}
+              hasMore={false}
+            />
+          )}
+          {isSavedEmpty && (
+            <div className="flex flex-1 items-center justify-center py-16">
+              <Bookmark aria-hidden className="size-10 text-muted-foreground/30" />
+            </div>
+          )}
+        </>
+      )}
+
       {searchMode === "ghosts" && (
         <>
           {!isGhostLoading && ghostResults.length > 0 && (

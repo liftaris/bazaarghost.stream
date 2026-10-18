@@ -10,6 +10,8 @@ import { useSearchUrl } from "./hooks/use-search-url";
 import { useStreamerOptions } from "./hooks/use-streamer-options";
 import { useGhostSearch } from "./hooks/use-ghost-search";
 import { useVodSearch } from "./hooks/use-vod-search";
+import { useSavedMatchups } from "./hooks/use-saved-matchups";
+import { useAuth } from "@/components/auth/auth-provider";
 
 import { SearchHeader } from "./search-header";
 import { SearchResults } from "./search-results";
@@ -59,6 +61,19 @@ export default function SearchPanel({
     replaceParams,
     buildSearchUrl,
   } = useSearchUrl();
+
+  // ---- Saved matchups ----
+  const { state: authState } = useAuth();
+  const {
+    ghostResults: savedResults,
+    isLoading: isSavedLoading,
+    isEmpty: isSavedEmpty,
+  } = useSavedMatchups({ enabled: searchMode === "saved", query: queryParam });
+
+  useEffect(() => {
+    if (searchMode === "saved" && (authState.status === "anonymous" || authState.status === "disabled"))
+      router.replace("/login?next=/saved");
+  }, [searchMode, authState.status, router]);
 
   // ---- Streamer options & picker ----
   const {
@@ -174,7 +189,8 @@ export default function SearchPanel({
   // ---- Shared UI elements ----
   const isLoading =
     (searchMode === "ghosts" && isGhostLoading) ||
-    (searchMode === "vods" && isVodLoading);
+    (searchMode === "vods" && isVodLoading) ||
+    (searchMode === "saved" && isSavedLoading);
 
   const searchHeader = (
     <SearchHeader
@@ -195,13 +211,16 @@ export default function SearchPanel({
     />
   );
 
-  const error = creatorsError ?? (searchMode === "ghosts" ? ghostError : vodError);
+  const error = searchMode === "saved" ? null : creatorsError ?? (searchMode === "ghosts" ? ghostError : vodError);
   const retry = creatorsError ? retryCreators : searchMode === "ghosts" ? retryGhosts : retryVods;
   const searchResults = (<>
     {error && <div role="alert" className="p-4">{error} <button onClick={retry}>Retry</button></div>}
     <SearchResults
       searchMode={searchMode}
       queryParam={queryParam}
+      savedResults={savedResults}
+      isSavedLoading={isSavedLoading}
+      isSavedEmpty={isSavedEmpty}
       ghostResults={ghostResults}
       ghostTotalResults={ghostTotalResults}
       isGhostLoading={isGhostLoading}

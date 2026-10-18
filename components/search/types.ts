@@ -6,8 +6,9 @@ import type { StreamerOption as Option } from "@/lib/result-models";
  * - `"ghosts"` — fuzzy-search ghost detections (default mode)
  * - `"vods"` — search available VODs by title or source ID
  * - `"streamers"` — client-side filter over tracked streamers
+ * - `"saved"` — the signed-in user's bookmarked matchups
  */
-export type SearchMode = "ghosts" | "vods" | "streamers";
+export type SearchMode = "ghosts" | "vods" | "streamers" | "saved";
 
 /**
  * Structured values extracted from the current URL pathname.

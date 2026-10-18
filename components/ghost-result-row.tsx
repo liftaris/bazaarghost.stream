@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useEmbed } from "@/components/embed-provider";
+import { BookmarkButton } from "@/components/social/bookmark-button";
 import type { GhostResult } from "@/lib/result-models";
 export type { GhostResult } from "@/lib/result-models";
 
@@ -108,6 +109,7 @@ export function GhostResultRow({
             </span>
           </div>
         </div>
+        <BookmarkButton matchupId={ghost.matchup_id} />
       </div>
     </div>
   );

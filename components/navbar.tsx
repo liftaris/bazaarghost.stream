@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/auth/user-menu";
+import { SavedLink } from "@/components/social/saved-link";
 import { Moon, Sun, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
@@ -116,6 +117,7 @@ export default function Navbar() {
               </a>
             </Button>
 
+            <SavedLink />
             <UserMenu />
             <Button
               variant="ghost"
@@ -136,6 +138,8 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Menu - Visible only on mobile */}
+          <div className="flex items-center md:hidden">
+          <SavedLink />
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button
@@ -250,6 +254,7 @@ export default function Navbar() {
               </div>
             </SheetContent>
           </Sheet>
+          </div>
         </div>
       </div>
     </nav>

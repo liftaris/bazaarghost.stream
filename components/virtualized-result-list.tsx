@@ -74,6 +74,8 @@ interface VirtualizedResultListProps<T> {
   getItemMatchField?: (item: T) => string;
   /** Current search query — used together with getItemMatchField. */
   searchQuery?: string;
+  /** Omit the result count and end-of-list text. */
+  quiet?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -208,6 +210,7 @@ function SeparatorContent({ label }: { label: string }) {
 export function VirtualizedResultList<T>({
   items,
   totalCount,
+  quiet = false,
   getItemKey,
   renderItem,
   onLoadMore,
@@ -367,13 +370,13 @@ export function VirtualizedResultList<T>({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Result count */}
-      <p className="shrink-0 border-b border-sidebar-border px-4 py-1 font-mono text-xs text-muted-foreground ">
+      {!quiet && <p className="shrink-0 border-b border-sidebar-border px-4 py-1 font-mono text-xs text-muted-foreground ">
         {items.length.toLocaleString()}
         {totalCount > items.length
           ? ` / ${totalCount.toLocaleString()}`
           : ""}{" "}
         result{totalCount !== 1 ? "s" : ""}{hasMore ? " loaded" : ""}
-      </p>
+      </p>}
 
       {/* Scroll container wrapper — relative so the sticky overlay is positioned to it */}
       <div className="relative min-h-0 flex-1">
@@ -473,7 +476,7 @@ export function VirtualizedResultList<T>({
           {/* End of list */}
           {!hasMore && items.length > 0 && (
             <p className="pt-4 pb-100 text-center font-mono text-xs text-muted-foreground">
-              end of results
+              {!quiet && "end of results"}
             </p>
           )}
         </div>
