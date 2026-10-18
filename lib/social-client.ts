@@ -5,7 +5,7 @@ interface FavoritePage {
 }
 
 async function failure(response: Response) {
-  const body = await response.json().catch(() => ({}));
+  const body = (await response.json().catch(() => ({}))) as { error?: unknown };
   return new Error(typeof body?.error === "string" ? body.error : "Request failed");
 }
 
