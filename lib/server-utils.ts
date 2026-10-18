@@ -1,12 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { BACKEND_PUBLIC_KEY, BACKEND_URL } from "@/lib/backend";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const supabaseServer = createClient<Database>(
-  supabaseUrl,
-  supabasePublishableKey,
+  BACKEND_URL,
+  BACKEND_PUBLIC_KEY,
   {
     auth: {
       persistSession: false,

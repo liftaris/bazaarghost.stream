@@ -1,16 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
-
-// Get environment variables with validation
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase environment variables");
-}
+import { BACKEND_PUBLIC_KEY, BACKEND_URL } from "@/lib/backend";
 
 // Create a single supabase client for interacting with your database
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(BACKEND_URL, BACKEND_PUBLIC_KEY, {
   auth: {
     persistSession: false, // No auth needed for public search
   },
