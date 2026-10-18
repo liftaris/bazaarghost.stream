@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Matchup, Playback } from "@/lib/api-contract";
 import { apiGet } from "@/lib/api-client";
@@ -21,7 +21,12 @@ export function GhostLoader({
   matchupId?: number;
   initialMatchup?: Matchup;
 }) {
-  const { setEmbed, setActiveGhost } = useEmbed();
+  const { setEmbed, setActiveGhost, activeGhost, videoId } = useEmbed();
+  // Read live player state inside the bootstrap effect without re-running it
+  const live = useRef({ activeGhost, videoId });
+  live.current = { activeGhost, videoId };
+  const initialMatchupRef = useRef(initialMatchup);
+  initialMatchupRef.current = initialMatchup;
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -30,8 +35,16 @@ export function GhostLoader({
     const load = async () => {
       try {
         if (matchupId !== undefined) {
-          const { matchup } = initialMatchup
-            ? { matchup: initialMatchup }
+          const initial = initialMatchupRef.current?.id === matchupId ? initialMatchupRef.current : undefined;
+          // Already showing this matchup (user click or passive advance): don't re-seek
+          const { activeGhost: ghost, videoId: loaded } = live.current;
+          if (
+            ghost?.matchup_id === matchupId &&
+            (!initial || loaded === `v:${initial.video.id}`)
+          )
+            return;
+          const { matchup } = initial
+            ? { matchup: initial }
             : await apiGet(`/matchups/${matchupId}`, {}, controller.signal);
           if (controller.signal.aborted) return;
           setEmbed(`v:${matchup.video.id}`, matchup.timestampSeconds, {
@@ -85,6 +98,7 @@ export function GhostLoader({
           );
         }
         if (controller.signal.aborted) return;
+        if (live.current.videoId === `v:${id}`) return;
         setEmbed(`v:${id}`, timestamp);
         if (!vodId.startsWith("v:"))
           router.replace(`/videos/${id}`, { scroll: false });
@@ -103,7 +117,6 @@ export function GhostLoader({
     username,
     occurrence,
     matchupId,
-    initialMatchup,
     setEmbed,
     setActiveGhost,
     router,

@@ -2,6 +2,7 @@
 
 import { Suspense, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { WorkspaceContext } from "@/components/workspace-context";
 import { EmbedProvider } from "@/components/embed-provider";
 import Navbar from "@/components/navbar";
 import SearchPanel from "@/components/search";
@@ -42,9 +43,11 @@ export function AppShell({
           className={cn("min-h-0 flex-1 flex-col", workspace ? "flex" : "hidden")}
         >
           {stats}
-          <Suspense>
-            <SearchPanel showSearchTabs={showSearchTabs} />
-          </Suspense>
+          <WorkspaceContext.Provider value={workspace}>
+            <Suspense>
+              <SearchPanel showSearchTabs={showSearchTabs} />
+            </Suspense>
+          </WorkspaceContext.Provider>
         </main>
       </div>
     </EmbedProvider>

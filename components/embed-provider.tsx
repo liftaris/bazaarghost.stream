@@ -81,6 +81,8 @@ interface EmbedContextValue extends EmbedState {
   activeGhost: EmbedGhost | null;
   /** Optimistically set the active ghost (e.g. on result row click, arrow nav). */
   setActiveGhost: (ghost: EmbedGhost | null) => void;
+  /** True while activeGhost is an optimistic (user-initiated) override. */
+  ghostIsOptimistic: boolean;
 
   // ---- VOD data (fetched from vod_embed_info) ----
   bazaarChapters: number[] | null;
@@ -171,58 +173,68 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   const bazaarChapters = playback.data?.chapters ?? null;
 
   const playerRef = useRef<any>(null);
-  const currentVideoRef = useRef<string | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const playerPlatformRef = useRef<string | null>(null);
+  const loadedVideoRef = useRef<string | null>(null);
+  const videoIdRef = useRef<string | null>(null);
+  const readyRef = useRef(false);
+  const pendingSeekRef = useRef<number | null>(null);
+  const youtubeReadyRef = useRef(false);
   const seekTargetRef = useRef<number | null>(null);
-  const containerElRef = useRef<HTMLElement | null>(null);
   const slotRef = useRef<HTMLElement | null>(null);
   const router = useRouter();
+  const [pageVisible, setPageVisible] = useState(true);
+  const [reloadNonce, setReloadNonce] = useState(0);
 
   const registerSlot = useCallback((el: HTMLElement | null) => {
     slotRef.current = el;
   }, []);
 
-  // ---- Poll player state ----
   useEffect(() => {
-    if (!isReady || !playerRef.current) {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-      return;
-    }
+    const update = () => setPageVisible(document.visibilityState !== "hidden");
+    update();
+    document.addEventListener("visibilitychange", update);
+    return () => document.removeEventListener("visibilitychange", update);
+  }, []);
 
-    pollRef.current = setInterval(() => {
-      const p = playerRef.current;
-      if (!p) return;
-      try {
-        const polledTime = p.getCurrentTime() ?? 0;
-        // If we're waiting for a seek to land, only resume polling currentTime
-        // once the player is within 2s of the target
-        if (seekTargetRef.current !== null) {
-          if (Math.abs(polledTime - seekTargetRef.current) < 2) {
-            seekTargetRef.current = null;
-            setCurrentTime(polledTime);
-          }
-          // otherwise skip — keep the optimistic value
-        } else {
+  const youtubeCommand = useCallback((func: string, args: unknown[] = []) => {
+    const frame = document.getElementById(CONTAINER_ID)?.querySelector("iframe");
+    frame?.contentWindow?.postMessage(
+      JSON.stringify({ event: "command", func, args }),
+      "https://www.youtube.com"
+    );
+  }, []);
+
+  /** Read the Twitch player into state (called on events and while polling). */
+  const syncFromPlayer = useCallback(() => {
+    const p = playerRef.current;
+    if (!p || playerPlatformRef.current !== "twitch") return;
+    try {
+      const polledTime = p.getCurrentTime() ?? 0;
+      // While a seek is in flight keep the optimistic value until it lands
+      if (seekTargetRef.current !== null) {
+        if (Math.abs(polledTime - seekTargetRef.current) < 2) {
+          seekTargetRef.current = null;
           setCurrentTime(polledTime);
         }
-        setDuration(p.getDuration() ?? 0);
-        setIsPaused(p.isPaused() ?? true);
-        setIsMuted(p.getMuted() ?? false);
-      } catch {
-        // Player may not be ready yet
+      } else {
+        setCurrentTime(polledTime);
       }
-    }, POLL_INTERVAL_MS);
+      const d = p.getDuration() ?? 0;
+      if (d > 0) setDuration(d);
+      setIsPaused(p.isPaused() ?? true);
+      setIsMuted(p.getMuted() ?? false);
+    } catch {
+      // Player may not be ready yet
+    }
+  }, []);
 
-    return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-    };
-  }, [isReady]);
+  // ---- Poll only while playing and visible ----
+  useEffect(() => {
+    if (!isReady || isPaused || !pageVisible || !playerRef.current) return;
+    syncFromPlayer();
+    const id = setInterval(syncFromPlayer, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [isReady, isPaused, pageVisible, syncFromPlayer]);
 
   useEffect(() => {
     if (!playback.data) return;
@@ -231,78 +243,177 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     setState(previous=>({...previous,meta:{streamerName:video.creator.name,streamerAvatar:video.creator.avatarUrl??"",vodTitle:video.title,date:video.publishedAt??""}}));
   },[playback.data]);
 
-  // ---- Create / update the Twitch player ----
-  useEffect(() => {
-    if (!state.videoId || !playback.data) return;
-    if (playback.data.video.id !== Number(state.videoId.slice(2))) return;
-    if (!playback.data.player.available) {setError("This video is no longer available on its original platform.");return;}
-    if (playback.data.player.platform !== "twitch") {
-      const container=document.getElementById(CONTAINER_ID);
-      if (!container || !playback.data.player.embedUrl) return;
-      playerRef.current=null; container.replaceChildren();
-      const frame=document.createElement("iframe");
-      const url=new URL(playback.data.player.embedUrl);
-      url.searchParams.set(playback.data.player.platform==="youtube"?"start":"t",String(Math.floor(state.timestamp??0)));
-      frame.src=url.href;frame.title=playback.data.video.title;
-      frame.allow="autoplay; fullscreen; picture-in-picture";frame.allowFullscreen=true;
-      frame.style.width="100%";frame.style.height="100%";frame.style.border="0";
-      container.appendChild(frame);setIsReady(true);setError(null);
-      return ()=>frame.remove();
+  const pause = useCallback(() => {
+    try {
+      if (playerPlatformRef.current === "twitch") playerRef.current?.pause();
+      else if (playerPlatformRef.current === "youtube") youtubeCommand("pauseVideo");
+    } catch {
+      // ignore
     }
-    let cancelled=false;
-    // The player lives in a persistent host, but if its container ever changes
-    // or the iframe is gone, drop stale refs so this load re-inits.
-    const liveContainer=document.getElementById(CONTAINER_ID);
-    if (liveContainer!==containerElRef.current || (playerRef.current && !liveContainer?.querySelector("iframe"))) {
-      containerElRef.current=liveContainer;
-      playerRef.current=null;
-      currentVideoRef.current=null;
-    }
-    const sameVideo = state.videoId === currentVideoRef.current;
+    setIsPaused(true);
+  }, [youtubeCommand]);
 
-    if (sameVideo && playerRef.current && state.timestamp != null) {
-      // Same VOD — just seek
-      playerRef.current.seek(state.timestamp);
-      playerRef.current.play();
+  const data = playback.data;
+  const dataVideoId = data?.video.id ?? null;
+  const platform = data?.player.platform ?? null;
+  const sourceId = data?.player.sourceId ?? null;
+  const embedUrl = data?.player.embedUrl ?? null;
+  const available = data?.player.available ?? true;
+  const videoTitle = data?.video.title ?? "";
+  const bilibiliHidden = platform === "bilibili" && !isVisible;
+
+  // ---- Create / update the player. Twitch: created once, setVideo on change ----
+  useEffect(() => {
+    setError(null);
+    if (!state.videoId || dataVideoId === null) return;
+    if (dataVideoId !== Number(state.videoId.slice(2))) return;
+    const container = document.getElementById(CONTAINER_ID);
+    if (!container) return;
+    if (!available) {
+      pause();
+      if (playerPlatformRef.current !== "twitch") {
+        container.replaceChildren();
+        playerRef.current = null;
+        playerPlatformRef.current = null;
+        loadedVideoRef.current = null;
+        readyRef.current = false;
+        setIsReady(false);
+      }
+      setError("This video is no longer available on its original platform.");
+      return;
+    }
+    if (platform !== "twitch") {
+      if (!embedUrl) return;
+      const old = container.querySelector("iframe");
+      if (old) old.remove();
+      playerRef.current = null;
+      playerPlatformRef.current = platform;
+      loadedVideoRef.current = null;
+      readyRef.current = false;
+      youtubeReadyRef.current = false;
+      if (bilibiliHidden) {
+        setIsReady(false);
+        return;
+      }
+      const start = Math.floor(pendingSeekRef.current ?? 0);
+      pendingSeekRef.current = null;
+      const frame = document.createElement("iframe");
+      const url = new URL(embedUrl);
+      url.searchParams.set(platform === "youtube" ? "start" : "t", String(start));
+      if (platform === "youtube") {
+        url.searchParams.set("enablejsapi", "1");
+        url.searchParams.set("origin", window.location.origin);
+      }
+      frame.src = url.href;
+      frame.title = videoTitle;
+      frame.allow = "autoplay; fullscreen; picture-in-picture";
+      frame.allowFullscreen = true;
+      frame.style.width = "100%";
+      frame.style.height = "100%";
+      frame.style.border = "0";
+      let onMessage: ((e: MessageEvent) => void) | null = null;
+      if (platform === "youtube") {
+        frame.addEventListener("load", () =>
+          frame.contentWindow?.postMessage(
+            JSON.stringify({ event: "listening", id: 1, channel: "widget" }),
+            "https://www.youtube.com"
+          )
+        );
+        onMessage = (e) => {
+          if (e.source !== frame.contentWindow || typeof e.data !== "string") return;
+          let msg: any;
+          try { msg = JSON.parse(e.data); } catch { return; }
+          if (msg.event === "onReady" || msg.event === "initialDelivery") {
+            if (!youtubeReadyRef.current) {
+              youtubeReadyRef.current = true;
+              readyRef.current = true;
+              if (pendingSeekRef.current !== null) {
+                youtubeCommand("seekTo", [pendingSeekRef.current, true]);
+                pendingSeekRef.current = null;
+              }
+            }
+          } else if (msg.event === "infoDelivery" && typeof msg.info?.playerState === "number") {
+            setIsPaused(msg.info.playerState !== 1);
+          }
+        };
+        window.addEventListener("message", onMessage);
+      }
+      container.appendChild(frame);
+      loadedVideoRef.current = state.videoId;
+      setIsReady(true);
+      return () => {
+        if (onMessage) window.removeEventListener("message", onMessage);
+        frame.remove();
+      };
+    }
+
+    // Twitch
+    if (
+      playerRef.current &&
+      playerPlatformRef.current === "twitch" &&
+      container.querySelector("iframe")
+    ) {
+      if (loadedVideoRef.current === state.videoId) return;
+      loadedVideoRef.current = state.videoId;
+      const start = pendingSeekRef.current ?? 0;
+      pendingSeekRef.current = null;
+      seekTargetRef.current = start;
+      setCurrentTime(start);
+      try {
+        playerRef.current.setVideo(sourceId, start);
+        playerRef.current.play();
+      } catch {
+        // ignore
+      }
       return;
     }
 
-    // Different VOD — create new player
-    currentVideoRef.current = state.videoId;
+    let cancelled = false;
+    playerRef.current = null;
+    playerPlatformRef.current = "twitch";
+    loadedVideoRef.current = state.videoId;
+    readyRef.current = false;
     setIsReady(false);
-    setError(null);
     setCurrentTime(0);
-    setDuration(0);
     setIsPaused(true);
 
     const init = async () => {
       try {
         await loadTwitchScript();
-        if(cancelled)return;
-
-        const container = document.getElementById(CONTAINER_ID);
-        if (!container) return;
-
-        // Destroy previous
-        if (playerRef.current) {
-          playerRef.current = null;
-          container.innerHTML = "";
-        }
-
-        const hours = Math.floor((state.timestamp ?? 0) / 3600);
-        const minutes = Math.floor(((state.timestamp ?? 0) % 3600) / 60);
-        const seconds = Math.floor((state.timestamp ?? 0) % 60);
-
-        playerRef.current = new window.Twitch!.Player(CONTAINER_ID, {
-          video: playback.data!.player.sourceId,
+        if (cancelled) return;
+        container.replaceChildren();
+        const start = Math.floor(pendingSeekRef.current ?? 0);
+        pendingSeekRef.current = null;
+        const hours = Math.floor(start / 3600);
+        const minutes = Math.floor((start % 3600) / 60);
+        const seconds = start % 60;
+        const player = new window.Twitch!.Player(CONTAINER_ID, {
+          video: sourceId,
           width: "100%",
           height: "100%",
           autoplay: true,
           time: `${hours}h${minutes}m${seconds}s`,
           parent: [window.location.hostname],
         });
-
-        playerRef.current.addEventListener("ready", () => setIsReady(true));
+        playerRef.current = player;
+        player.addEventListener("ready", () => {
+          readyRef.current = true;
+          setIsReady(true);
+          if (pendingSeekRef.current !== null) {
+            player.seek(pendingSeekRef.current);
+            pendingSeekRef.current = null;
+          }
+        });
+        player.addEventListener("playing", () => {
+          setIsPaused(false);
+          syncFromPlayer();
+        });
+        player.addEventListener("pause", () => {
+          setIsPaused(true);
+          syncFromPlayer();
+        });
+        player.addEventListener("ended", () => setIsPaused(true));
+        player.addEventListener("seek", () => syncFromPlayer());
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to initialize player"
@@ -311,13 +422,14 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     };
 
     void init();
-    return ()=>{cancelled=true;};
-  }, [state.videoId, state.timestamp, playback.data]);
+    return () => {
+      cancelled = true;
+    };
+  }, [state.videoId, dataVideoId, platform, sourceId, embedUrl, available, videoTitle, bilibiliHidden, reloadNonce, pause, syncFromPlayer, youtubeCommand]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
       if (playerRef.current) {
         const container = document.getElementById(CONTAINER_ID);
         if (container) container.innerHTML = "";
@@ -373,29 +485,58 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ---- Public API ----
+  const seek = useCallback((seconds: number) => {
+    seekTargetRef.current = seconds; // suppress poll until player catches up
+    setCurrentTime(seconds); // optimistic update
+    const loaded = loadedVideoRef.current === videoIdRef.current;
+    const p = playerRef.current;
+    if (loaded && readyRef.current && playerPlatformRef.current === "twitch" && p) {
+      p.seek(seconds);
+    } else if (loaded && playerPlatformRef.current === "youtube" && youtubeReadyRef.current) {
+      youtubeCommand("seekTo", [seconds, true]);
+    } else if (loaded && playerPlatformRef.current === "bilibili") {
+      // Bilibili has no seek API: reload, only ever on explicit user seeks
+      pendingSeekRef.current = seconds;
+      setReloadNonce((n) => n + 1);
+    } else {
+      pendingSeekRef.current = seconds;
+    }
+  }, [youtubeCommand]);
+
   const setEmbed = useCallback(
     (videoId: string, timestamp: number, meta?: EmbedMeta) => {
+      const changed = videoIdRef.current !== videoId;
+      videoIdRef.current = videoId;
       setState((prev) => ({
         ...prev,
         videoId,
         timestamp,
-        meta: meta ?? prev.meta,
+        meta: meta ?? (changed ? null : prev.meta),
       }));
+      if (changed) {
+        setGhostOverride(null);
+        setError(null);
+      }
       setIsVisible(true);
+      seek(timestamp);
+      if (!changed) {
+        try {
+          if (playerPlatformRef.current === "twitch" && readyRef.current) playerRef.current?.play();
+        } catch {
+          // ignore
+        }
+      }
     },
-    []
+    [seek]
   );
 
   const hideEmbed = useCallback(() => {
+    pause();
     setIsVisible(false);
-  }, []);
+  }, [pause]);
 
   const play = useCallback(() => {
     playerRef.current?.play();
-  }, []);
-
-  const pause = useCallback(() => {
-    playerRef.current?.pause();
   }, []);
 
   const togglePlay = useCallback(() => {
@@ -414,17 +555,11 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     if (!p) return;
     try {
       p.setMuted(!p.getMuted());
+      setIsMuted(p.getMuted());
     } catch {
       // ignore
     }
   }, []);
-
-  const seek = useCallback((seconds: number) => {
-    seekTargetRef.current = seconds; // suppress poll until player catches up
-    setCurrentTime(seconds); // optimistic update
-    if (playback.data?.player.platform !== "twitch") setState(previous=>({...previous,timestamp:seconds}));
-    else playerRef.current?.seek(seconds);
-  }, [playback.data?.player.platform]);
 
   return (
     <EmbedContext.Provider
@@ -450,6 +585,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
         ghosts: sortedGhosts,
         activeGhost,
         setActiveGhost,
+        ghostIsOptimistic: ghostOverride !== null,
         bazaarChapters,
       }}
     >
@@ -463,10 +599,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
           const url = activeGhost?.matchup_id ? `/matchups/${activeGhost.matchup_id}` : state.videoId?.startsWith("v:") ? `/videos/${state.videoId.slice(2)}` : null;
           if (url) router.push(url, { scroll: false });
         }}
-        onClose={() => {
-          pause();
-          hideEmbed();
-        }}
+        onClose={hideEmbed}
       />
     </EmbedContext.Provider>
   );
