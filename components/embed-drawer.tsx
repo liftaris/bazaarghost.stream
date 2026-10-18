@@ -1,19 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ChevronUp, Pause, Play } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { EmbedPanel } from "@/components/embed-panel";
 import { useEmbed } from "@/components/embed-provider";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 /**
- * Mobile-only bottom sheet for the Twitch embed.
- *
- * The EmbedPanel (and its Twitch iframe) is always mounted in the DOM —
- * never inside a portal — so the player is never destroyed on open/close.
- * Visibility is controlled purely with CSS transforms.
+ * Embed region: a bottom sheet below `md`, the static right-hand pane at `md`
+ * and up. It is always rendered (closed = transform + inert) and only hosts the
+ * PlayerSlot; the persistent PlayerHost follows the slot, so the iframe is
+ * never destroyed on open/close or when crossing the breakpoint.
  *
  * `headerHeight` is the measured height of the search header so the sheet
  * stops just below it, keeping the search bar interactive while watching.
@@ -22,9 +21,10 @@ import { cn } from "@/lib/utils";
 interface EmbedDrawerProps {
   /** Pixel height of the search header bar. The sheet will not cover it. */
   headerHeight?: number;
+  children: ReactNode;
 }
 
-export function EmbedDrawer({ headerHeight = 0 }: EmbedDrawerProps) {
+export function EmbedDrawer({ headerHeight = 0, children }: EmbedDrawerProps) {
   const {
     isVisible,
     videoId,
@@ -37,6 +37,7 @@ export function EmbedDrawer({ headerHeight = 0 }: EmbedDrawerProps) {
     activeGhost,
   } = useEmbed();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const currentGhostName = activeGhost?.username ?? null;
 
@@ -67,13 +68,10 @@ export function EmbedDrawer({ headerHeight = 0 }: EmbedDrawerProps) {
     play();
   }, [play]);
 
-  // Nothing loaded at all — render nothing
-  if (!isVisible || !videoId) return null;
-
   return (
     <>
       {/* Persistent bottom bar — visible when sheet is closed */}
-      {!sheetOpen && (
+      {isVisible && !!videoId && !sheetOpen && (
         <button
           type="button"
           onClick={handleReopen}
@@ -146,22 +144,22 @@ export function EmbedDrawer({ headerHeight = 0 }: EmbedDrawerProps) {
 
       {/* Bottom sheet — slides up to just below the search header */}
       <div
+        inert={isMobile && !sheetOpen}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl border-t border-border bg-card transition-transform duration-300 ease-out md:hidden",
+          "fixed inset-x-0 bottom-0 z-40 flex max-h-[calc(100svh-var(--sheet-top))] flex-col rounded-t-2xl border-t border-border bg-card transition-transform duration-300 ease-out",
+          "md:static md:z-auto md:max-h-none md:min-h-0 md:min-w-0 md:flex-1 md:translate-y-0 md:rounded-none md:border-t-0 md:bg-background md:transition-none",
           sheetOpen ? "translate-y-0" : "translate-y-full"
         )}
-        style={{ maxHeight: `calc(100svh - ${headerHeight}px)` }}
+        style={{ "--sheet-top": `${headerHeight}px` } as CSSProperties}
       >
         {/* Drag handle */}
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-        <div className="flex w-full justify-center py-2" onClick={handleClose}>
+        <div className="flex w-full justify-center py-2 md:hidden" onClick={handleClose}>
           <div className="h-1.5 w-10 rounded-full bg-muted" />
         </div>
 
         {/* Embed content — always in DOM */}
-        <div className="flex-1 overflow-y-auto">
-          <EmbedPanel />
-        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
       </div>
     </>
   );
