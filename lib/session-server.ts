@@ -20,7 +20,7 @@ export async function getServerSession(): Promise<ServerSession> {
       const identity = mockSessionFromCookie(cookie) as Identity | null;
       return identity ? { status: "authenticated", identity } : { status: "anonymous" };
     }
-    if (!cookie) return { status: "anonymous" };
+    if (!cookie || !/(?:^|;\s*)(?:__Host-)?bazaarghost_session=/.test(cookie)) return { status: "anonymous" };
     const host = incoming.get("x-forwarded-host") ?? incoming.get("host");
     if (!host) return { status: "unknown" };
     const proto = incoming.get("x-forwarded-proto") ?? "https";

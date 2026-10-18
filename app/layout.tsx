@@ -150,6 +150,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Per-user: pages under this layout must not export `revalidate` (ISR would cache one user's session for everyone).
   const session = await getServerSession();
   return (
     <html lang="en" suppressHydrationWarning>

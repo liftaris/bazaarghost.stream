@@ -1,10 +1,16 @@
 // LOCAL REVIEW ONLY. Not committed. Enabled with AUTH_MOCK=1 in dev.
 const FRESH = 5 * 60_000;
-const store = {
-  sessions: new Map<string, { id: string; createdAt: number; expiresAt: number }>(),
-  favorites: new Set<number>(),
-  accounts: [] as { id: string; providerId: string; accountId: string; createdAt: string }[],
+type Store = {
+  sessions: Map<string, { id: string; createdAt: number; expiresAt: number }>;
+  favorites: Set<number>;
+  accounts: { id: string; providerId: string; accountId: string; createdAt: string }[];
 };
+// Shared across module instances (route handlers and the RSC layout load separate copies in dev).
+const store: Store = ((globalThis as { __authMock?: Store }).__authMock ??= {
+  sessions: new Map(),
+  favorites: new Set(),
+  accounts: [],
+});
 const json = (d: unknown, status = 200, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(d), { status, headers: { "content-type": "application/json", ...headers } });
 const cookieOf = (r: Request) => /mock_session=([^;]+)/.exec(r.headers.get("cookie") ?? "")?.[1];
