@@ -1,4 +1,4 @@
-import type { Database } from "@/types/supabase";
+import type { StreamerOption as Option } from "@/lib/result-models";
 
 /**
  * The active search tab / content mode.
@@ -31,7 +31,7 @@ export interface RouteContext {
  * option type for the streamer picker dropdown and the streamers result list.
  */
 export type StreamerOption =
-  Database["public"]["Views"]["streamers_with_detections"]["Row"];
+  Option;
 
 /**
  * A display-ready representation of the currently-selected streamer filter.
@@ -41,7 +41,7 @@ export type StreamerOption =
  */
 export interface ResolvedStreamer {
   /** The streamer's numeric ID (nullable because the view column is nullable). */
-  id: number | null;
+  id: string | null;
   /** The streamer's display name (e.g. `"nl_Kripp"`). */
   displayName: string;
   /** URL to the streamer's avatar image. */

@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import type { SearchType } from "@/components/unified-search";
+import type { SearchMode as SearchType } from "@/components/search/types";
 
 export interface BreadcrumbSegment {
   label: string;

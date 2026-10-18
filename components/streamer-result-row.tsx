@@ -12,7 +12,7 @@ function formatNumber(n: number): string {
 
 interface StreamerResultRowProps {
   streamer: StreamerWithDetections;
-  onNavigateToVods: (streamerId: number, name: string) => void;
+  onNavigateToVods: (streamerId: string, name: string) => void;
 }
 
 export function StreamerResultRow({
@@ -23,7 +23,7 @@ export function StreamerResultRow({
     <button
       onClick={() =>
         onNavigateToVods(
-          streamer.streamer_id ?? 0,
+          streamer.streamer_id,
           streamer.streamer_display_name ?? ""
         )
       }
@@ -43,16 +43,7 @@ export function StreamerResultRow({
         <p className="truncate text-sm font-medium text-card-foreground">
           {streamer.streamer_display_name}
         </p>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Ghost className="size-3" />
-            {formatNumber(streamer.detection_count ?? 0)}
-          </span>
-          <span className="flex items-center gap-1">
-            <Video className="size-3" />
-            {streamer.vod_count ?? 0} VODs
-          </span>
-        </div>
+        <p className="text-xs text-muted-foreground">{streamer.platform}</p>
       </div>
 
       <ChevronRight className="size-4 shrink-0 text-muted-foreground" />

@@ -7,23 +7,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useEmbed } from "@/components/embed-provider";
 
-export interface VodResult {
-  vod_id: number;
-  vod_source_id: string;
-  title: string;
-  published_at: string;
-  duration_seconds: number;
-  streamer_id: number;
-  streamer_display_name: string;
-  streamer_avatar: string;
-  streamer_login: string;
-  ghost_count: number;
-}
+import type { VodResult } from "@/lib/result-models";
+export type { VodResult } from "@/lib/result-models";
 
 interface VodResultRowProps {
   vod: VodResult;
   isActive: boolean;
-  onNavigateToStreamer: (streamerId: number, name: string) => void;
+  onNavigateToStreamer: (streamerId: string, name: string) => void;
   onNavigateToGhosts: (vodSourceId: string, title: string) => void;
   /** Optional override for the row click (used by SearchPanel for route-based navigation). */
   onRowClick?: () => void;

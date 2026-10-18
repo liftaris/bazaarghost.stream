@@ -469,6 +469,7 @@ function EmbedTimeline({
 export function EmbedPanel() {
   const {
     videoId,
+    playback,
     timestamp,
     meta,
     isVisible,
@@ -502,11 +503,10 @@ export function EmbedPanel() {
       overrideStreamer?: string
     ) => {
       const vid = overrideVideoId ?? videoId;
-      const streamer = overrideStreamer ?? meta?.streamerName;
-      if (!vid || !streamer) return null;
-      return ghost
-        ? `/${encodeURIComponent(streamer)}/${vid}/${encodeURIComponent(ghost.username)}`
-        : `/${encodeURIComponent(streamer)}/${vid}`;
+      if (!vid) return null;
+      return ghost?.matchup_id ? `/matchups/${ghost.matchup_id}`
+        : vid.startsWith("v:") ? `/videos/${vid.slice(2)}`
+        : `/${encodeURIComponent(overrideStreamer ?? meta?.streamerName ?? "")}/${vid}`;
     },
     [videoId, meta?.streamerName]
   );
@@ -626,6 +626,9 @@ export function EmbedPanel() {
         )}
       </div>
 
+      {playback && playback.processing.remainingRanges.length > 0 && (
+        <p className="px-3 py-1 text-xs text-muted-foreground">Processing is incomplete. More matchups may appear as the remaining sections finish.</p>
+      )}
       {/* Controls area */}
       <div>
         {/* Row 1: Meta + current ghost + controls — 3-col grid for true centering */}
@@ -703,7 +706,7 @@ export function EmbedPanel() {
           {/* Right: controls */}
           <div className="flex items-center justify-end gap-0.5">
             {/* Play / Pause */}
-            {isReady && (
+            {isReady && playback?.player.platform === "twitch" && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -720,7 +723,7 @@ export function EmbedPanel() {
             )}
 
             {/* Mute / Unmute */}
-            {isReady && (
+            {isReady && playback?.player.platform === "twitch" && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -755,7 +758,7 @@ export function EmbedPanel() {
                   } else {
                     // No streamer metadata available — fall back to Twitch link
                     const t = secondsToTwitchTimestamp(timestamp ?? 0);
-                    const url = `https://www.twitch.tv/videos/${videoId}?t=${t}`;
+                    const url = playback?.player.platform === "twitch" ? `https://www.twitch.tv/videos/${playback.player.sourceId}?t=${t}` : playback?.player.watchUrl ?? "";
                     navigator.clipboard.writeText(url);
                   }
                 }}
@@ -778,7 +781,7 @@ export function EmbedPanel() {
         </div>
 
         {/* Timeline — always visible */}
-        {isReady && duration > 0 && (
+        {isReady && playback?.player.platform === "twitch" && duration > 0 && (
           <>
             <div className="flex items-center justify-between px-3 pt-2 pb-1 text-xs text-muted-foreground">
               <span className="truncate">

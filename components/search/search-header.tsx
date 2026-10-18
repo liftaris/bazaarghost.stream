@@ -20,6 +20,7 @@ interface SearchHeaderProps {
 
   // Streamer picker state (shared between ghost & vod modes)
   streamerOptions: StreamerOption[];
+  pickerQuery: string; onPickerQuery: (value:string)=>void; moreCreators:boolean; onLoadCreators:()=>void;
   resolvedStreamer: ResolvedStreamer | null;
   effectiveStreamer: string | null;
   openStreamerPopover: boolean;
@@ -48,7 +49,7 @@ export const SearchHeader = forwardRef<HTMLDivElement, SearchHeaderProps>(
       isLoading,
       onInputChange,
       onModeChange,
-      streamerOptions,
+      streamerOptions,pickerQuery,onPickerQuery,moreCreators,onLoadCreators,
       resolvedStreamer,
       effectiveStreamer,
       openStreamerPopover,
@@ -102,7 +103,7 @@ export const SearchHeader = forwardRef<HTMLDivElement, SearchHeaderProps>(
           {searchMode === "ghosts" ? (
             <div className="flex flex-col items-stretch gap-2 @[20rem]:flex-row @[20rem]:items-center">
               <StreamerPicker
-                streamerOptions={streamerOptions}
+                streamerOptions={streamerOptions} pickerQuery={pickerQuery} onPickerQuery={onPickerQuery} moreCreators={moreCreators} onLoadCreators={onLoadCreators}
                 resolvedStreamer={resolvedStreamer}
                 effectiveStreamer={effectiveStreamer}
                 open={openStreamerPopover}
@@ -123,7 +124,7 @@ export const SearchHeader = forwardRef<HTMLDivElement, SearchHeaderProps>(
           ) : searchMode === "vods" ? (
             <div className="flex items-center gap-2">
               <StreamerPicker
-                streamerOptions={streamerOptions}
+                streamerOptions={streamerOptions} pickerQuery={pickerQuery} onPickerQuery={onPickerQuery} moreCreators={moreCreators} onLoadCreators={onLoadCreators}
                 resolvedStreamer={resolvedStreamer}
                 effectiveStreamer={effectiveStreamer}
                 open={openStreamerPopover}

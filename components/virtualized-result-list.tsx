@@ -372,7 +372,7 @@ export function VirtualizedResultList<T>({
         {totalCount > items.length
           ? ` / ${totalCount.toLocaleString()}`
           : ""}{" "}
-        result{totalCount !== 1 ? "s" : ""}
+        result{totalCount !== 1 ? "s" : ""}{hasMore ? " loaded" : ""}
       </p>
 
       {/* Scroll container wrapper — relative so the sticky overlay is positioned to it */}

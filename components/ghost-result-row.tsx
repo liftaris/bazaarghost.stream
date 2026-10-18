@@ -5,15 +5,15 @@ import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useEmbed } from "@/components/embed-provider";
-import type { Database } from "@/types/supabase";
+import type { GhostResult } from "@/lib/result-models";
+export type { GhostResult } from "@/lib/result-models";
 
-export type GhostResult =
-  Database["public"]["Functions"]["fuzzy_search_detections"]["Returns"][number];
+
 
 interface GhostResultRowProps {
   ghost: GhostResult;
   isActive: boolean;
-  onNavigateToStreamer: (streamerId: number, name: string) => void;
+  onNavigateToStreamer: (streamerId: string, name: string) => void;
 }
 
 function formatDate(iso: string): string {
@@ -35,19 +35,20 @@ export function GhostResultRow({
   const handlePlay = () => {
     // Optimistic ghost + URL update before the player seek lands
     setActiveGhost({
+      matchup_id: ghost.matchup_id,
       detection_id: ghost.detection_id,
       username: ghost.username,
       rank: ghost.rank,
       frame_time_seconds: ghost.frame_time_seconds,
     });
 
-    const url = `/${encodeURIComponent(ghost.streamer_display_name)}/${ghost.vod_source_id}/${encodeURIComponent(ghost.username)}`;
+    const url = `/matchups/${ghost.matchup_id}`;
     router.push(url, { scroll: false });
 
     setEmbed(ghost.vod_source_id, ghost.frame_time_seconds, {
       streamerName: ghost.streamer_display_name,
       streamerAvatar: ghost.streamer_avatar,
-      vodTitle: `Video ${ghost.vod_source_id}`,
+      vodTitle: ghost.vod_title,
       date: formatDate(ghost.actual_timestamp),
     });
   };

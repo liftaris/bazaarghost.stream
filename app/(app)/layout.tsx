@@ -22,8 +22,7 @@ export default async function AppLayout({
         <Navbar />
         <main className="flex min-h-0 flex-1 flex-col">
           <p className="shrink-0 border-b border-sidebar-border py-1 text-center font-mono text-xs text-muted-foreground">
-            tracking {stats.streamers} streamers &middot; {stats.vods} vods
-            &middot; {stats.matchups} matchups
+            {stats ? `tracking ${stats.streamers} creators · ${stats.vods} videos · ${stats.matchups} matchups` : "Statistics temporarily unavailable"}
           </p>
           {/* children renders GhostLoader (null) on embed routes, nothing on search routes */}
           {children}

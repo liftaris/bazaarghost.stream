@@ -68,6 +68,7 @@ export default function SearchPanel({
     openStreamerPopover,
     setOpenStreamerPopover,
     handleSelectStreamer,
+    pickerQuery,setPickerQuery,loading:creatorsLoading,error:creatorsError,hasMore:moreCreators,loadMore:loadCreators,retry:retryCreators,filterReady,
   } = useStreamerOptions({
     effectiveStreamer,
     searchMode,
@@ -83,12 +84,12 @@ export default function SearchPanel({
     isLoading: isGhostLoading,
     isLoadingMore: isGhostLoadingMore,
     hasMoreGhosts,
-    loadMoreGhosts,
+    loadMoreGhosts,error:ghostError,retry:retryGhosts,
   } = useGhostSearch({
     queryParam,
     streamerId: resolvedStreamer?.id ?? null,
     effectiveVod,
-    enabled: searchMode === "ghosts",
+    enabled: searchMode === "ghosts" && filterReady,
   });
 
   // ---- VOD search ----
@@ -98,18 +99,17 @@ export default function SearchPanel({
     isLoading: isVodLoading,
     isLoadingMore: isVodLoadingMore,
     hasMoreVods,
-    loadMoreVods,
+    loadMoreVods,error:vodError,retry:retryVods,
   } = useVodSearch({
     queryParam,
-    streamerDisplayName: resolvedStreamer?.displayName ?? null,
-    streamerOptions,
-    enabled: searchMode === "vods",
+    streamerId: resolvedStreamer?.id ?? null,
+    enabled: searchMode === "vods" && filterReady,
   });
 
   /** Navigate to a streamer's page at `/:name`. */
   const handleNavigateToStreamer = useCallback(
-    (_streamerId: number, name: string) => {
-      router.push(`/${encodeURIComponent(name)}`, { scroll: false });
+    (streamerId: string, _name: string) => {
+      router.push(`/search?streamer=${encodeURIComponent(streamerId)}`, { scroll: false });
     },
     [router]
   );
@@ -125,7 +125,7 @@ export default function SearchPanel({
   /** Navigate to the VOD embed route at `/:name/:vodId`. */
   const handleVodClick = useCallback(
     (vod: VodResult) => {
-      const path = `/${encodeURIComponent(vod.streamer_display_name)}/${vod.vod_source_id}`;
+      const path = `/videos/${vod.vod_id}`;
       router.push(path, { scroll: false });
     },
     [router]
@@ -133,8 +133,8 @@ export default function SearchPanel({
 
   /** Navigate to a streamer's page (used from the streamers result list). */
   const handleStreamerClick = useCallback(
-    (_streamerId: number, name: string) => {
-      router.push(`/${encodeURIComponent(name)}`, { scroll: false });
+    (streamerId: string, _name: string) => {
+      router.push(`/search?streamer=${encodeURIComponent(streamerId)}`, { scroll: false });
     },
     [router]
   );
@@ -191,10 +191,14 @@ export default function SearchPanel({
       openStreamerPopover={openStreamerPopover}
       onOpenStreamerPopover={setOpenStreamerPopover}
       onSelectStreamer={handleSelectStreamer}
+      pickerQuery={pickerQuery} onPickerQuery={setPickerQuery} moreCreators={moreCreators} onLoadCreators={loadCreators}
     />
   );
 
-  const searchResults = (
+  const error = creatorsError ?? (searchMode === "ghosts" ? ghostError : vodError);
+  const retry = creatorsError ? retryCreators : searchMode === "ghosts" ? retryGhosts : retryVods;
+  const searchResults = (<>
+    {error && <div role="alert" className="p-4">{error} <button onClick={retry}>Retry</button></div>}
     <SearchResults
       searchMode={searchMode}
       queryParam={queryParam}
@@ -213,11 +217,12 @@ export default function SearchPanel({
       hasMoreVods={hasMoreVods}
       loadMoreVods={loadMoreVods}
       filteredStreamers={filteredStreamers}
+      hasMoreCreators={moreCreators} loadMoreCreators={loadCreators} creatorsLoading={creatorsLoading}
       onNavigateToStreamer={handleNavigateToStreamer}
       onNavigateToVodGhosts={handleNavigateToVodGhosts}
       onVodClick={handleVodClick}
       onStreamerClick={handleStreamerClick}
-    />
+    /></>
   );
 
   // ---- Layout branching ----

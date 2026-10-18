@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase-client";
+import type { Page, CreatorQuality } from "@/lib/api-contract";
+import { apiGet } from "@/lib/api-client";
 
 interface LowConfidenceStreamer {
   login: string;
@@ -16,16 +17,14 @@ export function LowConfidenceStreamers() {
   useEffect(() => {
     const fetchLowConfidenceStreamers = async () => {
       try {
-        const { data, error } = await supabase
-          .from("streamer_detection_stats")
-          .select("login, display_name, avg_confidence")
-          .lt("avg_confidence", 0.5)
-          .order("display_name", { ascending: true })
-          .not("avg_confidence", "is", null);
-
-        if (error) throw error;
-
-        setStreamers(data as LowConfidenceStreamer[]);
+        const items: LowConfidenceStreamer[] = [];
+        let cursor: string | null = null;
+        do {
+          const page: Page<CreatorQuality> = await apiGet("/creators/quality", { cursor });
+          items.push(...page.items.map(row=>({login:row.login,display_name:row.displayName,avg_confidence:row.averageConfidence})));
+          cursor=page.nextCursor;
+        } while(cursor);
+        setStreamers(items);
       } catch (err) {
         console.error("Error fetching low confidence streamers:", err);
       } finally {

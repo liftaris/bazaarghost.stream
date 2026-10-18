@@ -13,6 +13,8 @@ const STATIC_PREFIXES = [
   "/donate",
   "/how-it-works",
   "/api",
+  "/matchups",
+  "/videos",
 ];
 
 /**
@@ -53,6 +55,9 @@ export function deriveRouteContext(pathname: string): RouteContext {
     pathVodId: null,
     pathUsername: null,
   };
+
+  const video = pathname.match(/^\/videos\/(\d+)$/);
+  if(video)return {...empty,pathVodId:`v:${video[1]}`};
 
   // Bail out on known static prefixes
   if (

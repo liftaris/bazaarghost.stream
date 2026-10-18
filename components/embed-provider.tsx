@@ -10,13 +10,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { supabase } from "@/lib/supabase-client";
+import { usePlayback } from "@/hooks/use-playback";
+import type { Playback } from "@/lib/api-contract";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface EmbedGhost {
+  matchup_id?: number;
   detection_id: string;
   username: string;
   rank: string | null;
@@ -37,6 +39,7 @@ interface EmbedState {
 }
 
 interface EmbedContextValue extends EmbedState {
+  playback: Playback | null;
   /** Load a VOD (or seek if already loaded). Pass meta for the info bar. */
   setEmbed: (videoId: string, timestamp: number, meta?: EmbedMeta) => void;
   /** Hide the embed panel entirely. */
@@ -153,14 +156,15 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   const [duration, setDuration] = useState(0);
 
   // Ghost markers
-  const [ghosts, setGhosts] = useState<EmbedGhost[]>([]);
+  const playback = usePlayback(state.videoId);
+  const ghosts = useMemo(() => playback.markers.map(marker => ({matchup_id:marker.id,detection_id:String(marker.id),username:marker.username,rank:marker.rank,frame_time_seconds:marker.timestampSeconds})),[playback.markers]);
 
   // Optimistic ghost override — when non-null, takes precedence over time-derived.
   // Cleared once the polled currentTime catches up to the ghost's timestamp.
   const [ghostOverride, setGhostOverride] = useState<EmbedGhost | null>(null);
 
   // VOD data (fetched from vod_embed_info)
-  const [bazaarChapters, setBazaarChapters] = useState<number[] | null>(null);
+  const bazaarChapters = playback.data?.chapters ?? null;
 
   const playerRef = useRef<any>(null);
   const currentVideoRef = useRef<string | null>(null);
@@ -209,90 +213,32 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     };
   }, [isReady]);
 
-  // ---- Fetch VOD data + all ghosts when VOD changes ----
-  const fetchedVodRef = useRef<string | null>(null);
-
   useEffect(() => {
-    if (!state.videoId) {
-      setBazaarChapters(null);
-      setGhosts([]);
-      fetchedVodRef.current = null;
-      return;
-    }
-
-    // Skip if we already fetched for this VOD
-    if (state.videoId === fetchedVodRef.current) return;
-    fetchedVodRef.current = state.videoId;
-
-    const fetchVodData = async () => {
-      const videoId = state.videoId!;
-
-      // Fetch VOD info and all detections in parallel
-      const [vodResult, detectionsResult] = await Promise.all([
-        supabase
-          .from("vod_embed_info")
-          .select(
-            "duration_seconds, bazaar_chapters, title, streamer_display_name, streamer_avatar, published_at"
-          )
-          .eq("vod_source_id", videoId)
-          .maybeSingle(),
-        supabase
-          .from("detection_search")
-          .select("detection_id, username, rank, frame_time_seconds")
-          .eq("vod_source_id", videoId)
-          .order("frame_time_seconds", { ascending: true }),
-      ]);
-
-      if (vodResult.data) {
-        setBazaarChapters(vodResult.data.bazaar_chapters ?? null);
-        if (vodResult.data.duration_seconds && duration === 0) {
-          setDuration(vodResult.data.duration_seconds);
-        }
-        // Enrich meta with DB-sourced VOD title if available
-        const dbTitle = vodResult.data.title;
-        if (dbTitle) {
-          setState((prev) => ({
-            ...prev,
-            meta: {
-              streamerName:
-                prev.meta?.streamerName ??
-                vodResult.data!.streamer_display_name ??
-                "",
-              streamerAvatar:
-                prev.meta?.streamerAvatar ??
-                vodResult.data!.streamer_avatar ??
-                "",
-              vodTitle: dbTitle,
-              date: prev.meta?.date ?? vodResult.data!.published_at ?? "",
-            },
-          }));
-        }
-      }
-
-      if (detectionsResult.data) {
-        setGhosts(
-          detectionsResult.data
-            .filter(
-              (d) =>
-                d.detection_id && d.username && d.frame_time_seconds != null
-            )
-            .map((d) => ({
-              detection_id: d.detection_id!,
-              username: d.username!,
-              rank: d.rank ?? null,
-              frame_time_seconds: d.frame_time_seconds!,
-            }))
-        );
-      }
-    };
-
-    fetchVodData();
-  }, [state.videoId]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!playback.data) return;
+    const video=playback.data.video;
+    setDuration(video.durationSeconds);
+    setState(previous=>({...previous,meta:{streamerName:video.creator.name,streamerAvatar:video.creator.avatarUrl??"",vodTitle:video.title,date:video.publishedAt??""}}));
+  },[playback.data]);
 
   // ---- Create / update the Twitch player ----
   useEffect(() => {
-    if (!state.videoId) return;
-
+    if (!state.videoId || !playback.data) return;
+    if (playback.data.video.id !== Number(state.videoId.slice(2))) return;
+    if (!playback.data.player.available) {setError("This video is no longer available on its original platform.");return;}
+    if (playback.data.player.platform !== "twitch") {
+      const container=document.getElementById(CONTAINER_ID);
+      if (!container || !playback.data.player.embedUrl) return;
+      playerRef.current=null; container.replaceChildren();
+      const frame=document.createElement("iframe");
+      const url=new URL(playback.data.player.embedUrl);
+      url.searchParams.set(playback.data.player.platform==="youtube"?"start":"t",String(Math.floor(state.timestamp??0)));
+      frame.src=url.href;frame.title=playback.data.video.title;
+      frame.allow="autoplay; fullscreen; picture-in-picture";frame.allowFullscreen=true;
+      frame.style.width="100%";frame.style.height="100%";frame.style.border="0";
+      container.appendChild(frame);setIsReady(true);setError(null);
+      return ()=>frame.remove();
+    }
+    let cancelled=false;
     const sameVideo = state.videoId === currentVideoRef.current;
 
     if (sameVideo && playerRef.current && state.timestamp != null) {
@@ -313,6 +259,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       try {
         await loadTwitchScript();
+        if(cancelled)return;
 
         const container = document.getElementById(CONTAINER_ID);
         if (!container) return;
@@ -328,7 +275,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
         const seconds = Math.floor((state.timestamp ?? 0) % 60);
 
         playerRef.current = new window.Twitch!.Player(CONTAINER_ID, {
-          video: state.videoId,
+          video: playback.data!.player.sourceId,
           width: "100%",
           height: "100%",
           autoplay: true,
@@ -344,8 +291,9 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    init();
-  }, [state.videoId, state.timestamp]);
+    void init();
+    return ()=>{cancelled=true;};
+  }, [state.videoId, state.timestamp, playback.data]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -388,7 +336,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     if (
       ghostOverride &&
       timeDerivedGhost &&
-      ghostOverride.detection_id === timeDerivedGhost.detection_id
+      ghostOverride.matchup_id === timeDerivedGhost.matchup_id
     ) {
       setGhostOverride(null);
     }
@@ -455,8 +403,9 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   const seek = useCallback((seconds: number) => {
     seekTargetRef.current = seconds; // suppress poll until player catches up
     setCurrentTime(seconds); // optimistic update
-    playerRef.current?.seek(seconds);
-  }, []);
+    if (playback.data?.player.platform !== "twitch") setState(previous=>({...previous,timestamp:seconds}));
+    else playerRef.current?.seek(seconds);
+  }, [playback.data?.player.platform]);
 
   return (
     <EmbedContext.Provider
@@ -466,7 +415,8 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
         hideEmbed,
         isVisible,
         isReady,
-        error,
+        error: error ?? playback.error,
+      playback: playback.data,
         containerId: CONTAINER_ID,
         play,
         pause,

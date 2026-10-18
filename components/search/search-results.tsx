@@ -37,12 +37,13 @@ interface SearchResultsProps {
 
   // Streamer state
   filteredStreamers: StreamerOption[];
+  hasMoreCreators: boolean; loadMoreCreators: () => void; creatorsLoading: boolean;
 
   // Navigation handlers
-  onNavigateToStreamer: (streamerId: number, name: string) => void;
+  onNavigateToStreamer: (streamerId: string, name: string) => void;
   onNavigateToVodGhosts: (vodSourceId: string, title: string) => void;
   onVodClick: (vod: VodResult) => void;
-  onStreamerClick: (streamerId: number, name: string) => void;
+  onStreamerClick: (streamerId: string, name: string) => void;
 }
 
 /**
@@ -74,7 +75,7 @@ export function SearchResults({
   isVodLoadingMore,
   hasMoreVods,
   loadMoreVods,
-  filteredStreamers,
+  filteredStreamers,hasMoreCreators,loadMoreCreators,creatorsLoading,
   onNavigateToStreamer,
   onNavigateToVodGhosts,
   onVodClick,
@@ -92,7 +93,7 @@ export function SearchResults({
             <VirtualizedResultList
               items={ghostResults}
               totalCount={ghostTotalResults}
-              getItemKey={(g) => g.detection_id}
+              getItemKey={(g) => g.matchup_id}
               getItemDate={(g) => g.actual_timestamp}
               getItemMatchField={(g) => g.username}
               searchQuery={queryParam}
@@ -167,9 +168,9 @@ export function SearchResults({
                   onNavigateToVods={onStreamerClick}
                 />
               )}
-              onLoadMore={() => {}}
-              isLoadingMore={false}
-              hasMore={false}
+              onLoadMore={loadMoreCreators}
+              isLoadingMore={creatorsLoading}
+              hasMore={hasMoreCreators}
             />
           ) : (
             queryParam && (

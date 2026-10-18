@@ -24,6 +24,7 @@ import type { StreamerOption, ResolvedStreamer } from "./types";
  */
 interface StreamerPickerProps {
   streamerOptions: StreamerOption[];
+  pickerQuery: string; onPickerQuery: (value:string)=>void; moreCreators:boolean; onLoadCreators:()=>void;
   resolvedStreamer: ResolvedStreamer | null;
   effectiveStreamer: string | null;
   open: boolean;
@@ -44,7 +45,7 @@ interface StreamerPickerProps {
  * Used by both Ghost and VOD search modes in the {@link SearchHeader}.
  */
 export function StreamerPicker({
-  streamerOptions,
+  streamerOptions,pickerQuery,onPickerQuery,moreCreators,onLoadCreators,
   resolvedStreamer,
   effectiveStreamer,
   open,
@@ -108,8 +109,8 @@ export function StreamerPicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[280px] p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Search streamers..." />
+        <Command shouldFilter={false}>
+          <CommandInput placeholder="Search streamers..." value={pickerQuery} onValueChange={onPickerQuery} />
           <CommandList>
             <CommandEmpty>No streamer found.</CommandEmpty>
             <CommandGroup>
@@ -148,6 +149,7 @@ export function StreamerPicker({
                   </span>
                 </CommandItem>
               ))}
+            {moreCreators && <CommandItem onSelect={onLoadCreators}>Load more creators</CommandItem>}
             </CommandGroup>
           </CommandList>
         </Command>

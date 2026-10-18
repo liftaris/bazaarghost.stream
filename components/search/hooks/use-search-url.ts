@@ -61,7 +61,7 @@ export function useSearchUrl(): UseSearchUrlReturn {
 
   // Only use the explicit ?streamer= param — path-derived streamer should
   // not constrain the search filter when navigating to a ghost result.
-  const effectiveStreamer = streamerParam;
+  const effectiveStreamer = streamerParam ?? routeContext.pathStreamer;
   const effectiveVod = vodParam ?? routeContext.pathVodId;
 
   // ---- Local controlled input ----
