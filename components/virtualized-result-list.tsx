@@ -360,7 +360,8 @@ export function VirtualizedResultList<T>({
     const el = scrollRef.current;
     if (!el) return;
     const check = () => {
-      if (!hasMore || loadingRef.current) return;
+      // A hidden list (workspace hidden on content routes) has no viewport to fill.
+      if (!hasMore || loadingRef.current || el.clientHeight === 0) return;
       if (el.scrollHeight - el.scrollTop - el.clientHeight < LOAD_MORE_PX) {
         loadingRef.current = true;
         onLoadMore();

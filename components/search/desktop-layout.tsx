@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, type PointerEvent, type ReactNode, useRef } from "react";
+import { type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode, useRef } from "react";
 import { GripVertical } from "lucide-react";
 import { EmbedDrawer } from "@/components/embed-drawer";
 import { EmbedPanel } from "@/components/embed-panel";
@@ -71,6 +71,24 @@ export function SearchLayout({
       setResultsWidth(DEFAULT_RESULTS_WIDTH);
   };
 
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const group = groupRef.current;
+    if (!group) return;
+    const results = group.firstElementChild as HTMLElement | null;
+    const pct = ((results?.offsetWidth ?? 0) / group.offsetWidth) * 100;
+    const step = e.shiftKey ? 10 : 2;
+    const next =
+      e.key === "ArrowLeft" ? pct - step
+      : e.key === "ArrowRight" ? pct + step
+      : e.key === "Home" ? 0
+      : e.key === "End" ? 100
+      : e.key === "Enter" ? parseFloat(DEFAULT_RESULTS_WIDTH)
+      : null;
+    if (next === null) return;
+    e.preventDefault();
+    setResultsWidth(`${Math.min(100, Math.max(0, next))}%`);
+  };
+
   return (
     <>
       <div className="shrink-0 md:border-b md:border-sidebar-border">
@@ -87,10 +105,13 @@ export function SearchLayout({
         <div
           role="separator"
           aria-orientation="vertical"
+          aria-label="Resize results"
+          tabIndex={0}
+          onKeyDown={onKeyDown}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          className="relative hidden w-px shrink-0 cursor-col-resize touch-none items-center justify-center bg-border after:absolute after:inset-y-0 after:left-1/2 after:w-2 after:-translate-x-1/2 md:flex"
+          className="relative hidden w-px shrink-0 cursor-col-resize touch-none items-center justify-center bg-border outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 after:absolute after:inset-y-0 after:left-1/2 after:w-2 after:-translate-x-1/2 md:flex"
         >
           <div className="z-10 flex h-6 w-3 items-center justify-center rounded-xs border bg-border">
             <GripVertical className="size-2.5" />

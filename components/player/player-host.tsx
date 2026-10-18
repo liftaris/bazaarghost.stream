@@ -33,13 +33,15 @@ export function PlayerHost({
   onClose,
 }: PlayerHostProps) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const showRef = useRef(show);
-  showRef.current = show;
   const [mini, setMini] = useState(false);
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
+    if (!show) {
+      host.style.visibility = "hidden";
+      return;
+    }
     let raf = 0;
     let last = "";
     const tick = () => {
@@ -47,7 +49,7 @@ export function PlayerHost({
       const hasBox = !!slot && slot.isConnected && slot.getClientRects().length > 0;
       let x = 0, y = 0, w = 0, h = 0;
       let isMini = false;
-      let visible = showRef.current;
+      let visible = true;
       if (hasBox) {
         const r = slot.getBoundingClientRect();
         x = r.left; y = r.top; w = r.width; h = r.height;
@@ -72,7 +74,7 @@ export function PlayerHost({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [slotRef]);
+  }, [slotRef, show]);
 
   return (
     <div
