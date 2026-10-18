@@ -1,13 +1,14 @@
 "use client";
 
+import { memo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useBookmarks } from "@/components/social/bookmarks-provider";
+import { useBookmarkActions, useIsBookmarked } from "@/components/social/bookmarks-provider";
 import { cn } from "@/lib/utils";
 
 /** Icon-only save toggle. Signed-out users are sent to sign in and back. */
-export function BookmarkButton({
+export const BookmarkButton = memo(function BookmarkButton({
   matchupId,
   className,
   size = "icon-sm",
@@ -16,13 +17,13 @@ export function BookmarkButton({
   className?: string;
   size?: "icon-xs" | "icon-sm";
 }) {
-  const { enabled, signedIn, has, toggle } = useBookmarks();
+  const { enabled, signedIn, toggle } = useBookmarkActions();
+  const saved = useIsBookmarked(matchupId);
   const router = useRouter();
   const pathname = usePathname();
   const query = useSearchParams().toString();
 
   if (!enabled) return null;
-  const saved = has(matchupId);
 
   return (
     <Button
@@ -49,4 +50,4 @@ export function BookmarkButton({
       <Bookmark className={cn(saved && "fill-current")} />
     </Button>
   );
-}
+});

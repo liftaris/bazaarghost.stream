@@ -10,6 +10,15 @@ const json = (d: unknown, status = 200, headers: Record<string, string> = {}) =>
 const cookieOf = (r: Request) => /mock_session=([^;]+)/.exec(r.headers.get("cookie") ?? "")?.[1];
 const setCookie = (v: string, age: number) => `mock_session=${v}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${age}`;
 
+/** Server-side session read for the mock: resolves a Cookie header to the same identity as `/session`. */
+export function mockSessionFromCookie(cookie: string | null): Record<string, unknown> | null {
+  const sid = /mock_session=([^;]+)/.exec(cookie ?? "")?.[1];
+  const live = sid ? store.sessions.get(sid) : undefined;
+  if (!live || live.expiresAt <= Date.now()) return null;
+  return { userId: "mock-user", sessionId: live.id, name: "Ghost Hunter", image: null,
+    createdAt: new Date(live.createdAt).toISOString(), expiresAt: new Date(live.expiresAt).toISOString(), csrfToken: `csrf-${live.id}` };
+}
+
 export async function mockAuth(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname.replace("/api/auth", "");

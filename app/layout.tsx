@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { GlobalStats, GlobalStatsFallback } from "@/components/global-stats";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { BookmarksProvider } from "@/components/social/bookmarks-provider";
+import { getServerSession } from "@/lib/session-server";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -85,7 +86,6 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://bazaarghost.stream",
     siteName: "BazaarGhost",
     title: "BazaarGhost - Bazaar Matchup Search",
     description:
@@ -145,18 +145,19 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerSession();
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`antialiased font-sans ${inter.variable} ${jetbrainsMono.variable} ${averiaLibre.variable}`}
       >
         <ThemeProvider>
-          <AuthProvider>
+          <AuthProvider initialState={session.status === "unknown" ? null : session}>
             <BookmarksProvider>
               <div className="min-h-screen bg-background">
                 <AppShell

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -22,6 +22,10 @@ export function ProviderButtons({
 }) {
   const auth = useAuth();
   const [pending, setPending] = useState<AuthProviderId | null>(null);
+  const { ensureProviders } = auth;
+  useEffect(() => {
+    if (!providers) void ensureProviders();
+  }, [providers, ensureProviders]);
   const list = (providers ?? auth.providers).filter(isKnownProvider);
 
   async function go(provider: AuthProviderId) {

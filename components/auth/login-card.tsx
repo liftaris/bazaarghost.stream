@@ -19,9 +19,13 @@ import { ProviderButtons } from "@/components/auth/provider-buttons";
 import { safeNext } from "@/lib/auth-client";
 
 export function LoginCard() {
-  const { state, providers } = useAuth();
+  const { state, providers, providersLoaded, ensureProviders } = useAuth();
   const router = useRouter();
   const next = safeNext(useSearchParams().get("next"));
+
+  useEffect(() => {
+    void ensureProviders();
+  }, [ensureProviders]);
 
   useEffect(() => {
     if (state.status === "authenticated") router.replace(next);
@@ -40,7 +44,9 @@ export function LoginCard() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {state.status === "loading" || state.status === "authenticated" ? (
+        {state.status === "loading" ||
+        state.status === "authenticated" ||
+        (state.status === "anonymous" && !providersLoaded) ? (
           <div className="flex flex-col gap-2">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
