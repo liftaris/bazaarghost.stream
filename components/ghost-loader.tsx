@@ -1,23 +1,19 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import type { Matchup, Playback } from "@/lib/api-contract";
-import { apiGet } from "@/lib/api-client";
+import type { Matchup } from "@/lib/api-contract";
+import { cachedGet } from "@/lib/api-cache";
 import { useEmbed } from "@/components/embed-provider";
 
-/** Resolve durable links and preserve legacy Twitch/name/occurrence URLs. */
+/** Bootstrap the player from a durable URL. Legacy URLs are redirected on the server. */
 export function GhostLoader({
   vodId,
   timestamp = 0,
-  username,
-  occurrence = 1,
   matchupId,
   initialMatchup,
 }: {
+  /** Internal video ID as `v:<id>`. */
   vodId?: string;
   timestamp?: number;
-  username?: string;
-  occurrence?: number;
   matchupId?: number;
   initialMatchup?: Matchup;
 }) {
@@ -27,7 +23,6 @@ export function GhostLoader({
   live.current = { activeGhost, videoId };
   const initialMatchupRef = useRef(initialMatchup);
   initialMatchupRef.current = initialMatchup;
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -45,7 +40,7 @@ export function GhostLoader({
             return;
           const { matchup } = initial
             ? { matchup: initial }
-            : await apiGet(`/matchups/${matchupId}`, {}, controller.signal);
+            : await cachedGet(`/matchups/${matchupId}`, {}, { signal: controller.signal });
           if (controller.signal.aborted) return;
           setEmbed(`v:${matchup.video.id}`, matchup.timestampSeconds, {
             streamerName: matchup.video.creator.name,
@@ -63,45 +58,8 @@ export function GhostLoader({
           return;
         }
         if (!vodId) return;
-        const id = vodId.startsWith("v:")
-          ? Number(vodId.slice(2))
-          : (
-              await apiGet(
-                "/videos/resolve",
-                { source: "twitch", sourceId: vodId },
-                controller.signal
-              )
-            ).id;
-        if (username) {
-          let cursor: string | null = null,
-            seen = 0;
-          do {
-            const page: Playback["timeline"] = await apiGet(
-              `/videos/${id}/timeline`,
-              { cursor, limit: 100 },
-              controller.signal
-            );
-            for (const marker of page.items) {
-              if (
-                marker.username.toLowerCase() === username.toLowerCase() &&
-                ++seen === occurrence
-              ) {
-                if (!controller.signal.aborted)
-                  router.replace(`/matchups/${marker.id}`, { scroll: false });
-                return;
-              }
-            }
-            cursor = page.nextCursor;
-          } while (cursor);
-          throw new Error(
-            "This matchup is no longer available under its old name."
-          );
-        }
-        if (controller.signal.aborted) return;
-        if (live.current.videoId === `v:${id}`) return;
-        setEmbed(`v:${id}`, timestamp);
-        if (!vodId.startsWith("v:"))
-          router.replace(`/videos/${id}`, { scroll: false });
+        if (controller.signal.aborted || live.current.videoId === vodId) return;
+        setEmbed(vodId, timestamp);
       } catch (error) {
         if (!controller.signal.aborted)
           setError(
@@ -114,12 +72,9 @@ export function GhostLoader({
   }, [
     vodId,
     timestamp,
-    username,
-    occurrence,
     matchupId,
     setEmbed,
     setActiveGhost,
-    router,
   ]);
   return error ? (
     <p role="alert" className="p-3 text-sm">
