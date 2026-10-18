@@ -68,7 +68,7 @@ export function SessionList({ fresh }: { fresh: boolean }) {
       </CardHeader>
       <CardContent>
         {sessions === null ? (
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-16 w-full" />
         ) : (
           <ul className="flex flex-col">
             {sessions.map((session, index) => (
