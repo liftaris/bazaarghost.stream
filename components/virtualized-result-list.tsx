@@ -141,7 +141,7 @@ function buildGroupedEntries<T>(
 
   // --- Prefix matches: with date headers ---
   for (const { item, originalIndex } of prefixItems) {
-    const dateKey = getItemDate(item).slice(0, 10);
+    const dateKey = (getItemDate(item) ?? "").slice(0, 10);
     if (!seenDates.has(dateKey)) {
       entries.push({
         type: "date",
