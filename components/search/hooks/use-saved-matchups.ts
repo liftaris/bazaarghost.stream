@@ -1,11 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { apiGet } from "@/lib/api-client";
+import { cachedGet } from "@/lib/api-cache";
 import { ghostResult, type GhostResult } from "@/lib/result-models";
 import { useBookmarks } from "@/components/social/bookmarks-provider";
 
 const CONCURRENCY = 8;
+const PAGE = 50;
+
+/** Adapter seam: swap for the batch endpoint (KAI-68) without touching the hook. */
+async function fetchMatchups(ids: number[], signal: AbortSignal) {
+  return Promise.all(ids.map(async (id) => {
+    try {
+      return [id, ghostResult((await cachedGet(`/matchups/${id}`, {}, { signal })).matchup)] as const;
+    } catch {
+      return [id, null] as const;
+    }
+  }));
+}
 
 /**
  * Saved matchups as full result cards. The favorites route returns bare clips, so each
@@ -17,6 +29,9 @@ export function useSavedMatchups({ enabled, query }: { enabled: boolean; query: 
   const [shown, setShown] = useState<number[]>([]);
   const [cards, setCards] = useState<Map<number, GhostResult | null>>(new Map());
   const requested = useRef(new Set<number>());
+  const failed = useRef(new Set<number>());
+  const abort = useRef<AbortController | null>(null);
+  const [limit, setLimit] = useState(PAGE);
 
   useEffect(() => {
     if (!enabled) {
@@ -32,34 +47,35 @@ export function useSavedMatchups({ enabled, query }: { enabled: boolean; query: 
   }, [enabled, ids]);
 
   useEffect(() => {
-    const todo = shown.filter((id) => !requested.current.has(id));
-    if (!todo.length) return;
+    if (!enabled) return;
+    const controller = new AbortController();
+    abort.current = controller;
+    return () => {
+      controller.abort();
+      requested.current.clear();
+      failed.current.clear();
+    };
+  }, [enabled]);
+
+  useEffect(() => {
+    const signal = abort.current?.signal;
+    const todo = shown.slice(0, limit).filter((id) => !requested.current.has(id));
+    if (!todo.length || !signal) return;
     todo.forEach((id) => requested.current.add(id));
-    let cancelled = false;
     (async () => {
       for (let i = 0; i < todo.length; i += CONCURRENCY) {
-        const batch = await Promise.all(
-          todo.slice(i, i + CONCURRENCY).map(async (id) => {
-            try {
-              return [id, ghostResult((await apiGet(`/matchups/${id}`)).matchup)] as const;
-            } catch {
-              return [id, null] as const;
-            }
-          }),
-        );
-        if (cancelled) return;
-        setCards((current) => new Map([...current, ...batch]));
+        const batch = await fetchMatchups(todo.slice(i, i + CONCURRENCY), signal);
+        if (signal.aborted) return;
+        batch.forEach(([id, card]) => { if (!card) failed.current.add(id); });
+        setCards((current) => new Map([...current, ...batch.filter(([, card]) => card)]));
       }
     })();
-    return () => {
-      cancelled = true;
-      todo.forEach((id) => requested.current.delete(id));
-    };
-  }, [shown]);
+  }, [shown, limit, enabled]);
 
   const ghostResults = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return shown
+      .slice(0, limit)
       .map((id) => cards.get(id))
       .filter((card): card is GhostResult => !!card)
       .filter(
@@ -68,8 +84,9 @@ export function useSavedMatchups({ enabled, query }: { enabled: boolean; query: 
           card.username.toLowerCase().includes(needle) ||
           card.streamer_display_name.toLowerCase().includes(needle),
       );
-  }, [shown, cards, query]);
+  }, [shown, cards, query, limit]);
 
-  const isLoading = enabled && (ids === null || shown.some((id) => !cards.has(id)) && ghostResults.length === 0);
-  return { ghostResults, isLoading, isEmpty: enabled && ids !== null && shown.length === 0 };
+  const isLoading = enabled && (ids === null || shown.slice(0, limit).some((id) => !cards.has(id) && !failed.current.has(id)) && ghostResults.length === 0);
+  return { ghostResults, isLoading, isEmpty: enabled && ids !== null && shown.length === 0,
+    hasMore: shown.length > limit, loadMore: () => setLimit((n) => n + PAGE) };
 }
