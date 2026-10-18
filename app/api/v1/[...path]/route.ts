@@ -1,7 +1,12 @@
 import { backendFetch } from "@/lib/backend-server";
+import { mockSocial } from "@/lib/auth-mock";
 
 /** Same-origin gateway. No administrative credentials or arbitrary upstream URLs. */
 async function forward(request: Request) {
+  if (import.meta.env.DEV && import.meta.env.VITE_AUTH_MOCK === "1") {
+    const mocked = await mockSocial(request);
+    if (mocked) return mocked;
+  }
   const response = await backendFetch(request);
   const headers = new Headers(response.headers);
   // Visibility and session checks must run on every request, including cache revalidation.
