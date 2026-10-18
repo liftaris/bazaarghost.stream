@@ -1,115 +1,105 @@
 "use client";
 
-import { type ReactNode, useCallback, useRef } from "react";
-import type { PanelImperativeHandle } from "react-resizable-panels";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
+import { type CSSProperties, type PointerEvent, type ReactNode, useRef } from "react";
+import { GripVertical } from "lucide-react";
+import { EmbedDrawer } from "@/components/embed-drawer";
 import { EmbedPanel } from "@/components/embed-panel";
 
-/** Duration (ms) for the panel expand/collapse CSS transition. */
-const TRANSITION_MS = 100;
+const DEFAULT_RESULTS_WIDTH = "30%";
+const MIN_RESULTS_PX = 200;
+const MIN_EMBED_PX = 400;
+const DRAG_THRESHOLD_PX = 3;
 
-/**
- * Props for {@link DesktopLayout}.
- */
-interface DesktopLayoutProps {
+interface SearchLayoutProps {
+  searchHeader: ReactNode;
   searchResults: ReactNode;
-  embedVisible: boolean;
+  searchHeaderHeight: number;
 }
 
 /**
- * Desktop two-panel layout using `react-resizable-panels`.
+ * The single responsive layout tree for the search workspace.
  *
- * Left panel (30% default, 200px min): search results list.
- * Right panel (70% default, 400px min): Twitch embed player or an
- * empty-state placeholder when no VOD is loaded.
- *
- * Both panels are collapsible to 0%. Clicking the drag handle when
- * either panel is collapsed expands both panels back to their defaults
- * with a smooth CSS transition.
- *
- * The search header is rendered above this component at full viewport
- * width by the {@link SearchPanel} orchestrator.
+ * Below `md` it is a stacked column (results + embed bottom sheet); from `md`
+ * up it is a resizable two-pane split (30% results by default, 200px / 400px
+ * minimums, either side collapsible by dragging past its minimum; a click on
+ * the handle restores the defaults). The switch is CSS only, so the results
+ * list and the player are never remounted when crossing the breakpoint.
  */
-export function DesktopLayout({
+export function SearchLayout({
+  searchHeader,
   searchResults,
-  embedVisible,
-}: DesktopLayoutProps) {
-  const searchPanelRef = useRef<PanelImperativeHandle>(null);
-  const embedPanelRef = useRef<PanelImperativeHandle>(null);
+  searchHeaderHeight,
+}: SearchLayoutProps) {
   const groupRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ startX: number; moved: boolean } | null>(null);
 
-  /**
-   * Temporarily add a CSS transition class to all panels so that
-   * programmatic expand/collapse animates smoothly. The class is
-   * removed after the transition completes to avoid interfering
-   * with drag-based resizing.
-   */
-  const animateTransition = useCallback((fn: () => void) => {
+  const setResultsWidth = (value: string) =>
+    groupRef.current?.style.setProperty("--results-w", value);
+
+  const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drag.current = { startX: e.clientX, moved: false };
+  };
+
+  const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    const state = drag.current;
     const group = groupRef.current;
-    if (!group) {
-      fn();
-      return;
-    }
-    group.classList.add("animate-panels");
-    fn();
-    setTimeout(() => group.classList.remove("animate-panels"), TRANSITION_MS);
-  }, []);
+    if (!state || !group) return;
+    if (Math.abs(e.clientX - state.startX) < DRAG_THRESHOLD_PX && !state.moved) return;
+    state.moved = true;
+    const rect = group.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    let width = x;
+    if (x < MIN_RESULTS_PX / 2) width = 0;
+    else if (rect.width - x < MIN_EMBED_PX / 2) width = rect.width;
+    else width = Math.min(Math.max(x, MIN_RESULTS_PX), rect.width - MIN_EMBED_PX);
+    setResultsWidth(`${(width / rect.width) * 100}%`);
+  };
 
-  /** If either panel is collapsed, expand it back to default on click. */
-  const handleHandleClick = useCallback(() => {
-    const searchCollapsed = searchPanelRef.current?.isCollapsed();
-    const embedCollapsed = embedPanelRef.current?.isCollapsed();
-    if (!searchCollapsed && !embedCollapsed) return;
-    animateTransition(() => {
-      if (searchCollapsed) searchPanelRef.current?.expand();
-      if (embedCollapsed) embedPanelRef.current?.expand();
-    });
-  }, [animateTransition]);
+  const onPointerUp = (e: PointerEvent<HTMLDivElement>) => {
+    const state = drag.current;
+    drag.current = null;
+    if (!state || state.moved) return;
+    // Plain click: expand whichever side is collapsed.
+    const group = groupRef.current;
+    const results = group?.firstElementChild as HTMLElement | null;
+    const embed = group?.lastElementChild as HTMLElement | null;
+    if (
+      results && embed && group &&
+      (results.offsetWidth < 1 || embed.offsetWidth < 1)
+    )
+      setResultsWidth(DEFAULT_RESULTS_WIDTH);
+  };
 
   return (
-    <ResizablePanelGroup
-      elementRef={groupRef}
-      orientation="horizontal"
-      className="min-h-0 w-full flex-1 [&.animate-panels_[data-slot=resizable-panel]]:transition-[flex-grow] [&.animate-panels_[data-slot=resizable-panel]]:duration-100 [&.animate-panels_[data-slot=resizable-panel]]:ease-in-out"
-    >
-      {/* Search results panel — collapsible to 0% to fully reveal embed */}
-      <ResizablePanel
-        panelRef={searchPanelRef}
-        defaultSize={30}
-        minSize={200}
-        collapsible
-        collapsedSize={0}
-        className="flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
+    <>
+      <div className="shrink-0 md:border-b md:border-sidebar-border">
+        <div className="md:mx-auto md:max-w-6xl md:px-4">{searchHeader}</div>
+      </div>
+      <div
+        ref={groupRef}
+        style={{ "--results-w": DEFAULT_RESULTS_WIDTH } as CSSProperties}
+        className="flex min-h-0 w-full flex-1 flex-col bg-background md:flex-row"
       >
-        {searchResults}
-      </ResizablePanel>
-
-      <ResizableHandle withHandle onClick={handleHandleClick} />
-
-      {/* Embed / main content — collapsible to 0% to fully reveal search */}
-      <ResizablePanel
-        panelRef={embedPanelRef}
-        defaultSize={70}
-        minSize={400}
-        collapsible
-        collapsedSize={0}
-        className="overflow-hidden bg-background"
-      >
-        <div className="flex h-full flex-col">
-          <EmbedPanel />
-          {/* {!embedVisible && (
-            <div className="flex flex-1 items-center justify-center border border-dashed border-border bg-card/30 px-6">
-              <p className="text-center text-sm text-muted-foreground">
-                Select a result to load a VOD embed.
-              </p>
-            </div>
-          )} */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:w-[var(--results-w)] md:flex-none md:border-r md:border-sidebar-border md:bg-sidebar md:text-sidebar-foreground">
+          {searchResults}
         </div>
-      </ResizablePanel>
-    </ResizablePanelGroup>
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          className="relative hidden w-px shrink-0 cursor-col-resize touch-none items-center justify-center bg-border after:absolute after:inset-y-0 after:left-1/2 after:w-2 after:-translate-x-1/2 md:flex"
+        >
+          <div className="z-10 flex h-6 w-3 items-center justify-center rounded-xs border bg-border">
+            <GripVertical className="size-2.5" />
+          </div>
+        </div>
+        <EmbedDrawer headerHeight={searchHeaderHeight}>
+          <EmbedPanel />
+        </EmbedDrawer>
+      </div>
+    </>
   );
 }

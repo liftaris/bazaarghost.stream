@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEmbed } from "@/components/embed-provider";
-import { useIsMobile } from "@/hooks/use-mobile";
 import type { VodResult } from "@/components/vod-result-row";
 
 import { useSearchUrl } from "./hooks/use-search-url";
@@ -15,8 +14,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 
 import { SearchHeader } from "./search-header";
 import { SearchResults } from "./search-results";
-import { DesktopLayout } from "./desktop-layout";
-import { MobileLayout } from "./mobile-layout";
+import { SearchLayout } from "./desktop-layout";
 
 /**
  * Props for {@link SearchPanel}.
@@ -30,9 +28,8 @@ interface SearchPanelProps {
  *
  * Composes the search hooks ({@link useSearchUrl}, {@link useStreamerOptions},
  * {@link useGhostSearch}, {@link useVodSearch}) with the presentational
- * components ({@link SearchHeader}, {@link SearchResults}) and selects the
- * appropriate layout ({@link DesktopLayout} or {@link MobileLayout}) based on
- * viewport width.
+ * components ({@link SearchHeader}, {@link SearchResults}) inside the single
+ * CSS-responsive {@link SearchLayout}.
  *
  * This component owns no data-fetching or URL-mutation logic itself — it
  * delegates entirely to the hooks and passes their return values through as
@@ -42,9 +39,7 @@ export default function SearchPanel({
   showSearchTabs = false,
 }: SearchPanelProps) {
   const router = useRouter();
-  const isMobile = useIsMobile();
   const {
-    isVisible: embedVisible,
     videoId: activeVideoId,
     currentTime: activeTime,
   } = useEmbed();
@@ -184,7 +179,7 @@ export default function SearchPanel({
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [isMobile]);
+  }, []);
 
   // ---- Shared UI elements ----
   const isLoading =
@@ -244,27 +239,11 @@ export default function SearchPanel({
     /></>
   );
 
-  // ---- Layout branching ----
-  if (isMobile) {
-    return (
-      <MobileLayout
-        searchHeader={searchHeader}
-        searchResults={searchResults}
-        searchHeaderHeight={searchHeaderHeight}
-      />
-    );
-  }
-
   return (
-    <>
-      {/* Search header spans full viewport width, content centered */}
-      <div className="shrink-0 border-b border-sidebar-border">
-        <div className="mx-auto max-w-6xl px-4">{searchHeader}</div>
-      </div>
-      <DesktopLayout
-        searchResults={searchResults}
-        embedVisible={embedVisible}
-      />
-    </>
+    <SearchLayout
+      searchHeader={searchHeader}
+      searchResults={searchResults}
+      searchHeaderHeight={searchHeaderHeight}
+    />
   );
 }
