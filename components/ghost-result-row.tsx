@@ -9,6 +9,8 @@ import { BookmarkButton } from "@/components/social/bookmark-button";
 import type { GhostResult } from "@/lib/result-models";
 export type { GhostResult } from "@/lib/result-models";
 
+const KNOWN_RANKS = new Set(["bronze", "silver", "gold", "diamond", "legend"]);
+
 
 
 interface GhostResultRowProps {
@@ -67,10 +69,12 @@ export function GhostResultRow({
       <div className="flex h-full items-center gap-3 px-3">
         {/* Streamer avatar — hidden below 200px */}
         <Avatar className="hidden size-9 shrink-0 @[200px]:block">
-          <AvatarImage
-            src={ghost.streamer_avatar || "/placeholder.svg"}
-            alt={ghost.streamer_display_name}
-          />
+          {ghost.streamer_avatar && (
+            <AvatarImage
+              src={ghost.streamer_avatar}
+              alt={ghost.streamer_display_name}
+            />
+          )}
           <AvatarFallback className="bg-primary text-primary-foreground text-xs">
             {ghost.streamer_display_name[0]?.toUpperCase()}
           </AvatarFallback>
@@ -95,12 +99,13 @@ export function GhostResultRow({
             <span className="hidden shrink-0 text-muted-foreground @[200px]:block">
               vs
             </span>
-            {ghost.rank && (
+            {ghost.rank && KNOWN_RANKS.has(ghost.rank.toLowerCase()) && (
               <Image
                 src={`/${ghost.rank.toLowerCase()}.webp`}
                 alt={ghost.rank}
                 width={22}
                 height={22}
+                unoptimized
                 className="inline-block shrink-0"
               />
             )}

@@ -283,4 +283,11 @@
   .animate-shake-fade {
     animation: shakeAndFade 10s ease-in-out forwards;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-shake,
+    .animate-shake-fade {
+      animation: none;
+    }
+  }
 }
