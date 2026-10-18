@@ -355,6 +355,23 @@ export function VirtualizedResultList<T>({
     return () => el.removeEventListener("scroll", onScroll);
   }, [onScroll]);
 
+  // Load more when content doesn't fill the viewport (no scroll events fire)
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const check = () => {
+      if (!hasMore || loadingRef.current) return;
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < LOAD_MORE_PX) {
+        loadingRef.current = true;
+        onLoadMore();
+      }
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [items.length, hasMore, isLoadingMore, onLoadMore]);
+
   // Re-calculate sticky when entries change (e.g. new batch loaded)
   useEffect(() => {
     updateSticky();
