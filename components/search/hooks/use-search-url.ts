@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { deriveSearchMode, deriveRouteContext } from "../lib/route-utils";
+import { useWorkspaceActive } from "@/components/workspace-context";
 import type { SearchMode, RouteContext } from "../types";
 
 /**
@@ -49,8 +50,17 @@ export interface UseSearchUrlReturn {
  */
 export function useSearchUrl(): UseSearchUrlReturn {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const livePathname = usePathname();
+  const liveSearch = useSearchParams().toString();
+  // While the workspace is hidden (content routes) keep the last workspace
+  // location so the mounted-but-hidden panel doesn't react to /account?q=…
+  const workspaceActive = useWorkspaceActive();
+  const lastWorkspace = useRef({ pathname: livePathname, search: liveSearch });
+  if (workspaceActive)
+    lastWorkspace.current = { pathname: livePathname, search: liveSearch };
+  const pathname = lastWorkspace.current.pathname;
+  const search = lastWorkspace.current.search;
+  const searchParams = useMemo(() => new URLSearchParams(search), [search]);
 
   // ---- Derived state from URL ----
   const searchMode = deriveSearchMode(pathname);

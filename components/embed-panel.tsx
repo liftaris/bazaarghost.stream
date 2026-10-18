@@ -487,6 +487,7 @@ export function EmbedPanel() {
     ghosts: sortedGhosts,
     activeGhost: currentGhost,
     setActiveGhost,
+    ghostIsOptimistic,
     bazaarChapters,
   } = useEmbed();
   const pathname = usePathname();
@@ -532,23 +533,23 @@ export function EmbedPanel() {
   );
 
   /**
-   * Reactive fallback: replace the URL (no history entry) when
-   * `currentGhost` changes during passive playback (the Twitch player
-   * advances past a ghost timestamp without user interaction).
+   * Passive playback advancing past a ghost: rewrite the URL in place with
+   * history.replaceState (no Next navigation, no RSC request, no re-seek).
+   * Optimistic (user-initiated) changes own their URL via router.push.
    */
   const prevPassiveGhostRef = useRef<string | null>(null);
   useEffect(() => {
     const ghostId = currentGhost?.detection_id ?? null;
-    // Only fire for passive changes — skip if this was a user-triggered change
-    // (those already called pushGhostUrl)
     if (ghostId === prevPassiveGhostRef.current) return;
     prevPassiveGhostRef.current = ghostId;
+    if (!currentGhost || ghostIsOptimistic) return;
 
     const url = buildGhostUrl(currentGhost);
-    if (url && pathname !== url) {
-      router.replace(url, { scroll: false });
+    const here = window.location.pathname;
+    if (url && here !== url && (here.startsWith("/matchups/") || here.startsWith("/videos/"))) {
+      window.history.replaceState(window.history.state, "", url);
     }
-  }, [currentGhost, buildGhostUrl, pathname, router]);
+  }, [currentGhost, ghostIsOptimistic, buildGhostUrl]);
 
   // ---- Boundary detection: at first/last ghost ----
   const isAtFirstGhost = useMemo(() => {
@@ -744,16 +745,10 @@ export function EmbedPanel() {
                 className="size-7 text-muted-foreground hover:text-foreground"
                 title="Copy shareable link"
                 onClick={() => {
-                  // Build a shareable link: /:streamer/:vodId/:ghost or /:streamer/:vodId
-                  const ghost = currentGhost;
-                  if (ghost && meta?.streamerName) {
-                    const url = `${window.location.origin}/${encodeURIComponent(meta.streamerName)}/${videoId}/${encodeURIComponent(ghost.username)}`;
-                    navigator.clipboard.writeText(url);
-                  } else if (meta?.streamerName) {
-                    const url = `${window.location.origin}/${encodeURIComponent(meta.streamerName)}/${videoId}`;
-                    navigator.clipboard.writeText(url);
+                  const path = buildGhostUrl(currentGhost);
+                  if (path && videoId.startsWith("v:")) {
+                    navigator.clipboard.writeText(`${window.location.origin}${path}`);
                   } else {
-                    // No streamer metadata available — fall back to Twitch link
                     const t = secondsToTwitchTimestamp(timestamp ?? 0);
                     const url = playback?.player.platform === "twitch" ? `https://www.twitch.tv/videos/${playback.player.sourceId}?t=${t}` : playback?.player.watchUrl ?? "";
                     navigator.clipboard.writeText(url);

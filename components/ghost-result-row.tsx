@@ -36,15 +36,6 @@ export function GhostResultRow({
   const router = useRouter();
 
   const handlePlay = () => {
-    // Optimistic ghost + URL update before the player seek lands
-    setActiveGhost({
-      matchup_id: ghost.matchup_id,
-      detection_id: ghost.detection_id,
-      username: ghost.username,
-      rank: ghost.rank,
-      frame_time_seconds: ghost.frame_time_seconds,
-    });
-
     const url = `/matchups/${ghost.matchup_id}`;
     router.push(url, { scroll: false });
 
@@ -53,6 +44,14 @@ export function GhostResultRow({
       streamerAvatar: ghost.streamer_avatar,
       vodTitle: ghost.vod_title,
       date: formatDate(ghost.actual_timestamp),
+    });
+    // After setEmbed: it clears the override when the video changes
+    setActiveGhost({
+      matchup_id: ghost.matchup_id,
+      detection_id: ghost.detection_id,
+      username: ghost.username,
+      rank: ghost.rank,
+      frame_time_seconds: ghost.frame_time_seconds,
     });
   };
 
