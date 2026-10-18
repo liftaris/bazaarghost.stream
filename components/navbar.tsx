@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import { UserMenu } from "@/components/auth/user-menu";
 import { Moon, Sun, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
@@ -115,6 +116,7 @@ export default function Navbar() {
               </a>
             </Button>
 
+            <UserMenu />
             <Button
               variant="ghost"
               size="icon"
@@ -224,6 +226,8 @@ export default function Navbar() {
                       </svg>
                     </a>
                   </Button>
+
+                  <UserMenu onNavigate={() => setIsOpen(false)} />
 
                   {/* Theme Toggle */}
                   <Button

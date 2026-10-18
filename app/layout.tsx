@@ -1,7 +1,9 @@
 import type React from "react";
 import type { Metadata, Viewport } from "next";
 
+import { AuthProvider } from "@/components/auth/auth-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 import { Inter, JetBrains_Mono } from "next/font/google";
@@ -150,7 +152,10 @@ export default function RootLayout({
         className={`antialiased font-sans ${inter.variable} ${jetbrainsMono.variable} ${averiaLibre.variable}`}
       >
         <ThemeProvider>
-          <div className="min-h-screen bg-background">{children}</div>
+          <AuthProvider>
+            <div className="min-h-screen bg-background">{children}</div>
+          </AuthProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
