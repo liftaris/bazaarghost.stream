@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { VirtualizedResultList } from "@/components/virtualized-result-list";
 import {
   GhostResultRow,
@@ -30,8 +31,6 @@ interface SearchResultsProps {
   isGhostLoadingMore: boolean;
   hasMoreGhosts: boolean;
   loadMoreGhosts: () => void;
-  activeVideoId: string | null;
-  activeTime: number;
 
   // VOD state
   vodResults: VodResult[];
@@ -48,7 +47,6 @@ interface SearchResultsProps {
   // Navigation handlers
   onNavigateToStreamer: (streamerId: string, name: string) => void;
   onNavigateToVodGhosts: (vodSourceId: string, title: string) => void;
-  onVodClick: (vod: VodResult) => void;
   onStreamerClick: (streamerId: string, name: string) => void;
 }
 
@@ -76,8 +74,6 @@ export function SearchResults({
   isGhostLoadingMore,
   hasMoreGhosts,
   loadMoreGhosts,
-  activeVideoId,
-  activeTime,
   vodResults,
   vodTotalResults,
   isVodLoading,
@@ -87,9 +83,30 @@ export function SearchResults({
   filteredStreamers,hasMoreCreators,loadMoreCreators,creatorsLoading,
   onNavigateToStreamer,
   onNavigateToVodGhosts,
-  onVodClick,
   onStreamerClick,
 }: SearchResultsProps) {
+  const renderGhost = useCallback(
+    (ghost: GhostResult) => (
+      <GhostResultRow ghost={ghost} onNavigateToStreamer={onNavigateToStreamer} />
+    ),
+    [onNavigateToStreamer]
+  );
+  const renderVod = useCallback(
+    (vod: VodResult) => (
+      <VodResultRow
+        vod={vod}
+        onNavigateToStreamer={onNavigateToStreamer}
+        onNavigateToGhosts={onNavigateToVodGhosts}
+      />
+    ),
+    [onNavigateToStreamer, onNavigateToVodGhosts]
+  );
+  const renderStreamer = useCallback(
+    (s: StreamerOption) => (
+      <StreamerResultRow streamer={s} onNavigateToVods={onStreamerClick} />
+    ),
+    [onStreamerClick]
+  );
   const isLoading =
     (searchMode === "ghosts" && isGhostLoading) ||
     (searchMode === "vods" && isVodLoading) ||
@@ -105,16 +122,7 @@ export function SearchResults({
               totalCount={savedResults.length}
               quiet
               getItemKey={(g) => g.matchup_id}
-              renderItem={(ghost) => (
-                <GhostResultRow
-                  ghost={ghost}
-                  isActive={
-                    activeVideoId === ghost.vod_source_id &&
-                    Math.abs(activeTime - ghost.frame_time_seconds) < 5
-                  }
-                  onNavigateToStreamer={onNavigateToStreamer}
-                />
-              )}
+              renderItem={renderGhost}
               onLoadMore={() => {}}
               isLoadingMore={false}
               hasMore={false}
@@ -138,16 +146,7 @@ export function SearchResults({
               getItemDate={(g) => g.actual_timestamp}
               getItemMatchField={(g) => g.username}
               searchQuery={queryParam}
-              renderItem={(ghost) => (
-                <GhostResultRow
-                  ghost={ghost}
-                  isActive={
-                    activeVideoId === ghost.vod_source_id &&
-                    Math.abs(activeTime - ghost.frame_time_seconds) < 5
-                  }
-                  onNavigateToStreamer={onNavigateToStreamer}
-                />
-              )}
+              renderItem={renderGhost}
               onLoadMore={loadMoreGhosts}
               isLoadingMore={isGhostLoadingMore}
               hasMore={hasMoreGhosts}
@@ -169,15 +168,7 @@ export function SearchResults({
               totalCount={vodTotalResults}
               getItemKey={(v) => v.vod_source_id}
               getItemDate={(v) => v.published_at}
-              renderItem={(vod) => (
-                <VodResultRow
-                  vod={vod}
-                  isActive={activeVideoId === vod.vod_source_id}
-                  onNavigateToStreamer={onNavigateToStreamer}
-                  onNavigateToGhosts={onNavigateToVodGhosts}
-                  onRowClick={() => onVodClick(vod)}
-                />
-              )}
+              renderItem={renderVod}
               onLoadMore={loadMoreVods}
               isLoadingMore={isVodLoadingMore}
               hasMore={hasMoreVods}
@@ -203,12 +194,7 @@ export function SearchResults({
                 s.streamer_display_name ??
                 "unknown"
               }
-              renderItem={(s) => (
-                <StreamerResultRow
-                  streamer={s}
-                  onNavigateToVods={onStreamerClick}
-                />
-              )}
+              renderItem={renderStreamer}
               onLoadMore={loadMoreCreators}
               isLoadingMore={creatorsLoading}
               hasMore={hasMoreCreators}

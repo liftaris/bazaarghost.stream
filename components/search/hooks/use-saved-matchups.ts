@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cachedGet } from "@/lib/api-cache";
 import { ghostResult, type GhostResult } from "@/lib/result-models";
-import { useBookmarks } from "@/components/social/bookmarks-provider";
+import { useBookmarkIds } from "@/components/social/bookmarks-provider";
 
 const CONCURRENCY = 8;
 const PAGE = 50;
@@ -25,7 +25,7 @@ async function fetchMatchups(ids: number[], signal: AbortSignal) {
  * list is open stay until it is left, so an accidental unsave is one tap to undo.
  */
 export function useSavedMatchups({ enabled, query }: { enabled: boolean; query: string }) {
-  const { ids } = useBookmarks();
+  const ids = useBookmarkIds(enabled);
   const [shown, setShown] = useState<number[]>([]);
   const [cards, setCards] = useState<Map<number, GhostResult | null>>(new Map());
   const requested = useRef(new Set<number>());

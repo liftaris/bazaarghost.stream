@@ -8,10 +8,11 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { PlayerHost } from "@/components/player/player-host";
+import { PlayerHost, SLOT_EVENT } from "@/components/player/player-host";
 import { usePlayback } from "@/hooks/use-playback";
 import type { Playback } from "@/lib/api-contract";
 
@@ -40,60 +41,99 @@ interface EmbedState {
   meta: EmbedMeta | null;
 }
 
-interface EmbedContextValue extends EmbedState {
-  playback: Playback | null;
+interface EmbedActions {
   /** Load a VOD (or seek if already loaded). Pass meta for the info bar. */
   setEmbed: (videoId: string, timestamp: number, meta?: EmbedMeta) => void;
-  /** Hide the embed panel entirely. */
   hideEmbed: () => void;
-  /** Whether the embed panel is visible. */
-  isVisible: boolean;
-  /** Whether the Twitch player is ready. */
-  isReady: boolean;
-  /** Player error, if any. */
-  error: string | null;
   /** Stable container ID for the Twitch player div. */
   containerId: string;
   /** Register the PlayerSlot element the persistent host should cover. */
   registerSlot: (el: HTMLElement | null) => void;
-
-  // ---- Player controls ----
   play: () => void;
   pause: () => void;
   togglePlay: () => void;
   toggleMute: () => void;
   seek: (seconds: number) => void;
-  isPaused: boolean;
-  isMuted: boolean;
-  /** Current playback position in seconds (polled). */
-  currentTime: number;
-  /** Total VOD duration in seconds. */
-  duration: number;
+  /** Optimistically set the active ghost (e.g. on result row click, arrow nav). */
+  setActiveGhost: (ghost: EmbedGhost | null) => void;
+}
 
-  // ---- Ghost data ----
+/** Slow-changing state: does not change while playback time advances. */
+interface EmbedSlowState extends EmbedState {
+  playback: Playback | null;
+  isVisible: boolean;
+  isReady: boolean;
+  error: string | null;
   /** All ghost markers for the current VOD, sorted by time ascending. */
   ghosts: EmbedGhost[];
   /**
    * The currently-active ghost. Derived from playback position during normal
-   * playback, but can be set optimistically via {@link setActiveGhost} for
-   * instant UI feedback before the player seek lands.
+   * playback, but can be set optimistically via setActiveGhost for instant UI
+   * feedback before the player seek lands.
    */
   activeGhost: EmbedGhost | null;
-  /** Optimistically set the active ghost (e.g. on result row click, arrow nav). */
-  setActiveGhost: (ghost: EmbedGhost | null) => void;
   /** True while activeGhost is an optimistic (user-initiated) override. */
   ghostIsOptimistic: boolean;
-
-  // ---- VOD data (fetched from vod_embed_info) ----
   bazaarChapters: number[] | null;
 }
 
-const EmbedContext = createContext<EmbedContextValue | null>(null);
+/** Fast-changing player state (polled every 500ms while playing). */
+export interface EmbedTimeState {
+  /** Current playback position in seconds (polled). */
+  currentTime: number;
+  /** Total VOD duration in seconds. */
+  duration: number;
+  isPaused: boolean;
+  isMuted: boolean;
+}
 
-export function useEmbed(): EmbedContextValue {
-  const ctx = useContext(EmbedContext);
-  if (!ctx) throw new Error("useEmbed must be used within EmbedProvider");
+type EmbedContextValue = EmbedSlowState & EmbedActions & EmbedTimeState;
+
+class TimeStore {
+  private state: EmbedTimeState = { currentTime: 0, duration: 0, isPaused: true, isMuted: false };
+  private listeners = new Set<() => void>();
+  get = () => this.state;
+  subscribe = (fn: () => void) => {
+    this.listeners.add(fn);
+    return () => void this.listeners.delete(fn);
+  };
+  set(patch: Partial<EmbedTimeState>) {
+    const k = Object.keys(patch) as (keyof EmbedTimeState)[];
+    if (k.every((key) => this.state[key] === patch[key])) return;
+    this.state = { ...this.state, ...patch };
+    this.listeners.forEach((fn) => fn());
+  }
+}
+
+const ActionsContext = createContext<EmbedActions | null>(null);
+const SlowContext = createContext<EmbedSlowState | null>(null);
+const TimeContext = createContext<TimeStore | null>(null);
+
+/** Stable callbacks; never re-renders its consumer. */
+export function useEmbedActions(): EmbedActions {
+  const ctx = useContext(ActionsContext);
+  if (!ctx) throw new Error("useEmbedActions must be used within EmbedProvider");
   return ctx;
+}
+
+/** Slow state (video, ghosts, activeGhost, visibility, ...); excludes playback time. */
+export function useEmbedState(): EmbedSlowState {
+  const ctx = useContext(SlowContext);
+  if (!ctx) throw new Error("useEmbedState must be used within EmbedProvider");
+  return ctx;
+}
+
+/** Subscribe to a slice of the fast time state; re-renders only when the selected value changes. */
+export function useEmbedTime<T>(selector: (s: EmbedTimeState) => T): T {
+  const store = useContext(TimeContext);
+  if (!store) throw new Error("useEmbedTime must be used within EmbedProvider");
+  return useSyncExternalStore(store.subscribe, () => selector(store.get()), () => selector(store.get()));
+}
+
+/** Compatibility hook returning everything. Re-renders on every time tick; prefer the narrow hooks. */
+export function useEmbed(): EmbedContextValue {
+  const time = useEmbedTime((s) => s);
+  return { ...useEmbedState(), ...useEmbedActions(), ...time };
 }
 
 // ---------------------------------------------------------------------------
@@ -155,11 +195,13 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Player state (polled)
-  const [isPaused, setIsPaused] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  // Player state (polled) lives in an external store so ticks don't re-render the tree
+  const [timeStore] = useState(() => new TimeStore());
+  const isPaused = useSyncExternalStore(timeStore.subscribe, () => timeStore.get().isPaused, () => true);
+  const setIsPaused = useCallback((isPaused: boolean) => timeStore.set({ isPaused }), [timeStore]);
+  const setIsMuted = useCallback((isMuted: boolean) => timeStore.set({ isMuted }), [timeStore]);
+  const setCurrentTime = useCallback((currentTime: number) => timeStore.set({ currentTime }), [timeStore]);
+  const setDuration = useCallback((duration: number) => timeStore.set({ duration }), [timeStore]);
 
   // Ghost markers
   const playback = usePlayback(state.videoId);
@@ -187,6 +229,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
 
   const registerSlot = useCallback((el: HTMLElement | null) => {
     slotRef.current = el;
+    window.dispatchEvent(new Event(SLOT_EVENT));
   }, []);
 
   useEffect(() => {
@@ -446,18 +489,19 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   );
 
   /** Derive the ghost whose timestamp is at or before current playback time. */
-  const timeDerivedGhost = useMemo(() => {
-    if (sortedGhosts.length === 0) return null;
-    let match: EmbedGhost | null = null;
-    for (const g of sortedGhosts) {
-      if (g.frame_time_seconds <= currentTime) {
-        match = g;
-      } else {
-        break;
+  const timeDerivedGhost = useSyncExternalStore(
+    timeStore.subscribe,
+    () => {
+      const currentTime = timeStore.get().currentTime;
+      let match: EmbedGhost | null = null;
+      for (const g of sortedGhosts) {
+        if (g.frame_time_seconds <= currentTime) match = g;
+        else break;
       }
-    }
-    return match;
-  }, [sortedGhosts, currentTime]);
+      return match;
+    },
+    () => null
+  );
 
   /**
    * Clear the optimistic override once the time-derived ghost matches it,
@@ -561,34 +605,31 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  return (
-    <EmbedContext.Provider
-      value={{
-        ...state,
-        setEmbed,
-        hideEmbed,
-        isVisible,
-        isReady,
-        error: error ?? playback.error,
+  const actions = useMemo<EmbedActions>(
+    () => ({ setEmbed, hideEmbed, containerId: CONTAINER_ID, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost }),
+    [setEmbed, hideEmbed, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost]
+  );
+  const mergedError = error ?? playback.error;
+  const ghostIsOptimistic = ghostOverride !== null;
+  const slow = useMemo<EmbedSlowState>(
+    () => ({
+      ...state,
+      isVisible,
+      isReady,
+      error: mergedError,
       playback: playback.data,
-        containerId: CONTAINER_ID,
-        registerSlot,
-        play,
-        pause,
-        togglePlay,
-        toggleMute,
-        seek,
-        isPaused,
-        isMuted,
-        currentTime,
-        duration,
-        ghosts: sortedGhosts,
-        activeGhost,
-        setActiveGhost,
-        ghostIsOptimistic: ghostOverride !== null,
-        bazaarChapters,
-      }}
-    >
+      ghosts: sortedGhosts,
+      activeGhost,
+      ghostIsOptimistic,
+      bazaarChapters,
+    }),
+    [state, isVisible, isReady, mergedError, playback.data, sortedGhosts, activeGhost, ghostIsOptimistic, bazaarChapters]
+  );
+
+  return (
+    <ActionsContext.Provider value={actions}>
+    <SlowContext.Provider value={slow}>
+    <TimeContext.Provider value={timeStore}>
       {children}
       <PlayerHost
         containerId={CONTAINER_ID}
@@ -601,6 +642,8 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
         }}
         onClose={hideEmbed}
       />
-    </EmbedContext.Provider>
+    </TimeContext.Provider>
+    </SlowContext.Provider>
+    </ActionsContext.Provider>
   );
 }

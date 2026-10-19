@@ -226,3 +226,19 @@ export function useBookmarks(): BookmarksValue {
     toggle: store.toggle,
   };
 }
+
+/** Saved IDs only (newest first, null until loaded). Inert (no subscription, no loading) while `enabled` is false. */
+export function useBookmarkIds(enabled: boolean): number[] | null {
+  const { store, signedIn } = useContextValue();
+  const ids = useSyncExternalStore(
+    enabled ? store.subscribeAll : noopSubscribe,
+    () => (enabled ? store.ids : null),
+    () => null,
+  );
+  useEffect(() => {
+    if (enabled && signedIn) void store.loadRest();
+  }, [store, enabled, signedIn]);
+  return ids;
+}
+
+const noopSubscribe = () => () => {};

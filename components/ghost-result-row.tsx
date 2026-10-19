@@ -1,10 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { memo, type MouseEvent } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { useEmbed } from "@/components/embed-provider";
+import { prefetch } from "@/lib/api-cache";
+import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
 import { BookmarkButton } from "@/components/social/bookmark-button";
 import type { GhostResult } from "@/lib/result-models";
 export type { GhostResult } from "@/lib/result-models";
@@ -15,7 +17,6 @@ const KNOWN_RANKS = new Set(["bronze", "silver", "gold", "diamond", "legend"]);
 
 interface GhostResultRowProps {
   ghost: GhostResult;
-  isActive: boolean;
   onNavigateToStreamer: (streamerId: string, name: string) => void;
 }
 
@@ -27,18 +28,21 @@ function formatDate(iso: string): string {
   });
 }
 
-export function GhostResultRow({
+export const GhostResultRow = memo(function GhostResultRow({
   ghost,
-  isActive,
   onNavigateToStreamer,
 }: GhostResultRowProps) {
-  const { setEmbed, setActiveGhost } = useEmbed();
-  const router = useRouter();
+  const { setEmbed, setActiveGhost } = useEmbedActions();
+  const isActive = useEmbedState().activeGhost?.matchup_id === ghost.matchup_id;
 
-  const handlePlay = () => {
-    const url = `/matchups/${ghost.matchup_id}`;
-    router.push(url, { scroll: false });
+  const warm = () => {
+    prefetch(`/matchups/${ghost.matchup_id}`);
+    prefetch(`/videos/${ghost.vod_id}/playback`);
+  };
 
+  // Optimistic update only; the Link performs the (single) navigation.
+  const handlePlay = (e: MouseEvent) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     setEmbed(ghost.vod_source_id, ghost.frame_time_seconds, {
       streamerName: ghost.streamer_display_name,
       streamerAvatar: ghost.streamer_avatar,
@@ -57,9 +61,10 @@ export function GhostResultRow({
 
   return (
     <div
-      onClick={handlePlay}
+      onPointerEnter={warm}
+      onFocus={warm}
       className={cn(
-        "@container box-border h-[72px] cursor-pointer overflow-hidden rounded-lg border transition-colors",
+        "@container relative box-border h-[72px] overflow-hidden rounded-lg border transition-colors focus-within:ring-2 focus-within:ring-ring",
         isActive
           ? "border-primary bg-primary/5"
           : "border-border bg-card hover:border-primary/50"
@@ -84,14 +89,13 @@ export function GhostResultRow({
           <div className="flex min-w-0 items-center gap-1 text-sm">
             {/* Streamer name + vs — hidden below 200px */}
             <button
-              onClick={(e) => {
-                e.stopPropagation();
+              onClick={() => {
                 onNavigateToStreamer(
                   ghost.streamer_id,
                   ghost.streamer_display_name
                 );
               }}
-              className="hidden min-w-0 shrink truncate font-medium text-primary hover:underline @[200px]:block"
+              className="relative z-10 hidden min-w-0 shrink truncate font-medium text-primary hover:underline @[200px]:block"
             >
               {ghost.streamer_display_name}
             </button>
@@ -108,13 +112,22 @@ export function GhostResultRow({
                 className="inline-block shrink-0"
               />
             )}
-            <span className="shrink-0 font-medium text-foreground">
+            <Link
+              href={`/matchups/${ghost.matchup_id}`}
+              scroll={false}
+              prefetch={false}
+              onClick={handlePlay}
+              aria-current={isActive ? "true" : undefined}
+              className="shrink-0 font-medium text-foreground outline-none after:absolute after:inset-0"
+            >
               {ghost.username}
-            </span>
+            </Link>
           </div>
         </div>
-        <BookmarkButton matchupId={ghost.matchup_id} />
+        <div className="relative z-10">
+          <BookmarkButton matchupId={ghost.matchup_id} />
+        </div>
       </div>
     </div>
   );
-}
+});

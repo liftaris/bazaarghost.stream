@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Matchup } from "@/lib/api-contract";
 import { cachedGet } from "@/lib/api-cache";
-import { useEmbed } from "@/components/embed-provider";
+import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
 
 /** Bootstrap the player from a durable URL. Legacy URLs are redirected on the server. */
 export function GhostLoader({
@@ -17,7 +17,8 @@ export function GhostLoader({
   matchupId?: number;
   initialMatchup?: Matchup;
 }) {
-  const { setEmbed, setActiveGhost, activeGhost, videoId } = useEmbed();
+  const { setEmbed, setActiveGhost } = useEmbedActions();
+  const { activeGhost, videoId } = useEmbedState();
   // Read live player state inside the bootstrap effect without re-running it
   const live = useRef({ activeGhost, videoId });
   live.current = { activeGhost, videoId };

@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 
 const MINI_MAX_WIDTH = 288;
 const MINI_MARGIN = 16;
+const SETTLE_FRAMES = 10;
+/** Dispatched on window when the registered PlayerSlot element changes. */
+export const SLOT_EVENT = "bazaarghost:player-slot";
 
 interface PlayerHostProps {
   containerId: string;
@@ -44,7 +47,9 @@ export function PlayerHost({
     }
     let raf = 0;
     let last = "";
+    let still = 0;
     const tick = () => {
+      raf = 0;
       const slot = slotRef.current;
       const hasBox = !!slot && slot.isConnected && slot.getClientRects().length > 0;
       let x = 0, y = 0, w = 0, h = 0;
@@ -69,11 +74,51 @@ export function PlayerHost({
         host.style.transform = `translate3d(${x}px,${y}px,0)`;
         host.style.visibility = visible ? "visible" : "hidden";
         setMini(isMini);
+        still = 0;
+      } else {
+        still++;
       }
-      raf = requestAnimationFrame(tick);
+      // Keep following (CSS transitions, layout settling) until the rect is stable
+      if (still < SETTLE_FRAMES) raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    // Event-driven: only run frames after something that can move the slot
+    const wake = () => {
+      still = 0;
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    const onSlot = () => {
+      watchSlot();
+      wake();
+    };
+    const resize = new ResizeObserver(wake);
+    resize.observe(document.body);
+    let observed: HTMLElement | null = null;
+    const watchSlot = () => {
+      const slot = slotRef.current;
+      if (slot === observed) return;
+      if (observed) resize.unobserve(observed);
+      if (slot) resize.observe(slot);
+      observed = slot;
+    };
+    const passive = { capture: true, passive: true } as const;
+    window.addEventListener("resize", wake);
+    window.addEventListener("scroll", wake, passive);
+    window.addEventListener("transitionrun", wake, passive);
+    window.addEventListener("transitionend", wake, passive);
+    window.addEventListener("transitioncancel", wake, passive);
+    window.addEventListener(SLOT_EVENT, onSlot);
+    watchSlot();
+    wake();
+    return () => {
+      cancelAnimationFrame(raf);
+      resize.disconnect();
+      window.removeEventListener("resize", wake);
+      window.removeEventListener("scroll", wake, passive);
+      window.removeEventListener("transitionrun", wake, passive);
+      window.removeEventListener("transitionend", wake, passive);
+      window.removeEventListener("transitioncancel", wake, passive);
+      window.removeEventListener(SLOT_EVENT, onSlot);
+    };
   }, [slotRef, show]);
 
   return (
