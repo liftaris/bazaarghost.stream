@@ -4,6 +4,7 @@ import { Suspense, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { WorkspaceContext } from "@/components/workspace-context";
 import { EmbedProvider } from "@/components/embed-provider";
+import { PlayerHotkeys } from "@/components/player/player-hotkeys";
 import Navbar from "@/components/navbar";
 import SearchPanel from "@/components/search";
 import { showSearchTabs } from "@/flags";
@@ -31,6 +32,7 @@ export function AppShell({
 
   return (
     <EmbedProvider>
+      <PlayerHotkeys />
       <div
         className={cn(
           "flex flex-col",
