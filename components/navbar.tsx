@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/auth/user-menu";
 import { SavedLink } from "@/components/social/saved-link";
 import { Moon, Sun, Menu } from "lucide-react";
+import { showSearchTabs } from "@/flags";
 import { useState, useEffect } from "react";
 import {
   Sheet,
@@ -43,6 +44,8 @@ export default function Navbar() {
               alt="Logo"
               width={40}
               height={25}
+              unoptimized
+              priority
               className="object-contain"
             />
             <h1 className="text-xl font-bold text-primary">BazaarGhost</h1>
@@ -56,12 +59,14 @@ export default function Navbar() {
             >
               Search
             </Link>
-            <Link
-              href="/streamers"
-              className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
-            >
-              Streamers
-            </Link>
+            {showSearchTabs && (
+              <Link
+                href="/streamers"
+                className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+              >
+                Streamers
+              </Link>
+            )}
             <Link
               href="/how-it-works"
               className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
@@ -164,13 +169,15 @@ export default function Navbar() {
                 >
                   Search
                 </Link>
-                <Link
-                  href="/streamers"
-                  onClick={() => setIsOpen(false)}
-                  className="text-lg font-medium text-foreground/70 hover:text-foreground transition-colors"
-                >
-                  Streamers
-                </Link>
+                {showSearchTabs && (
+                  <Link
+                    href="/streamers"
+                    onClick={() => setIsOpen(false)}
+                    className="text-lg font-medium text-foreground/70 hover:text-foreground transition-colors"
+                  >
+                    Streamers
+                  </Link>
+                )}
                 <Link
                   href="/how-it-works"
                   onClick={() => setIsOpen(false)}

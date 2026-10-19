@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { useSearchUrl } from "./hooks/use-search-url";
@@ -57,6 +57,8 @@ export default function SearchPanel({
     ghostResults: savedResults,
     isLoading: isSavedLoading,
     isEmpty: isSavedEmpty,
+    hasMore: hasMoreSaved,
+    loadMore: loadMoreSaved,
   } = useSavedMatchups({ enabled: searchMode === "saved", query: queryParam });
 
   useEffect(() => {
@@ -88,7 +90,7 @@ export default function SearchPanel({
     isLoading: isGhostLoading,
     isLoadingMore: isGhostLoadingMore,
     hasMoreGhosts,
-    loadMoreGhosts,error:ghostError,retry:retryGhosts,
+    loadMoreGhosts,isStale:isGhostStale,error:ghostError,retry:retryGhosts,
   } = useGhostSearch({
     queryParam,
     streamerId: resolvedStreamer?.id ?? null,
@@ -151,21 +153,6 @@ export default function SearchPanel({
     [router, buildModeHref]
   );
 
-  // ---- Measure search header height for mobile sheet ----
-  const searchHeaderRef = useRef<HTMLDivElement>(null);
-  const [searchHeaderHeight, setSearchHeaderHeight] = useState(0);
-
-  useEffect(() => {
-    const el = searchHeaderRef.current;
-    if (!el) return;
-    const measure = () =>
-      setSearchHeaderHeight(el.getBoundingClientRect().height);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
   // ---- Shared UI elements ----
   const isLoading =
     (searchMode === "ghosts" && isGhostLoading) ||
@@ -174,7 +161,6 @@ export default function SearchPanel({
 
   const searchHeader = (
     <SearchHeader
-      ref={searchHeaderRef}
       searchMode={searchMode}
       showSearchTabs={showSearchTabs}
       inputValue={inputValue}
@@ -201,9 +187,12 @@ export default function SearchPanel({
       savedResults={savedResults}
       isSavedLoading={isSavedLoading}
       isSavedEmpty={isSavedEmpty}
+      hasMoreSaved={hasMoreSaved}
+      loadMoreSaved={loadMoreSaved}
       ghostResults={ghostResults}
       ghostTotalResults={ghostTotalResults}
       isGhostLoading={isGhostLoading}
+      isGhostStale={isGhostStale}
       isGhostLoadingMore={isGhostLoadingMore}
       hasMoreGhosts={hasMoreGhosts}
       loadMoreGhosts={loadMoreGhosts}
@@ -225,7 +214,6 @@ export default function SearchPanel({
     <SearchLayout
       searchHeader={searchHeader}
       searchResults={searchResults}
-      searchHeaderHeight={searchHeaderHeight}
     />
   );
 }

@@ -4,6 +4,7 @@ import { memo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useBookmarkActions, useIsBookmarked } from "@/components/social/bookmarks-provider";
 import { cn } from "@/lib/utils";
 
@@ -12,10 +13,12 @@ export const BookmarkButton = memo(function BookmarkButton({
   matchupId,
   className,
   size = "icon-sm",
+  tooltip = false,
 }: {
   matchupId: number;
   className?: string;
   size?: "icon-xs" | "icon-sm";
+  tooltip?: boolean;
 }) {
   const { enabled, signedIn, toggle } = useBookmarkActions();
   const saved = useIsBookmarked(matchupId);
@@ -25,7 +28,7 @@ export const BookmarkButton = memo(function BookmarkButton({
 
   if (!enabled) return null;
 
-  return (
+  const button = (
     <Button
       variant="ghost"
       size={size}
@@ -49,5 +52,12 @@ export const BookmarkButton = memo(function BookmarkButton({
     >
       <Bookmark className={cn(saved && "fill-current")} />
     </Button>
+  );
+  if (!tooltip) return button;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{button}</TooltipTrigger>
+      <TooltipContent>{saved ? "Unsave" : "Save"}</TooltipContent>
+    </Tooltip>
   );
 });

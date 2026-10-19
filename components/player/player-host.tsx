@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { Maximize2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-const MINI_MAX_WIDTH = 288;
+const MINI_MAX_WIDTH = 360;
+const MINI_STRIP = 28;
 const MINI_MARGIN = 16;
 const SETTLE_FRAMES = 10;
 /** Dispatched on window when the registered PlayerSlot element changes. */
@@ -61,8 +63,8 @@ export function PlayerHost({
         if (w < 1 || h < 1) visible = false;
       } else {
         isMini = true;
-        w = Math.min(MINI_MAX_WIDTH, window.innerWidth * 0.6);
-        h = (w * 9) / 16;
+        w = Math.min(MINI_MAX_WIDTH, window.innerWidth - 2 * MINI_MARGIN);
+        h = (w * 9) / 16 + MINI_STRIP;
         x = window.innerWidth - w - MINI_MARGIN;
         y = window.innerHeight - h - MINI_MARGIN;
       }
@@ -126,33 +128,33 @@ export function PlayerHost({
       ref={hostRef}
       className={cn(
         "invisible fixed left-0 top-0 z-[41] overflow-hidden bg-black",
-        mini ? "rounded-md border border-border shadow-lg" : "rounded-t-[7px]"
+        mini ? "rounded-md border border-border bg-card shadow-lg" : "rounded-t-[7px] max-md:rounded-none"
       )}
     >
-      <div id={containerId} className="size-full" />
+      <div id={containerId} className={mini ? "aspect-video w-full bg-black" : "size-full"} />
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-sm text-destructive">
           Error loading player: {error}
         </div>
       )}
       {mini && (
-        <div className="absolute right-1 top-1 flex gap-1">
-          <Button
-            variant="secondary"
-            size="icon-xs"
-            aria-label="Expand player"
-            onClick={onExpand}
-          >
-            <Maximize2 />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon-xs"
-            aria-label="Close player"
-            onClick={onClose}
-          >
-            <X />
-          </Button>
+        <div className="flex h-7 items-center justify-end gap-1 px-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-xs" aria-label="Expand player" onClick={onExpand}>
+                <Maximize2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">Expand player</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-xs" aria-label="Close player" onClick={onClose}>
+                <X />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">Close player</TooltipContent>
+          </Tooltip>
         </div>
       )}
     </div>

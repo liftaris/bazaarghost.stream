@@ -5,7 +5,7 @@ import { GripVertical } from "lucide-react";
 import { EmbedDrawer } from "@/components/embed-drawer";
 import { EmbedPanel } from "@/components/embed-panel";
 
-const DEFAULT_RESULTS_WIDTH = "30%";
+const DEFAULT_RESULTS_WIDTH = "clamp(20rem, 28%, 26rem)";
 const MIN_RESULTS_PX = 200;
 const MIN_EMBED_PX = 400;
 const DRAG_THRESHOLD_PX = 3;
@@ -13,14 +13,13 @@ const DRAG_THRESHOLD_PX = 3;
 interface SearchLayoutProps {
   searchHeader: ReactNode;
   searchResults: ReactNode;
-  searchHeaderHeight: number;
 }
 
 /**
  * The single responsive layout tree for the search workspace.
  *
- * Below `md` it is a stacked column (results + embed bottom sheet); from `md`
- * up it is a resizable two-pane split (30% results by default, 200px / 400px
+ * Below `md` it is a stacked column (player on top, results scrolling beneath);
+ * from `md` up it is a resizable split with a results rail (26rem at most, 200px / 400px
  * minimums, either side collapsible by dragging past its minimum; a click on
  * the handle restores the defaults). The switch is CSS only, so the results
  * list and the player are never remounted when crossing the breakpoint.
@@ -28,7 +27,6 @@ interface SearchLayoutProps {
 export function SearchLayout({
   searchHeader,
   searchResults,
-  searchHeaderHeight,
 }: SearchLayoutProps) {
   const groupRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ startX: number; moved: boolean } | null>(null);
@@ -74,6 +72,11 @@ export function SearchLayout({
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const group = groupRef.current;
     if (!group) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setResultsWidth(DEFAULT_RESULTS_WIDTH);
+      return;
+    }
     const results = group.firstElementChild as HTMLElement | null;
     const pct = ((results?.offsetWidth ?? 0) / group.offsetWidth) * 100;
     const step = e.shiftKey ? 10 : 2;
@@ -82,7 +85,6 @@ export function SearchLayout({
       : e.key === "ArrowRight" ? pct + step
       : e.key === "Home" ? 0
       : e.key === "End" ? 100
-      : e.key === "Enter" ? parseFloat(DEFAULT_RESULTS_WIDTH)
       : null;
     if (next === null) return;
     e.preventDefault();
@@ -117,7 +119,7 @@ export function SearchLayout({
             <GripVertical className="size-2.5" />
           </div>
         </div>
-        <EmbedDrawer headerHeight={searchHeaderHeight}>
+        <EmbedDrawer>
           <EmbedPanel />
         </EmbedDrawer>
       </div>
