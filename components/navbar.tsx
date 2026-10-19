@@ -6,7 +6,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/auth/user-menu";
 import { SavedLink } from "@/components/social/saved-link";
-import { Moon, Sun, Menu } from "lucide-react";
+import { Heart, Moon, Sun, Menu } from "lucide-react";
 import { showSearchTabs } from "@/flags";
 import { useState, useEffect } from "react";
 import {
@@ -79,23 +79,20 @@ export default function Navbar() {
             >
               Contact
             </Link>
-            <Link
-              href="/donate"
-              className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center gap-1"
-            >
-              <span className="animate-shake-fade inline-block">$</span>
-              <span>Donate</span>
-              <span
-                className="animate-shake-fade inline-block"
-                style={{ animationDelay: "0.3s" }}
-              >
-                $
-              </span>
-            </Link>
           </div>
 
           {/* Desktop Actions - Hidden on mobile */}
           <div className="hidden md:flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              className="text-foreground hover:text-primary"
+            >
+              <Link href="/donate" aria-label="Donate">
+                <Heart className="size-5" />
+              </Link>
+            </Button>
             {/* Discord Button */}
             <Button
               variant="ghost"
@@ -192,26 +189,22 @@ export default function Navbar() {
                 >
                   Contact
                 </Link>
-                <Link
-                  href="/donate"
-                  onClick={() => setIsOpen(false)}
-                  className="text-lg font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center gap-1"
-                >
-                  <span className="animate-shake-fade inline-block">$</span>
-                  <span>Donate</span>
-                  <span
-                    className="animate-shake-fade inline-block"
-                    style={{ animationDelay: "0.3s" }}
-                  >
-                    $
-                  </span>
-                </Link>
 
                 {/* Divider */}
                 <div className="my-2 border-t border-border" />
 
                 {/* Mobile Actions */}
                 <div className="flex items-center gap-4">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    asChild
+                    className="text-foreground hover:text-primary"
+                  >
+                    <Link href="/donate" aria-label="Donate" onClick={() => setIsOpen(false)}>
+                      <Heart className="size-5" />
+                    </Link>
+                  </Button>
                   {/* Discord Button */}
                   <Button
                     variant="ghost"

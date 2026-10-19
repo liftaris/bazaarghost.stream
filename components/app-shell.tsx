@@ -17,13 +17,7 @@ const CONTENT_ROUTES = ["/login", "/account", "/how-it-works", "/contact", "/don
  * player host) and one SearchPanel that is hidden, not unmounted, on content
  * routes so results and the player survive client navigation.
  */
-export function AppShell({
-  stats,
-  children,
-}: {
-  stats: ReactNode;
-  children: ReactNode;
-}) {
+export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const workspace = !CONTENT_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
@@ -42,7 +36,6 @@ export function AppShell({
         <main
           className={cn("min-h-0 flex-1 flex-col", workspace ? "flex" : "hidden")}
         >
-          {stats}
           <WorkspaceContext.Provider value={workspace}>
             <Suspense>
               <SearchPanel showSearchTabs={showSearchTabs} />

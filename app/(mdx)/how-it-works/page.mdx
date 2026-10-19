@@ -2,8 +2,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Image from "next/image";
 import { LowConfidenceStreamers } from "@/components/low-confidence-streamers";
+import { Suspense } from "react";
+import { GlobalStats } from "@/components/global-stats";
 
 Bazaar Ghost tracks and catalogs Bazaar streams on Twitch to find matchups across thousands of VODs.
+
+<Suspense>
+  <GlobalStats />
+</Suspense>
 
 ## Streamers
 

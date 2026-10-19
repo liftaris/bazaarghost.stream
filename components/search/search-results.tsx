@@ -127,7 +127,6 @@ export function SearchResults({
             <VirtualizedResultList
               items={savedResults}
               totalCount={savedResults.length}
-              quiet
               getItemKey={(g) => g.matchup_id}
               renderItem={renderGhost}
               onLoadMore={loadMoreSaved}
