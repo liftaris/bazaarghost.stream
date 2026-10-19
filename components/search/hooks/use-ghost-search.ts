@@ -9,5 +9,5 @@ export function useGhostSearch({ queryParam, streamerId, effectiveVod, enabled }
    videoId: effectiveVod?.startsWith("v:") ? effectiveVod.slice(2) : null }, enabled);
  return { ghostResults: result.items.map(ghostResult), totalResults: result.items.length,
    isLoading: result.loading, isLoadingMore: result.loadingMore, hasMoreGhosts: result.hasMore,
-   loadMoreGhosts: result.loadMore, error: result.error, retry: result.retry };
+   loadMoreGhosts: result.loadMore, isStale: result.isStale, error: result.error, retry: result.retry };
 }

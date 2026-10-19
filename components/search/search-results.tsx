@@ -9,6 +9,7 @@ import {
 import { VodResultRow, type VodResult } from "@/components/vod-result-row";
 import { StreamerResultRow } from "@/components/streamer-result-row";
 import { Bookmark } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SearchMode, StreamerOption } from "./types";
 
@@ -23,11 +24,14 @@ interface SearchResultsProps {
   savedResults: GhostResult[];
   isSavedLoading: boolean;
   isSavedEmpty: boolean;
+  hasMoreSaved: boolean;
+  loadMoreSaved: () => void;
 
   // Ghost state
   ghostResults: GhostResult[];
   ghostTotalResults: number;
   isGhostLoading: boolean;
+  isGhostStale: boolean;
   isGhostLoadingMore: boolean;
   hasMoreGhosts: boolean;
   loadMoreGhosts: () => void;
@@ -68,9 +72,12 @@ export function SearchResults({
   savedResults,
   isSavedLoading,
   isSavedEmpty,
+  hasMoreSaved,
+  loadMoreSaved,
   ghostResults,
   ghostTotalResults,
   isGhostLoading,
+  isGhostStale,
   isGhostLoadingMore,
   hasMoreGhosts,
   loadMoreGhosts,
@@ -120,12 +127,11 @@ export function SearchResults({
             <VirtualizedResultList
               items={savedResults}
               totalCount={savedResults.length}
-              quiet
               getItemKey={(g) => g.matchup_id}
               renderItem={renderGhost}
-              onLoadMore={() => {}}
+              onLoadMore={loadMoreSaved}
               isLoadingMore={false}
-              hasMore={false}
+              hasMore={hasMoreSaved}
             />
           )}
           {isSavedEmpty && (
@@ -139,6 +145,7 @@ export function SearchResults({
       {searchMode === "ghosts" && (
         <>
           {!isGhostLoading && ghostResults.length > 0 && (
+            <div className={cn("flex min-h-0 flex-1 flex-col transition-opacity", isGhostStale && "opacity-50")} aria-busy={isGhostStale}>
             <VirtualizedResultList
               items={ghostResults}
               totalCount={ghostTotalResults}
@@ -151,6 +158,7 @@ export function SearchResults({
               isLoadingMore={isGhostLoadingMore}
               hasMore={hasMoreGhosts}
             />
+            </div>
           )}
           {!isGhostLoading && ghostResults.length === 0 && queryParam && (
             <p className="px-4 py-16 text-center text-muted-foreground">
