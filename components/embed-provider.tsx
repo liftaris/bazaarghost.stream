@@ -419,7 +419,10 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     loadedVideoRef.current = state.videoId;
     readyRef.current = false;
     setIsReady(false);
-    setCurrentTime(0);
+    // Hold the requested start (not 0) until the new player reports it, so the
+    // active ghost doesn't drop out while the player boots.
+    seekTargetRef.current = pendingSeekRef.current;
+    setCurrentTime(pendingSeekRef.current ?? 0);
     setIsPaused(true);
 
     const init = async () => {

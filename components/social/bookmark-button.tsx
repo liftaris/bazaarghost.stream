@@ -5,6 +5,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Kbd } from "@/components/ui/kbd";
+import { PLAYER_SHORTCUTS } from "@/lib/player-shortcuts";
 import { useBookmarkActions, useIsBookmarked } from "@/components/social/bookmarks-provider";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +59,10 @@ export const BookmarkButton = memo(function BookmarkButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>{button}</TooltipTrigger>
-      <TooltipContent>{saved ? "Unsave" : "Save"}</TooltipContent>
+      <TooltipContent>
+        {saved ? "Unsave" : "Save"}
+        <Kbd>{PLAYER_SHORTCUTS.save.keys[0]}</Kbd>
+      </TooltipContent>
     </Tooltip>
   );
 });

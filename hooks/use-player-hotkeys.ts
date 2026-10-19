@@ -43,7 +43,14 @@ export function usePlayerHotkeys() {
       };
       const gotoGhost = (dir: "prev" | "next") => {
         if (platform !== "twitch" && platform !== "youtube") return;
-        const g = (dir === "next" ? findNextGhost : findPrevGhost)(state.ghosts, currentTime);
+        // Step from the active ghost like the panel's buttons; fall back to the playhead.
+        const idx = state.activeGhost
+          ? state.ghosts.findIndex((x) => x.detection_id === state.activeGhost!.detection_id)
+          : -1;
+        const g =
+          idx >= 0
+            ? state.ghosts[dir === "next" ? idx + 1 : idx - 1] ?? null
+            : (dir === "next" ? findNextGhost : findPrevGhost)(state.ghosts, currentTime);
         if (!g) return;
         actions.setActiveGhost(g);
         if (g.matchup_id && pathname !== `/matchups/${g.matchup_id}`) {

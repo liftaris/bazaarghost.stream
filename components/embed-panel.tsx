@@ -31,6 +31,8 @@ import {
 import { EmbedTimeline } from "@/components/embed-timeline";
 import { PlayerSlot } from "@/components/player/player-slot";
 import { BookmarkButton } from "@/components/social/bookmark-button";
+import { Kbd } from "@/components/ui/kbd";
+import { PLAYER_SHORTCUTS, type PlayerShortcutAction } from "@/lib/player-shortcuts";
 import { cn, secondsToTwitchTimestamp } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -60,10 +62,11 @@ function relativeDate(raw: string): { label: string; full: string } | null {
 /** Icon button with a tooltip naming it (also its accessible name). */
 function IconButton({
   label,
+  shortcut,
   className,
   children,
   ...props
-}: { label: string } & React.ComponentProps<typeof Button>) {
+}: { label: string; shortcut?: PlayerShortcutAction } & React.ComponentProps<typeof Button>) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -77,7 +80,10 @@ function IconButton({
           {children}
         </Button>
       </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
+      <TooltipContent>
+        {label}
+        {shortcut && <Kbd>{PLAYER_SHORTCUTS[shortcut].keys[0]}</Kbd>}
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -236,7 +242,7 @@ export function EmbedPanel() {
 
       {/* One control row: prev · ghost · next | save · search · copy · close */}
       <div className="flex h-12 items-center gap-0.5 border-t border-border px-2">
-        <IconButton label="Previous ghost" onClick={navigatePrevGhost} disabled={!showChrome || isAtFirstGhost}>
+        <IconButton label="Previous ghost" shortcut="prevGhost" onClick={navigatePrevGhost} disabled={!showChrome || isAtFirstGhost}>
           <ChevronLeft />
         </IconButton>
         <button
@@ -268,7 +274,7 @@ export function EmbedPanel() {
             <Skeleton className="h-4 w-28 bg-muted" />
           )}
         </button>
-        <IconButton label="Next ghost" onClick={navigateNextGhost} disabled={!showChrome || isAtLastGhost}>
+        <IconButton label="Next ghost" shortcut="nextGhost" onClick={navigateNextGhost} disabled={!showChrome || isAtLastGhost}>
           <ChevronRight />
         </IconButton>
 
@@ -288,7 +294,7 @@ export function EmbedPanel() {
         <IconButton label={copied ? "Copied" : "Copy link"} onClick={copyLink} disabled={!showChrome}>
           {copied ? <Check /> : <Copy />}
         </IconButton>
-        <IconButton label="Close player" onClick={hideEmbed} disabled={!showChrome}>
+        <IconButton label="Close player" shortcut="close" onClick={hideEmbed} disabled={!showChrome}>
           <X />
         </IconButton>
       </div>
