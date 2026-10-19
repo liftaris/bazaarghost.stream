@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import {
   Tooltip,
   TooltipContent,
@@ -220,21 +221,30 @@ export function EmbedPanel() {
   const rank = currentGhost?.rank?.toLowerCase();
   const twitchOnly = !playback || playback.player.platform === "twitch";
 
+  // Nothing selected: a still empty state, not loading placeholders. Desktop only;
+  // on mobile the results take the whole screen.
+  if (!showChrome) {
+    return (
+      <Empty className="max-md:hidden md:m-2 md:border md:border-border">
+        <EmptyHeader>
+          <EmptyMedia>
+            <Ghost aria-hidden className="size-16 text-muted-foreground/25" strokeWidth={1.25} />
+          </EmptyMedia>
+          <EmptyTitle className="sr-only">No matchup selected</EmptyTitle>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden border-border bg-card md:m-2 md:rounded-lg md:border",
-        !showChrome && "max-md:hidden"
+        "flex flex-col overflow-hidden border-border bg-card md:m-2 md:rounded-lg md:border"
       )}
     >
       {/* The persistent PlayerHost is positioned over this slot */}
       <div className="relative">
         <PlayerSlot />
-        {!showChrome && (
-          <div aria-hidden className="absolute inset-0 grid place-items-center bg-muted">
-            <Ghost className="size-16 text-muted-foreground/25" strokeWidth={1.25} />
-          </div>
-        )}
         {playback && playback.processing.remainingRanges.length > 0 && (
           <p className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-card/80 px-3 py-1 text-xs text-muted-foreground">Processing is incomplete. More matchups may appear as the remaining sections finish.</p>
         )}
@@ -242,7 +252,7 @@ export function EmbedPanel() {
 
       {/* One control row: prev · ghost · next | save · search · copy · close */}
       <div className="flex h-12 items-center gap-0.5 border-t border-border px-2">
-        <IconButton label="Previous ghost" shortcut="prevGhost" onClick={navigatePrevGhost} disabled={!showChrome || isAtFirstGhost}>
+        <IconButton label="Previous ghost" shortcut="prevGhost" onClick={navigatePrevGhost} disabled={isAtFirstGhost}>
           <ChevronLeft />
         </IconButton>
         <button
@@ -251,7 +261,7 @@ export function EmbedPanel() {
           onClick={() => currentGhost && seek(currentGhost.frame_time_seconds)}
           className="flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-1 text-sm font-medium text-foreground transition-colors enabled:cursor-pointer enabled:hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          {showChrome && currentGhost ? (
+          {currentGhost ? (
             <>
               {rank && KNOWN_RANKS.has(rank) && (
                 <Image
@@ -274,7 +284,7 @@ export function EmbedPanel() {
             <Skeleton className="h-4 w-28 bg-muted" />
           )}
         </button>
-        <IconButton label="Next ghost" shortcut="nextGhost" onClick={navigateNextGhost} disabled={!showChrome || isAtLastGhost}>
+        <IconButton label="Next ghost" shortcut="nextGhost" onClick={navigateNextGhost} disabled={isAtLastGhost}>
           <ChevronRight />
         </IconButton>
 
@@ -291,17 +301,17 @@ export function EmbedPanel() {
             <Search />
           </IconButton>
         )}
-        <IconButton label={copied ? "Copied" : "Copy link"} onClick={copyLink} disabled={!showChrome}>
+        <IconButton label={copied ? "Copied" : "Copy link"} onClick={copyLink}>
           {copied ? <Check /> : <Copy />}
         </IconButton>
-        <IconButton label="Close player" shortcut="close" onClick={hideEmbed} disabled={!showChrome}>
+        <IconButton label="Close player" shortcut="close" onClick={hideEmbed}>
           <X />
         </IconButton>
       </div>
 
       {/* Stream info — fixed height so late data doesn't shift layout */}
       <div className="flex h-8 items-center gap-2 border-t border-border px-3 text-xs text-muted-foreground">
-        {showChrome && meta ? (
+        {meta ? (
           <>
             <Badge variant="outline" asChild className="min-w-0 max-w-[40%] cursor-pointer text-foreground">
               <button
@@ -347,7 +357,7 @@ export function EmbedPanel() {
       {/* Timeline — fixed-height slot so late data doesn't shift layout */}
       {twitchOnly && (
         <div className="h-[52px] border-t border-border px-3 py-3">
-          {showChrome && isReady && duration > 0 ? (
+          {isReady && duration > 0 ? (
             <EmbedTimeline
               duration={duration}
               bazaarChapters={bazaarChapters}

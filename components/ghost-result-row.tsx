@@ -7,7 +7,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { prefetch } from "@/lib/api-cache";
 import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
-import { BookmarkButton } from "@/components/social/bookmark-button";
 import type { GhostResult } from "@/lib/result-models";
 export type { GhostResult } from "@/lib/result-models";
 
@@ -123,9 +122,6 @@ export const GhostResultRow = memo(function GhostResultRow({
               {ghost.username}
             </Link>
           </div>
-        </div>
-        <div className="relative z-10">
-          <BookmarkButton matchupId={ghost.matchup_id} />
         </div>
       </div>
     </div>

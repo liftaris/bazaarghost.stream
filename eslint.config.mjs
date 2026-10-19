@@ -1,16 +1,31 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import { defineConfig, globalIgnores } from "eslint/config";
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import reactHooks from "eslint-plugin-react-hooks";
+import jsxA11y from "eslint-plugin-jsx-a11y";
+import nextPlugin from "@next/eslint-plugin-next";
+import globals from "globals";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-];
-
-export default eslintConfig;
+// vinext has no `next` package, so eslint-config-next (which needs Next's Babel parser)
+// can't load. Compose the same plugins directly on the typescript-eslint parser.
+export default defineConfig([
+  globalIgnores([
+    ".next/**",
+    ".vinext/**",
+    ".cloudflare/**",
+    ".wrangler/**",
+    ".agents/**",
+    "dist/**",
+    "out/**",
+    "next-env.d.ts",
+    "worker-env.d.ts",
+  ]),
+  js.configs.recommended,
+  tseslint.configs.recommended,
+  reactHooks.configs.flat.recommended,
+  jsxA11y.flatConfigs.recommended,
+  nextPlugin.configs["core-web-vitals"],
+  {
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
+  },
+]);

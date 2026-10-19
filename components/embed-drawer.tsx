@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
  */
 export function EmbedDrawer({ children }: { children: ReactNode }) {
   return (
-    <div className="shrink-0 bg-card max-md:order-first max-md:border-b max-md:border-border md:min-h-0 md:min-w-0 md:flex-1 md:overflow-y-auto md:bg-background">
+    <div className="shrink-0 bg-card max-md:order-first max-md:border-b max-md:border-border md:flex md:min-h-0 md:min-w-0 md:flex-1 md:flex-col md:overflow-y-auto md:bg-background">
       {children}
     </div>
   );
