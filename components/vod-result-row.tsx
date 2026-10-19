@@ -1,22 +1,21 @@
 "use client";
 
-import { Ghost, Play, Video } from "lucide-react";
+import Link from "next/link";
+import { memo, type MouseEvent } from "react";
+import { Ghost } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useEmbed } from "@/components/embed-provider";
+import { prefetch } from "@/lib/api-cache";
+import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
 
 import type { VodResult } from "@/lib/result-models";
 export type { VodResult } from "@/lib/result-models";
 
 interface VodResultRowProps {
   vod: VodResult;
-  isActive: boolean;
   onNavigateToStreamer: (streamerId: string, name: string) => void;
   onNavigateToGhosts: (vodSourceId: string, title: string) => void;
-  /** Optional override for the row click (used by SearchPanel for route-based navigation). */
-  onRowClick?: () => void;
 }
 
 function formatDate(iso: string): string {
@@ -27,30 +26,33 @@ function formatDate(iso: string): string {
   });
 }
 
-export function VodResultRow({
+export const VodResultRow = memo(function VodResultRow({
   vod,
-  isActive,
   onNavigateToStreamer,
   onNavigateToGhosts,
-  onRowClick,
 }: VodResultRowProps) {
-  const { setEmbed } = useEmbed();
+  const { setEmbed } = useEmbedActions();
+  const isActive = useEmbedState().videoId === vod.vod_source_id;
 
-  const handlePlay = () => {
+  const warm = () => prefetch(`/videos/${vod.vod_id}/playback`);
+
+  // Optimistic update only; the Link performs the (single) navigation.
+  const handlePlay = (e: MouseEvent) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     setEmbed(vod.vod_source_id, 0, {
       streamerName: vod.streamer_display_name,
       streamerAvatar: vod.streamer_avatar,
       vodTitle: vod.title,
       date: formatDate(vod.published_at),
     });
-    onRowClick?.();
   };
 
   return (
     <div
-      onClick={handlePlay}
+      onPointerEnter={warm}
+      onFocus={warm}
       className={cn(
-        "box-border h-[72px] cursor-pointer overflow-hidden rounded-lg border transition-colors",
+        "relative box-border h-[72px] overflow-hidden rounded-lg border transition-colors focus-within:ring-2 focus-within:ring-ring",
         isActive
           ? "border-primary bg-primary/5"
           : "border-border bg-card hover:border-primary/50"
@@ -72,27 +74,35 @@ export function VodResultRow({
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
           <div className="flex items-center gap-1.5 truncate text-sm">
             <button
-              onClick={(e) => {
-                e.stopPropagation();
+              onClick={() => {
                 onNavigateToStreamer(
                   vod.streamer_id,
                   vod.streamer_display_name
                 );
               }}
-              className="shrink-0 font-medium text-primary hover:underline"
+              className="relative z-10 shrink-0 font-medium text-primary hover:underline"
             >
               {vod.streamer_display_name}
             </button>
             <span className="shrink-0 text-muted-foreground">&mdash;</span>
-            <span className="truncate text-foreground">{vod.title}</span>
+            <Link
+              href={`/videos/${vod.vod_id}`}
+              scroll={false}
+              prefetch={false}
+              onClick={handlePlay}
+              aria-current={isActive ? "true" : undefined}
+              className="truncate text-foreground outline-none after:absolute after:inset-0"
+            >
+              {vod.title}
+            </Link>
           </div>
 
           {/* Meta */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {vod.ghost_count > 0 && (
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
+                className="relative z-10"
+                onClick={() => {
                   onNavigateToGhosts(vod.vod_source_id, vod.title);
                 }}
               >
@@ -107,18 +117,7 @@ export function VodResultRow({
             )}
           </div>
         </div>
-
-        {/* Play button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8 shrink-0 text-muted-foreground hover:text-primary"
-          onClick={handlePlay}
-          title="Play VOD"
-        >
-          <Play className="size-4" />
-        </Button>
       </div>
     </div>
   );
-}
+});

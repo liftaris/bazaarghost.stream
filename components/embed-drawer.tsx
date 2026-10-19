@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ChevronUp, Pause, Play } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useEmbed } from "@/components/embed-provider";
+import { useEmbedActions, useEmbedState, useEmbedTime } from "@/components/embed-provider";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -30,12 +30,10 @@ export function EmbedDrawer({ headerHeight = 0, children }: EmbedDrawerProps) {
     videoId,
     timestamp,
     meta,
-    isPaused,
-    pause,
-    play,
-    togglePlay,
     activeGhost,
-  } = useEmbed();
+  } = useEmbedState();
+  const { pause, play, togglePlay } = useEmbedActions();
+  const isPaused = useEmbedTime((s) => s.isPaused);
   const [sheetOpen, setSheetOpen] = useState(false);
   const isMobile = useIsMobile();
 

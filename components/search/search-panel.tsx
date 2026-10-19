@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEmbed } from "@/components/embed-provider";
-import type { VodResult } from "@/components/vod-result-row";
 
 import { useSearchUrl } from "./hooks/use-search-url";
 import { useStreamerOptions } from "./hooks/use-streamer-options";
@@ -39,10 +37,6 @@ export default function SearchPanel({
   showSearchTabs = false,
 }: SearchPanelProps) {
   const router = useRouter();
-  const {
-    videoId: activeVideoId,
-    currentTime: activeTime,
-  } = useEmbed();
 
   // ---- URL state ----
   const {
@@ -132,15 +126,6 @@ export default function SearchPanel({
     [replaceParams]
   );
 
-  /** Navigate to the VOD embed route at `/:name/:vodId`. */
-  const handleVodClick = useCallback(
-    (vod: VodResult) => {
-      const path = `/videos/${vod.vod_id}`;
-      router.push(path, { scroll: false });
-    },
-    [router]
-  );
-
   /** Navigate to a streamer's page (used from the streamers result list). */
   const handleStreamerClick = useCallback(
     (streamerId: string, _name: string) => {
@@ -222,8 +207,6 @@ export default function SearchPanel({
       isGhostLoadingMore={isGhostLoadingMore}
       hasMoreGhosts={hasMoreGhosts}
       loadMoreGhosts={loadMoreGhosts}
-      activeVideoId={activeVideoId}
-      activeTime={activeTime}
       vodResults={vodResults}
       vodTotalResults={vodTotalResults}
       isVodLoading={isVodLoading}
@@ -234,7 +217,6 @@ export default function SearchPanel({
       hasMoreCreators={moreCreators} loadMoreCreators={loadCreators} creatorsLoading={creatorsLoading}
       onNavigateToStreamer={handleNavigateToStreamer}
       onNavigateToVodGhosts={handleNavigateToVodGhosts}
-      onVodClick={handleVodClick}
       onStreamerClick={handleStreamerClick}
     /></>
   );

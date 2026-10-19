@@ -1,6 +1,6 @@
 "use client";
 
-import { useEmbed } from "@/components/embed-provider";
+import { useEmbedActions } from "@/components/embed-provider";
 import { cn } from "@/lib/utils";
 
 /**
@@ -8,6 +8,6 @@ import { cn } from "@/lib/utils";
  * PlayerHost is positioned over it; the iframe itself never moves in the DOM.
  */
 export function PlayerSlot({ className }: { className?: string }) {
-  const { registerSlot } = useEmbed();
+  const { registerSlot } = useEmbedActions();
   return <div ref={registerSlot} className={cn("aspect-video w-full", className)} />;
 }
