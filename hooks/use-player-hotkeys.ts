@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEmbedActions, useEmbedState, useEmbedTime } from "@/components/embed-provider";
+import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
 import { useBookmarkActions } from "@/components/social/bookmarks-provider";
 import { findNextGhost, findPrevGhost } from "@/lib/ghost-nav";
 
@@ -14,20 +14,19 @@ const INTERACTIVE = `${EDITABLE},button,a[href],summary,[role="button"],[role="l
 export function usePlayerHotkeys() {
   const actions = useEmbedActions();
   const state = useEmbedState();
-  const currentTime = useEmbedTime((s) => s.currentTime);
-  const duration = useEmbedTime((s) => s.duration);
   const bookmarks = useBookmarkActions();
   const router = useRouter();
   const pathname = usePathname();
   const query = useSearchParams().toString();
 
-  const ref = useRef({ actions, state, currentTime, duration, bookmarks, router, pathname, query });
-  ref.current = { actions, state, currentTime, duration, bookmarks, router, pathname, query };
+  const ref = useRef({ actions, state, bookmarks, router, pathname, query });
+  ref.current = { actions, state, bookmarks, router, pathname, query };
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
-      const { actions, state, currentTime, duration, bookmarks, router, pathname, query } = ref.current;
+      const { actions, state, bookmarks, router, pathname, query } = ref.current;
+      const { currentTime, duration } = actions.getTime();
       if (!state.videoId) return;
 
       const target = e.target instanceof Element ? e.target : null;

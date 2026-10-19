@@ -56,6 +56,8 @@ interface EmbedActions {
   seek: (seconds: number) => void;
   /** Optimistically set the active ghost (e.g. on result row click, arrow nav). */
   setActiveGhost: (ghost: EmbedGhost | null) => void;
+  /** Read the latest playback time without subscribing to ticks. */
+  getTime: () => { currentTime: number; duration: number };
 }
 
 /** Slow-changing state: does not change while playback time advances. */
@@ -606,8 +608,9 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const actions = useMemo<EmbedActions>(
-    () => ({ setEmbed, hideEmbed, containerId: CONTAINER_ID, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost }),
-    [setEmbed, hideEmbed, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost]
+    () => ({ setEmbed, hideEmbed, containerId: CONTAINER_ID, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost,
+      getTime: () => timeStore.get() }),
+    [setEmbed, hideEmbed, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, timeStore]
   );
   const mergedError = error ?? playback.error;
   const ghostIsOptimistic = ghostOverride !== null;
