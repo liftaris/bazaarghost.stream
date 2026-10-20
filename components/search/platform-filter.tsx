@@ -18,11 +18,11 @@ function labelOf(name: string, state: PlatformState) {
 }
 
 /** One tri-state button per platform: any (gray) → only (accent) → excluding (red) → any. */
-export function PlatformFilter({ platforms, filter, onChange }: {
-  platforms: string[]; filter: Filter; onChange: (next: Filter) => void;
+export function PlatformFilter({ platforms, filter, onChange, className }: {
+  platforms: string[]; filter: Filter; onChange: (next: Filter) => void; className?: string;
 }) {
   return (
-    <div role="group" aria-label="Platforms" className="flex shrink-0 items-center gap-1.5">
+    <div role="group" aria-label="Platforms" className={cn("flex shrink-0 items-center gap-1.5", className)}>
       {platforms.map((id) => {
         const state = platformState(filter, id);
         const label = labelOf(getPlatform(id).name, state);
@@ -36,7 +36,7 @@ export function PlatformFilter({ platforms, filter, onChange }: {
                 aria-label={label}
                 data-state={state}
                 onClick={() => onChange(cyclePlatform(filter, id))}
-                className={cn("border-border bg-card", STYLES[state])}
+                className={cn("size-9 border-border bg-card @[40rem]:size-8", STYLES[state])}
               >
                 <PlatformIcon platform={id} decorative />
               </Button>

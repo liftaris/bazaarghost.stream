@@ -1,6 +1,7 @@
 "use client";
 
 import { type ComponentProps } from "react";
+import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { PlatformFilter as Filter } from "@/lib/search-filters";
@@ -44,10 +45,10 @@ export function SearchHeader({
   const hasDates = hasPicker;
   return (
     <div className="relative z-50 flex flex-col gap-3 bg-background p-1">
-      <div className="@container flex flex-col gap-2 py-2">
+      <div className="@container flex flex-col gap-1.5 py-1 @[40rem]:gap-2 @[40rem]:py-2">
         {mode !== "saved" && <ModeChips mode={mode} onChange={onModeChange} />}
-        <div className="flex flex-col gap-2 @[40rem]:flex-row @[40rem]:items-end">
-          <div className="flex min-w-0 flex-1 flex-col items-stretch gap-2 @[20rem]:flex-row @[20rem]:items-center">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-2 gap-y-1.5 @[40rem]:gap-y-2">
+          <div className="col-span-2 flex min-w-0 flex-col items-stretch gap-1.5 @[20rem]:flex-row @[20rem]:items-center @[40rem]:col-span-1 @[40rem]:gap-2">
             {mode === "ghosts" && channelName !== null && (
               <Badge variant="outline" className="h-10 shrink-0 gap-2 px-3 text-sm">
                 <span className="max-w-[8rem] truncate">{channelName}</span>
@@ -61,8 +62,15 @@ export function SearchHeader({
             <SearchInput value={inputValue} onChange={onInputChange} placeholder={placeholder} isLoading={isLoading} />
           </div>
           {hasDates && <DateFilter from={from} to={to} onChange={onDatesChange} />}
+          {mode !== "saved" && (
+            <PlatformFilter
+              platforms={platforms}
+              filter={filter}
+              onChange={onFilterChange}
+              className={cn(!hasDates && "col-span-2", "@[40rem]:col-span-2")}
+            />
+          )}
         </div>
-        {mode !== "saved" && <PlatformFilter platforms={platforms} filter={filter} onChange={onFilterChange} />}
       </div>
     </div>
   );

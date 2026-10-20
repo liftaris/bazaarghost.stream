@@ -257,9 +257,9 @@ export function EmbedPanel({ mode, children }: { mode: SearchMode; children?: Re
                 </span>
               )}
             </>
-          ) : (
+          ) : mode === "ghosts" ? (
             <Skeleton className="h-4 w-28 bg-muted" />
-          )}
+          ) : null}
         </button>
         <IconButton label="Next ghost" shortcut="nextGhost" onClick={navigateNextGhost} disabled={isAtLastGhost}>
           <ChevronRight />

@@ -64,7 +64,7 @@ export function DateFilter({ from, to, onChange }: {
   from: string | null; to: string | null; onChange: (range: { from: string | null; to: string | null }) => void;
 }) {
   return (
-    <div className="flex w-full shrink-0 gap-2 @[40rem]:w-auto">
+    <div className="flex min-w-0 gap-2">
       <DatePicker label="From" value={from} onChange={(day) => onChange({ from: day, to })} disabled={to ? (d) => d > dayToDate(to) : undefined} />
       <DatePicker label="To" value={to} onChange={(day) => onChange({ from, to: day })} disabled={from ? (d) => d < dayToDate(from) : undefined} />
     </div>
