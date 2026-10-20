@@ -47,7 +47,7 @@ export function SearchHeader({
     <div className="relative z-50 flex flex-col gap-3 bg-background p-1">
       <div className="@container flex flex-col gap-1.5 py-1 @[40rem]:gap-2 @[40rem]:py-2">
         {mode !== "saved" && <ModeChips mode={mode} onChange={onModeChange} />}
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-2 gap-y-1.5 @[40rem]:gap-y-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 @[40rem]:gap-y-2">
           <div className="col-span-2 flex min-w-0 flex-col items-stretch gap-1.5 @[20rem]:flex-row @[20rem]:items-center @[40rem]:col-span-1 @[40rem]:gap-2">
             {mode === "ghosts" && channelName !== null && (
               <Badge variant="outline" className="h-10 shrink-0 gap-2 px-3 text-sm">
