@@ -4,6 +4,7 @@ import Link from "next/link";
 import { memo, type MouseEvent } from "react";
 import { Ghost } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SourceStack } from "@/components/source-stack";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { prefetch } from "@/lib/api-cache";
@@ -119,6 +120,7 @@ export const VodResultRow = memo(function VodResultRow({
             )}
           </div>
         </div>
+        {vod.sources && <SourceStack sources={vod.sources} />}
       </div>
     </div>
   );

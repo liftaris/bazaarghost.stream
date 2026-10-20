@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { backendFetch } from "./backend-server";
-import type { ChannelLookup, Matchup, MatchupDetail, Page, Playback, Recording, TimelineMarker } from "./api-contract";
+import type { ChannelLookup, Matchup, MatchupDetail, Page, Playback, Recording, Streamer, TimelineMarker } from "./api-contract";
 
 /** Share the current public matchup between metadata and rendering within one request. */
 export const getMatchup = cache(
@@ -39,11 +39,17 @@ async function publicGet<T>(path: string, params: Record<string, string | number
   }
 }
 
-/** Resolve a Twitch login to the redirect search query for its Streamer (or Channel), or null. */
-export const resolveTwitchSearch = cache(async (login: string): Promise<string | null> => {
+/** Resolve a Twitch login to where its Streamer page lives (or the Channel's search, when unowned), or null. */
+export const resolveTwitchPath = cache(async (login: string): Promise<string | null> => {
   const found = await publicGet<ChannelLookup>("/channels/lookup", { platform: "twitch", login });
   if (!found) return null;
-  return found.streamer ? `streamer=${found.streamer.id}` : `channel=${encodeURIComponent(found.channel.id)}`;
+  return found.streamer ? `/streamers/${found.streamer.id}` : `/search?channel=${encodeURIComponent(found.channel.id)}`;
+});
+
+/** Share one Streamer lookup between metadata and rendering within a request. */
+export const getStreamer = cache(async (id: number): Promise<Streamer | null> => {
+  if (!Number.isSafeInteger(id) || id < 1) return null;
+  return publicGet<Streamer>(`/streamers/${id}`);
 });
 
 /** Resolve a legacy Twitch VOD id (`v:<id>` or source id) to a recording id, or null. */

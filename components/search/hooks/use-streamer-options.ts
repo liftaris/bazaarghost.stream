@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/api-client";
+import { cachedGet } from "@/lib/api-cache";
 import { streamerOption, type StreamerOption } from "@/lib/result-models";
+import type { Streamer } from "@/lib/api-contract";
 import { useApiPage } from "./use-api-page";
 import type { SearchMode } from "../types";
 /** Search Streamers on the server; selection uses the numeric Streamer id. */
@@ -13,7 +14,7 @@ export function useStreamerOptions({ effectiveStreamer, searchMode, queryParam, 
  const [pickerQuery,setPickerQuery]=useState("");
  const [debouncedQuery,setDebouncedQuery]=useState("");
  useEffect(()=>{const timer=setTimeout(()=>setDebouncedQuery(pickerQuery),250);return()=>clearTimeout(timer);},[pickerQuery]);
- const [resolved,setResolved]=useState<{key:string;selected:StreamerOption|null;error:string|null}|null>(null);
+ const [resolved,setResolved]=useState<{key:string;selected:StreamerOption|null;streamer:Streamer|null;error:string|null}|null>(null);
  const [revision,setRevision]=useState(0);
  const result=useApiPage("/streamers", {q: searchMode === "streamers" ? queryParam : debouncedQuery}, openStreamerPopover || searchMode === "streamers");
  const resolveKey=`${effectiveStreamer}|${revision}`;
@@ -28,13 +29,13 @@ export function useStreamerOptions({ effectiveStreamer, searchMode, queryParam, 
     try {
      const id=Number(effectiveStreamer.replace(/^twitch:/,""));
      if(!Number.isSafeInteger(id)||id<1) throw new Error("Streamer not found");
-     const account=await apiGet(`/streamers/${id}`,{},controller.signal);
-     if(!controller.signal.aborted)setResolved({key:resolveKey,selected:streamerOption(account),error:null});
-    }catch(error){if(!controller.signal.aborted)setResolved({key:resolveKey,selected:null,error:error instanceof Error?error.message:"Could not load streamer"});}
+     const account=await cachedGet(`/streamers/${id}`,{},{signal:controller.signal});
+     if(!controller.signal.aborted)setResolved({key:resolveKey,selected:streamerOption(account),streamer:account,error:null});
+    }catch(error){if(!controller.signal.aborted)setResolved({key:resolveKey,selected:null,streamer:null,error:error instanceof Error?error.message:"Could not load streamer"});}
    }; void resolve(); return()=>controller.abort();
  },[effectiveStreamer,resolveKey]);
  const options=result.items.map(streamerOption);
- return {streamerOptions:options,filteredStreamers:options,
+ return {streamer:settled?.streamer??null,streamerOptions:options,filteredStreamers:options,
    resolvedStreamer:selected?{id:selected.streamer_id,displayName:selected.streamer_display_name,avatar:selected.streamer_avatar}:null,
    openStreamerPopover,setOpenStreamerPopover,pickerQuery,setPickerQuery,
    loading:result.loading||resolving, error:resolveError??result.error, hasMore:result.hasMore,loadMore:result.loadMore,

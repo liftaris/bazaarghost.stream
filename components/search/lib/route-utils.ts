@@ -20,6 +20,9 @@ export const RESERVED_TOP_LEVEL = [
   "videos",
 ];
 
+/** `/streamers/:id`: one Streamer's page inside the workspace. */
+const STREAMER_PAGE = /^\/streamers\/(\d+)\/?$/;
+
 const STATIC_PREFIXES = RESERVED_TOP_LEVEL.map((name) => `/${name}`);
 
 /**
@@ -33,7 +36,7 @@ const STATIC_PREFIXES = RESERVED_TOP_LEVEL.map((name) => `/${name}`);
  * @returns The search mode that should be active for this route.
  */
 export function deriveSearchMode(pathname: string): SearchMode {
-  if (pathname.startsWith("/streamers")) return "streamers";
+  if (pathname.startsWith("/streamers") && !STREAMER_PAGE.test(pathname)) return "streamers";
   if (pathname.startsWith("/vods")) return "vods";
   if (pathname.startsWith("/saved")) return "saved";
   return "ghosts";
@@ -60,7 +63,11 @@ export function deriveRouteContext(pathname: string): RouteContext {
     pathStreamer: null,
     pathVodId: null,
     pathUsername: null,
+    streamerPage: false,
   };
+
+  const streamerPage = pathname.match(STREAMER_PAGE);
+  if (streamerPage) return { ...empty, pathStreamer: streamerPage[1], streamerPage: true };
 
   const video = pathname.match(/^\/videos\/(\d+)$/);
   if(video)return {...empty,pathVodId:`v:${video[1]}`};
@@ -86,6 +93,7 @@ export function deriveRouteContext(pathname: string): RouteContext {
       pathStreamer: decodeURIComponent(segments[0]),
       pathVodId: decodeURIComponent(segments[1]),
       pathUsername: decodeURIComponent(segments[2]),
+      streamerPage: false,
     };
   }
 
@@ -95,6 +103,7 @@ export function deriveRouteContext(pathname: string): RouteContext {
       pathStreamer: decodeURIComponent(segments[0]),
       pathVodId: decodeURIComponent(segments[1]),
       pathUsername: null,
+      streamerPage: false,
     };
   }
 
@@ -104,6 +113,7 @@ export function deriveRouteContext(pathname: string): RouteContext {
       pathStreamer: decodeURIComponent(segments[0]),
       pathVodId: null,
       pathUsername: null,
+      streamerPage: false,
     };
   }
 

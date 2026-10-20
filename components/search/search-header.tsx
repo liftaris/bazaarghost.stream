@@ -1,6 +1,9 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, type ReactNode } from "react";
+import { X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { PlatformFilter } from "./platform-filter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StreamerPicker } from "./streamer-picker";
 import { SearchInput } from "./search-input";
@@ -26,6 +29,18 @@ interface SearchHeaderProps {
   openStreamerPopover: boolean;
   onOpenStreamerPopover: (open: boolean) => void;
   onSelectStreamer: (opt: StreamerOption | null) => void;
+
+  /** Streamer page header; replaces the streamer picker. */
+  profile?: ReactNode;
+  /** Hide the text search (Sessions have none). */
+  hideInput?: boolean;
+  /** Platforms present in the results; the filter is offered only when there is a choice. */
+  platforms: string[];
+  platform: string | null;
+  onPlatformChange: (platform: string | null) => void;
+  /** Name of the `?channel=` filter's Channel when one is active. */
+  channelName: string | null;
+  onClearChannel: () => void;
 }
 
 /**
@@ -55,6 +70,13 @@ export const SearchHeader = forwardRef<HTMLDivElement, SearchHeaderProps>(
       openStreamerPopover,
       onOpenStreamerPopover,
       onSelectStreamer,
+      profile,
+      hideInput,
+      platforms,
+      platform,
+      onPlatformChange,
+      channelName,
+      onClearChannel,
     },
     ref
   ) {
@@ -100,9 +122,18 @@ export const SearchHeader = forwardRef<HTMLDivElement, SearchHeaderProps>(
           )}
 
           {/* Search inputs — vary by mode */}
+          {profile}
           {searchMode === "ghosts" ? (
             <div className="flex flex-col items-stretch gap-2 @[20rem]:flex-row @[20rem]:items-center">
-              <StreamerPicker
+              {channelName !== null && (
+                <Badge variant="outline" className="h-10 shrink-0 gap-2 px-3 text-sm">
+                  <span className="max-w-[8rem] truncate">{channelName}</span>
+                  <button type="button" aria-label="Clear channel" onClick={onClearChannel} className="-mr-1 rounded-sm p-1 opacity-50 hover:opacity-100">
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              )}
+              {!profile && <StreamerPicker
                 streamerOptions={streamerOptions} pickerQuery={pickerQuery} onPickerQuery={onPickerQuery} moreCreators={moreCreators} onLoadCreators={onLoadCreators}
                 resolvedStreamer={resolvedStreamer}
                 effectiveStreamer={effectiveStreamer}
@@ -110,16 +141,23 @@ export const SearchHeader = forwardRef<HTMLDivElement, SearchHeaderProps>(
                 onOpenChange={onOpenStreamerPopover}
                 onSelect={onSelectStreamer}
                 triggerClassName="@[20rem]:w-auto @[20rem]:shrink-0"
-              />
-              <span className="shrink-0 self-center text-xs font-medium text-muted-foreground">
-                vs
-              </span>
-              <SearchInput
-                value={inputValue}
-                onChange={onInputChange}
-                placeholder="Ghost username..."
-                isLoading={isLoading}
-              />
+              />}
+              {!profile && (
+                <span className="shrink-0 self-center text-xs font-medium text-muted-foreground">
+                  vs
+                </span>
+              )}
+              {!hideInput && (
+                <SearchInput
+                  value={inputValue}
+                  onChange={onInputChange}
+                  placeholder="Ghost username..."
+                  isLoading={isLoading}
+                />
+              )}
+              {(platforms.length > 1 || platform) && (
+                <PlatformFilter platforms={platforms} value={platform} onChange={onPlatformChange} />
+              )}
             </div>
           ) : searchMode === "vods" ? (
             <div className="flex items-center gap-2">

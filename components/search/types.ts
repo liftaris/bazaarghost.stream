@@ -23,6 +23,8 @@ export interface RouteContext {
   pathVodId: string | null;
   /** The ghost username from the path (e.g. `/nl_kripp/2345678/Ender` or `/ghost/Ender`). */
   pathUsername: string | null;
+  /** True on `/streamers/:id`, where `pathStreamer` is the page's Streamer id. */
+  streamerPage: boolean;
 }
 
 /** A Streamer with public Matchups; the option type of the picker and the streamers result list. */

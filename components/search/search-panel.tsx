@@ -1,17 +1,21 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useSearchUrl } from "./hooks/use-search-url";
 import { useStreamerOptions } from "./hooks/use-streamer-options";
 import { useGhostSearch } from "./hooks/use-ghost-search";
 import { useVodSearch } from "./hooks/use-vod-search";
+import { useSessionSearch } from "./hooks/use-session-search";
+import { usePlatformOptions } from "./hooks/use-platform-options";
 import { useSavedMatchups } from "./hooks/use-saved-matchups";
 import { useAuth } from "@/components/auth/auth-provider";
 
 import { SearchHeader } from "./search-header";
 import { SearchResults } from "./search-results";
+import { StreamerProfile, type StreamerView } from "./streamer-profile";
+import { StreamerSessions } from "./streamer-sessions";
 import { SearchLayout } from "./desktop-layout";
 
 /**
@@ -45,6 +49,8 @@ export default function SearchPanel({
     queryParam,
     effectiveStreamer,
     effectiveVod,
+    channelParam,
+    platformParam,
     inputValue,
     handleInputChange,
     replaceParams,
@@ -70,6 +76,7 @@ export default function SearchPanel({
 
   // ---- Streamer options & picker ----
   const {
+    streamer,
     streamerOptions,
     resolvedStreamer,
     filteredStreamers,
@@ -96,9 +103,24 @@ export default function SearchPanel({
   } = useGhostSearch({
     queryParam,
     streamerId: resolvedStreamer?.id ?? null,
+    channelId: channelParam,
+    platform: platformParam,
     effectiveVod,
     enabled: searchMode === "ghosts" && filterReady,
   });
+
+  // ---- Streamer page (Sessions) ----
+  const [view, setView] = useState<StreamerView>("matchups");
+  const sessionsShown = routeContext.streamerPage && view === "sessions";
+  const sessions = useSessionSearch({
+    streamerId: resolvedStreamer?.id ?? null,
+    enabled: sessionsShown && filterReady,
+  });
+  const platformOptions = usePlatformOptions(
+    ghostResults,
+    `${queryParam}|${resolvedStreamer?.id}|${channelParam}`,
+    platformParam,
+  );
 
   // ---- VOD search ----
   const {
@@ -114,10 +136,10 @@ export default function SearchPanel({
     enabled: searchMode === "vods" && filterReady,
   });
 
-  /** Navigate to a streamer's page at `/:name`. */
+  /** Navigate to a streamer's page. */
   const handleNavigateToStreamer = useCallback(
     (streamerId: string) => {
-      router.push(`/search?streamer=${encodeURIComponent(streamerId)}`, { scroll: false });
+      router.push(`/streamers/${encodeURIComponent(streamerId)}`, { scroll: false });
     },
     [router]
   );
@@ -133,7 +155,7 @@ export default function SearchPanel({
   /** Navigate to a streamer's page (used from the streamers result list). */
   const handleStreamerClick = useCallback(
     (streamerId: string) => {
-      router.push(`/search?streamer=${encodeURIComponent(streamerId)}`, { scroll: false });
+      router.push(`/streamers/${encodeURIComponent(streamerId)}`, { scroll: false });
     },
     [router]
   );
@@ -157,7 +179,7 @@ export default function SearchPanel({
 
   // ---- Shared UI elements ----
   const isLoading =
-    (searchMode === "ghosts" && isGhostLoading) ||
+    (searchMode === "ghosts" && (sessionsShown ? sessions.isLoading : isGhostLoading)) ||
     (searchMode === "vods" && isVodLoading) ||
     (searchMode === "saved" && isSavedLoading);
 
@@ -176,14 +198,23 @@ export default function SearchPanel({
       onOpenStreamerPopover={setOpenStreamerPopover}
       onSelectStreamer={handleSelectStreamer}
       pickerQuery={pickerQuery} onPickerQuery={setPickerQuery} moreCreators={moreCreators} onLoadCreators={loadCreators}
+      profile={routeContext.streamerPage ? <StreamerProfile streamer={streamer} view={view} onViewChange={setView} /> : undefined}
+      hideInput={sessionsShown}
+      platforms={sessionsShown ? [] : platformOptions}
+      platform={sessionsShown ? null : platformParam}
+      onPlatformChange={(next) => replaceParams({ platform: next })}
+      channelName={channelParam ? ghostResults[0]?.streamer_display_name ?? "Channel" : null}
+      onClearChannel={() => replaceParams({ channel: null })}
     />
   );
 
-  const error = searchMode === "saved" ? savedError : creatorsError ?? (searchMode === "ghosts" ? ghostError : vodError);
-  const retry = searchMode === "saved" ? retrySaved : creatorsError ? retryCreators : searchMode === "ghosts" ? retryGhosts : retryVods;
+  const error = searchMode === "saved" ? savedError : creatorsError ?? (searchMode === "ghosts" ? (sessionsShown ? sessions.error : ghostError) : vodError);
+  const retry = searchMode === "saved" ? retrySaved : creatorsError ? retryCreators : searchMode === "ghosts" ? (sessionsShown ? sessions.retry : retryGhosts) : retryVods;
   const searchResults = (<>
     {error && <div role="alert" className="p-4">{error} <button onClick={retry}>Retry</button></div>}
-    <SearchResults
+    {sessionsShown ? (
+      <StreamerSessions {...sessions} onNavigateToStreamer={handleNavigateToStreamer} onNavigateToVodGhosts={(vodSourceId) => { setView("matchups"); handleNavigateToVodGhosts(vodSourceId); }} />
+    ) : <SearchResults
       searchMode={searchMode}
       queryParam={queryParam}
       savedResults={savedResults}
@@ -210,7 +241,7 @@ export default function SearchPanel({
       onNavigateToStreamer={handleNavigateToStreamer}
       onNavigateToVodGhosts={handleNavigateToVodGhosts}
       onStreamerClick={handleStreamerClick}
-    /></>
+    />}</>
   );
 
   return (

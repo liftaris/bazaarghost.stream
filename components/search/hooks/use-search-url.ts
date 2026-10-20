@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { deriveSearchMode, deriveRouteContext } from "../lib/route-utils";
+import { isKnownPlatform } from "@/lib/platforms";
 import { useWorkspaceActive } from "@/components/workspace-context";
 import type { SearchMode, RouteContext } from "../types";
 
@@ -18,6 +19,10 @@ export interface UseSearchUrlReturn {
   queryParam: string;
   /** The `?streamer=` param */
   streamerParam: string | null;
+  /** The `?channel=` param: a Channel UUID, for Channels that have no Streamer */
+  channelParam: string | null;
+  /** The `?platform=` param, only when the registry knows it */
+  platformParam: string | null;
   /** The `?vod=` param */
   vodParam: string | null;
   /** Effective streamer (param or path-derived) */
@@ -72,6 +77,9 @@ export function useSearchUrl(): UseSearchUrlReturn {
   const queryParam = searchParams.get("q") ?? "";
   const streamerParam = searchParams.get("streamer") ?? null;
   const vodParam = searchParams.get("vod") ?? null;
+  const channelParam = searchParams.get("channel") ?? null;
+  const rawPlatform = searchParams.get("platform");
+  const platformParam = rawPlatform && isKnownPlatform(rawPlatform) ? rawPlatform.toLowerCase() : null;
 
   // Only use the explicit ?streamer= param — path-derived streamer should
   // not constrain the search filter when navigating to a ghost result.
@@ -105,6 +113,14 @@ export function useSearchUrl(): UseSearchUrlReturn {
           : searchParams.get("streamer");
       if (streamer) params.set("streamer", streamer);
 
+      const channel =
+        overrides.channel !== undefined ? overrides.channel : searchParams.get("channel");
+      if (channel) params.set("channel", channel);
+
+      const platform =
+        overrides.platform !== undefined ? overrides.platform : platformParam;
+      if (platform) params.set("platform", platform);
+
       const vod =
         overrides.vod !== undefined ? overrides.vod : searchParams.get("vod");
       if (vod) params.set("vod", vod);
@@ -117,7 +133,7 @@ export function useSearchUrl(): UseSearchUrlReturn {
       const qs = params.toString();
       return `${basePath}${qs ? `?${qs}` : ""}`;
     },
-    [pathname, searchParams]
+    [pathname, searchParams, platformParam]
   );
 
   /** Replace URL query params via `router.replace` (no scroll). */
@@ -148,6 +164,8 @@ export function useSearchUrl(): UseSearchUrlReturn {
     queryParam,
     streamerParam,
     vodParam,
+    channelParam,
+    platformParam,
     effectiveStreamer,
     effectiveVod,
     inputValue,
