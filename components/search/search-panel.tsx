@@ -48,7 +48,6 @@ export default function SearchPanel({
     inputValue,
     handleInputChange,
     replaceParams,
-    buildSearchUrl,
   } = useSearchUrl();
 
   // ---- Saved matchups ----
@@ -114,7 +113,7 @@ export default function SearchPanel({
 
   /** Navigate to a streamer's page at `/:name`. */
   const handleNavigateToStreamer = useCallback(
-    (streamerId: string, _name: string) => {
+    (streamerId: string) => {
       router.push(`/search?streamer=${encodeURIComponent(streamerId)}`, { scroll: false });
     },
     [router]
@@ -122,7 +121,7 @@ export default function SearchPanel({
 
   /** Add a `?vod=` filter to show ghosts for a specific VOD. */
   const handleNavigateToVodGhosts = useCallback(
-    (vodSourceId: string, _title: string) => {
+    (vodSourceId: string) => {
       replaceParams({ vod: vodSourceId });
     },
     [replaceParams]
@@ -130,7 +129,7 @@ export default function SearchPanel({
 
   /** Navigate to a streamer's page (used from the streamers result list). */
   const handleStreamerClick = useCallback(
-    (streamerId: string, _name: string) => {
+    (streamerId: string) => {
       router.push(`/search?streamer=${encodeURIComponent(streamerId)}`, { scroll: false });
     },
     [router]

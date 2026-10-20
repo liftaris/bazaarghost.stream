@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { deriveSearchMode, deriveRouteContext } from "../lib/route-utils";
 import { useWorkspaceActive } from "@/components/workspace-context";
@@ -55,11 +55,15 @@ export function useSearchUrl(): UseSearchUrlReturn {
   // While the workspace is hidden (content routes) keep the last workspace
   // location so the mounted-but-hidden panel doesn't react to /account?q=…
   const workspaceActive = useWorkspaceActive();
-  const lastWorkspace = useRef({ pathname: livePathname, search: liveSearch });
-  if (workspaceActive)
-    lastWorkspace.current = { pathname: livePathname, search: liveSearch };
-  const pathname = lastWorkspace.current.pathname;
-  const search = lastWorkspace.current.search;
+  const [lastWorkspace, setLastWorkspace] = useState({ pathname: livePathname, search: liveSearch });
+  if (
+    workspaceActive &&
+    (lastWorkspace.pathname !== livePathname || lastWorkspace.search !== liveSearch)
+  )
+    setLastWorkspace({ pathname: livePathname, search: liveSearch });
+  const { pathname, search } = workspaceActive
+    ? { pathname: livePathname, search: liveSearch }
+    : lastWorkspace;
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
 
   // ---- Derived state from URL ----
@@ -79,9 +83,11 @@ export function useSearchUrl(): UseSearchUrlReturn {
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Sync input value when URL changes (e.g. back/forward)
-  useEffect(() => {
+  const [syncedQuery, setSyncedQuery] = useState(queryParam);
+  if (syncedQuery !== queryParam) {
+    setSyncedQuery(queryParam);
     setInputValue(queryParam);
-  }, [queryParam]);
+  }
 
   /**
    * Build a full URL string from the current path + params, with selective

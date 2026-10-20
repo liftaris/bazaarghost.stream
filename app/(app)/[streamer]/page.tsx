@@ -12,7 +12,9 @@ export default async function StreamerPage({ params }: Props) {
   let name = streamer;
   try {
     name = decodeURIComponent(streamer);
-  } catch {}
+  } catch {
+    // malformed escape: keep the raw segment
+  }
   if (RESERVED_TOP_LEVEL.includes(name.toLowerCase())) notFound();
   const creator = await resolveTwitchCreator(name);
   if (!creator) notFound();

@@ -19,6 +19,7 @@ export default defineConfig([
     "out/**",
     "next-env.d.ts",
     "worker-env.d.ts",
+    "docker-entrypoint.js", // legacy Fly.io entrypoint, removed with KAI-9
   ]),
   js.configs.recommended,
   tseslint.configs.recommended,

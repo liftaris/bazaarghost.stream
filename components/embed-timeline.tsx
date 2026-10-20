@@ -200,6 +200,8 @@ export function EmbedTimeline({
   };
 
   return (
+    // Pointer handling is delegated here; keyboard access is provided by the focusable ticks
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
       ref={rootRef}
       data-timeline

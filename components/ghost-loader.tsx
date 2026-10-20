@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import type { Matchup } from "@/lib/api-contract";
 import { cachedGet } from "@/lib/api-cache";
 import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
@@ -20,20 +20,19 @@ export function GhostLoader({
   const { setEmbed, setActiveGhost } = useEmbedActions();
   const { activeGhost, videoId } = useEmbedState();
   // Read live player state inside the bootstrap effect without re-running it
-  const live = useRef({ activeGhost, videoId });
-  live.current = { activeGhost, videoId };
-  const initialMatchupRef = useRef(initialMatchup);
-  initialMatchupRef.current = initialMatchup;
-  const [error, setError] = useState<string | null>(null);
+  const readLive = useEffectEvent(() => ({ activeGhost, videoId, initialMatchup }));
+  const requestKey = `${vodId}|${timestamp}|${matchupId}`;
+  const [failure, setFailure] = useState<{ key: string; message: string } | null>(null);
+  const error = failure?.key === requestKey ? failure.message : null;
   useEffect(() => {
     const controller = new AbortController();
-    setError(null);
     const load = async () => {
       try {
         if (matchupId !== undefined) {
-          const initial = initialMatchupRef.current?.id === matchupId ? initialMatchupRef.current : undefined;
+          const live = readLive();
+          const initial = live.initialMatchup?.id === matchupId ? live.initialMatchup : undefined;
           // Already showing this matchup (user click or passive advance): don't re-seek
-          const { activeGhost: ghost, videoId: loaded } = live.current;
+          const { activeGhost: ghost, videoId: loaded } = live;
           if (
             ghost?.matchup_id === matchupId &&
             (!initial || loaded === `v:${initial.video.id}`)
@@ -59,13 +58,14 @@ export function GhostLoader({
           return;
         }
         if (!vodId) return;
-        if (controller.signal.aborted || live.current.videoId === vodId) return;
+        if (controller.signal.aborted || readLive().videoId === vodId) return;
         setEmbed(vodId, timestamp);
       } catch (error) {
         if (!controller.signal.aborted)
-          setError(
-            error instanceof Error ? error.message : "Could not open matchup"
-          );
+          setFailure({
+            key: requestKey,
+            message: error instanceof Error ? error.message : "Could not open matchup",
+          });
       }
     };
     void load();
@@ -74,6 +74,7 @@ export function GhostLoader({
     vodId,
     timestamp,
     matchupId,
+    requestKey,
     setEmbed,
     setActiveGhost,
   ]);

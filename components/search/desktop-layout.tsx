@@ -54,7 +54,7 @@ export function SearchLayout({
     setResultsWidth(`${(width / rect.width) * 100}%`);
   };
 
-  const onPointerUp = (e: PointerEvent<HTMLDivElement>) => {
+  const onPointerUp = () => {
     const state = drag.current;
     drag.current = null;
     if (!state || state.moved) return;
@@ -104,10 +104,13 @@ export function SearchLayout({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:w-[var(--results-w)] md:flex-none md:border-r md:border-sidebar-border md:bg-sidebar md:text-sidebar-foreground">
           {searchResults}
         </div>
+        {/* Window splitter: focusable separator per WAI-ARIA */}
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
         <div
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize results"
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
           tabIndex={0}
           onKeyDown={onKeyDown}
           onPointerDown={onPointerDown}

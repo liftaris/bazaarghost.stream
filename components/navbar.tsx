@@ -10,7 +10,7 @@ import { siDiscord } from "simple-icons";
 import { BrandIcon } from "@/components/platform-icon";
 import { Heart, Moon, Sun, Menu } from "lucide-react";
 import { showSearchTabs } from "@/flags";
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   Sheet,
   SheetContent,
@@ -19,18 +19,16 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
+const subscribeNever = () => () => {};
+
 export default function Navbar() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   return (
     <nav className="border-b border-border bg-card font-serif">

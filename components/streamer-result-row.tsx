@@ -1,14 +1,8 @@
 "use client";
 
-import { ChevronRight, Ghost, Video } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { StreamerWithDetections } from "@/lib/server-utils";
-
-function formatNumber(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toString();
-}
 
 interface StreamerResultRowProps {
   streamer: StreamerWithDetections;

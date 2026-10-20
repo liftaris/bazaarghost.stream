@@ -28,23 +28,25 @@ export function useSavedMatchups({ enabled, query }: { enabled: boolean; query: 
   const ids = useBookmarkIds(enabled);
   const [shown, setShown] = useState<number[]>([]);
   const [cards, setCards] = useState<Map<number, GhostResult | null>>(new Map());
-  const requested = useRef(new Set<number>());
-  const failed = useRef(new Set<number>());
+  const [requested] = useState(() => new Set<number>());
+  const [failed, setFailed] = useState<Set<number>>(new Set());
   const abort = useRef<AbortController | null>(null);
   const [limit, setLimit] = useState(PAGE);
 
-  useEffect(() => {
-    if (!enabled) {
-      setShown([]);
-      return;
+  // Merge newly bookmarked IDs to the front; leaving the view clears the list
+  const [seen, setSeen] = useState<{ enabled: boolean; ids: number[] | null }>({ enabled: false, ids: null });
+  if (seen.enabled !== enabled || seen.ids !== ids) {
+    setSeen({ enabled, ids });
+    if (seen.enabled !== enabled) setFailed(new Set());
+    if (!enabled) setShown([]);
+    else if (ids) {
+      setShown((current) => {
+        const known = new Set(current);
+        const added = ids.filter((id) => !known.has(id));
+        return added.length ? [...added, ...current] : current;
+      });
     }
-    if (!ids) return;
-    setShown((current) => {
-      const known = new Set(current);
-      const added = ids.filter((id) => !known.has(id));
-      return added.length ? [...added, ...current] : current;
-    });
-  }, [enabled, ids]);
+  }
 
   useEffect(() => {
     if (!enabled) return;
@@ -52,25 +54,25 @@ export function useSavedMatchups({ enabled, query }: { enabled: boolean; query: 
     abort.current = controller;
     return () => {
       controller.abort();
-      requested.current.clear();
-      failed.current.clear();
+      requested.clear();
     };
-  }, [enabled]);
+  }, [enabled, requested]);
 
   useEffect(() => {
     const signal = abort.current?.signal;
-    const todo = shown.slice(0, limit).filter((id) => !requested.current.has(id));
+    const todo = shown.slice(0, limit).filter((id) => !requested.has(id));
     if (!todo.length || !signal) return;
-    todo.forEach((id) => requested.current.add(id));
+    todo.forEach((id) => requested.add(id));
     (async () => {
       for (let i = 0; i < todo.length; i += CONCURRENCY) {
         const batch = await fetchMatchups(todo.slice(i, i + CONCURRENCY), signal);
         if (signal.aborted) return;
-        batch.forEach(([id, card]) => { if (!card) failed.current.add(id); });
+        const misses = batch.filter(([, card]) => !card).map(([id]) => id);
+        if (misses.length) setFailed((current) => new Set([...current, ...misses]));
         setCards((current) => new Map([...current, ...batch.filter(([, card]) => card)]));
       }
     })();
-  }, [shown, limit, enabled]);
+  }, [shown, limit, enabled, requested]);
 
   const ghostResults = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -86,7 +88,7 @@ export function useSavedMatchups({ enabled, query }: { enabled: boolean; query: 
       );
   }, [shown, cards, query, limit]);
 
-  const isLoading = enabled && (ids === null || shown.slice(0, limit).some((id) => !cards.has(id) && !failed.current.has(id)) && ghostResults.length === 0);
+  const isLoading = enabled && (ids === null || shown.slice(0, limit).some((id) => !cards.has(id) && !failed.has(id)) && ghostResults.length === 0);
   return { ghostResults, isLoading, isEmpty: enabled && ids !== null && shown.length === 0,
     hasMore: shown.length > limit, loadMore: () => setLimit((n) => n + PAGE) };
 }

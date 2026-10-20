@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   Check,
@@ -108,9 +108,8 @@ export function EmbedPanel() {
     bazaarChapters,
     capabilities,
   } = useEmbedState();
-  const { hideEmbed, seek, setActiveGhost } = useEmbedActions();
+  const { hideEmbed, seek, goToGhost } = useEmbedActions();
   const duration = useEmbedTime((s) => s.duration);
-  const pathname = usePathname();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
 
@@ -131,26 +130,6 @@ export function EmbedPanel() {
         : `/${encodeURIComponent(overrideStreamer ?? meta?.streamerName ?? "")}/${vid}`;
     },
     [videoId, meta?.streamerName]
-  );
-
-  /**
-   * Push a new history entry for a user-triggered ghost change (row click,
-   * arrow nav, timeline click). Since the (app)/layout.tsx persists across
-   * these routes, only the leaf page.tsx re-renders — the embed, search
-   * panel, and navbar are unaffected.
-   */
-  const pushGhostUrl = useCallback(
-    (
-      ghost: EmbedGhost | null,
-      overrideVideoId?: string,
-      overrideStreamer?: string
-    ) => {
-      const url = buildGhostUrl(ghost, overrideVideoId, overrideStreamer);
-      if (url && pathname !== url) {
-        router.push(url, { scroll: false });
-      }
-    },
-    [buildGhostUrl, pathname, router]
   );
 
   /**
@@ -183,26 +162,8 @@ export function EmbedPanel() {
   const isAtFirstGhost = ghostIndex <= 0;
   const isAtLastGhost = sortedGhosts.length === 0 || ghostIndex === sortedGhosts.length - 1;
 
-  // ---- Seek to a ghost: optimistic update + player seek + URL push ----
-  const seekToGhost = useCallback(
-    (ghost: EmbedGhost) => {
-      setActiveGhost(ghost);
-      pushGhostUrl(ghost);
-      seek(ghost.frame_time_seconds);
-    },
-    [seek, setActiveGhost, pushGhostUrl]
-  );
-
-  // ---- Arrow navigation: prev/next ghost ----
-  const navigatePrevGhost = useCallback(() => {
-    const target = sortedGhosts[ghostIndex - 1];
-    if (target) seekToGhost(target);
-  }, [sortedGhosts, ghostIndex, seekToGhost]);
-
-  const navigateNextGhost = useCallback(() => {
-    const target = sortedGhosts[ghostIndex + 1];
-    if (target) seekToGhost(target);
-  }, [sortedGhosts, ghostIndex, seekToGhost]);
+  const navigatePrevGhost = useCallback(() => goToGhost("prev"), [goToGhost]);
+  const navigateNextGhost = useCallback(() => goToGhost("next"), [goToGhost]);
 
   const copyLink = useCallback(() => {
     if (!videoId) return;
@@ -365,7 +326,7 @@ export function EmbedPanel() {
               bazaarChapters={bazaarChapters}
               ghosts={sortedGhosts}
               currentGhostId={currentGhost?.detection_id ?? null}
-              onSeekGhost={seekToGhost}
+              onSeekGhost={goToGhost}
             />
           ) : (
             <Skeleton className="h-full w-full bg-muted" />

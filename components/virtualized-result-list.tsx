@@ -120,7 +120,7 @@ function buildGroupedEntries<T>(
 
   // Partition when we have a query
   let prefixItems: { item: T; originalIndex: number }[] = [];
-  let otherItems: { item: T; originalIndex: number }[] = [];
+  const otherItems: { item: T; originalIndex: number }[] = [];
 
   if (hasQuery) {
     for (let i = 0; i < items.length; i++) {
@@ -252,6 +252,8 @@ export function VirtualizedResultList<T>({
     return metas;
   }, [entries]);
 
+  // TanStack Virtual returns non-memoizable functions; the list opts out of the compiler here
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: entries.length,
     getScrollElement: () => scrollRef.current,

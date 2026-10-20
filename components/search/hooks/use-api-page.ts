@@ -17,12 +17,12 @@ export function useApiPage<P extends ListPath>(path: P, params: Record<string, s
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const active = useRef<AbortController | null>(null);
-  const currentKey = useRef(key); currentKey.current = key;
+  const currentKey = useRef(key);
+  useEffect(() => { currentKey.current = key; }, [key]);
   const fetchPage = useCallback(async (after: string | null = null) => {
     active.current?.abort();
     const controller = new AbortController(); active.current = controller;
     const [route, filters] = JSON.parse(key) as [P, typeof params];
-    setError(null); if (after) setLoadingMore(true); else setLoading(true);
     try {
       let response;
       try { response = await cachedGet(route, { ...filters, cursor: after, limit: 50 }, { signal: controller.signal }); }
@@ -40,17 +40,32 @@ export function useApiPage<P extends ListPath>(path: P, params: Record<string, s
       if (active.current === controller) { setLoading(false); setLoadingMore(false); active.current = null; }
     }
   }, [key]);
-  useEffect(() => {
+  const startPage = (after: string | null) => {
+    setError(null); if (after) setLoadingMore(true); else setLoading(true);
+    void fetchPage(after);
+  };
+  // Reset (or hydrate from cache) whenever the query or enabled flag changes
+  const signature = `${enabled}|${key}`;
+  const [seenSignature, setSeenSignature] = useState<string | null>(null);
+  if (seenSignature !== signature) {
+    setSeenSignature(signature);
     setError(null);
-    if (!enabled) { setItems([]); setCursor(null); return; }
-    const [route, filters] = JSON.parse(key) as [P, typeof params];
-    const hit = peek(route, { ...filters, cursor: null, limit: 50 });
-    if (hit) { setItems(hit.items as Item<P>[]); setCursor(hit.nextCursor); setItemsKey(key); }
-    else setCursor(null);
+    if (!enabled) { setItems([]); setCursor(null); }
+    else {
+      setLoading(true);
+      const [route, filters] = JSON.parse(key) as [P, typeof params];
+      const hit = peek(route, { ...filters, cursor: null, limit: 50 });
+      if (hit) { setItems(hit.items as Item<P>[]); setCursor(hit.nextCursor); setItemsKey(key); }
+      else setCursor(null);
+    }
+  }
+  useEffect(() => {
+    if (!enabled) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is only set after the awaited fetch
     void fetchPage();
     return () => { active.current?.abort(); active.current = null; };
   }, [fetchPage, enabled]);
   return { items, isStale: itemsKey !== key && items.length > 0, loading, loadingMore, error, hasMore: cursor !== null,
-    loadMore: () => { if (cursor && !active.current) void fetchPage(cursor); },
-    retry: () => { active.current?.abort(); active.current = null; invalidate(`${path}?`); void fetchPage(items.length && itemsKey === key ? cursor : null); } };
+    loadMore: () => { if (cursor && !active.current) startPage(cursor); },
+    retry: () => { active.current?.abort(); active.current = null; invalidate(`${path}?`); startPage(items.length && itemsKey === key ? cursor : null); } };
 }

@@ -20,22 +20,30 @@ import { ProviderButtons } from "@/components/auth/provider-buttons";
 import { PROVIDERS, isKnownProvider } from "@/components/auth/provider-icons";
 import { authClient, type AuthProviderId, type LinkedAccount } from "@/lib/auth-client";
 
+async function fetchAccounts() {
+  const { data } = await authClient.$fetch<{ accounts: LinkedAccount[] }>("/accounts");
+  return data?.accounts ?? [];
+}
+
 export function ConnectedAccounts({ fresh }: { fresh: boolean }) {
   const { providers, post, ensureProviders } = useAuth();
   const [accounts, setAccounts] = useState<LinkedAccount[] | null>(null);
 
-  const load = useCallback(async () => {
-    const { data } = await authClient.$fetch<{ accounts: LinkedAccount[] }>("/accounts");
-    setAccounts(data?.accounts ?? []);
-  }, []);
+  const load = useCallback(async () => setAccounts(await fetchAccounts()), []);
 
   useEffect(() => {
     void ensureProviders();
   }, [ensureProviders]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    void fetchAccounts().then((list) => {
+      if (!cancelled) setAccounts(list);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function unlink(account: LinkedAccount) {
     try {

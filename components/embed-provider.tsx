@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -12,6 +13,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { findNextGhost, findPrevGhost } from "@/lib/ghost-nav";
 import { PlayerHost, SLOT_EVENT } from "@/components/player/player-host";
 import { usePlayback } from "@/hooks/use-playback";
 import type { Playback } from "@/lib/api-contract";
@@ -63,6 +65,8 @@ interface EmbedActions {
   seek: (seconds: number) => void;
   /** Optimistically set the active ghost (e.g. on result row click, arrow nav). */
   setActiveGhost: (ghost: EmbedGhost | null) => void;
+  /** Step to the prev/next ghost (from the active ghost, else the playhead) or jump to a given one: optimistic active ghost + URL push + seek. */
+  goToGhost: (target: "prev" | "next" | EmbedGhost) => void;
   /** Read the latest playback time without subscribing to ticks. */
   getTime: () => { currentTime: number; duration: number };
 }
@@ -162,7 +166,8 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   });
   const [isVisible, setIsVisible] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Adapter errors belong to the video/source that raised them and lapse with it
+  const [adapterError, setAdapterError] = useState<{ key: string; message: string } | null>(null);
 
   // Player state (polled) lives in an external store so ticks don't re-render the tree
   const [timeStore] = useState(() => new TimeStore());
@@ -245,6 +250,11 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   const embedUrl = data?.player.embedUrl ?? null;
   const available = data?.player.available ?? true;
   const videoTitle = data?.video.title ?? "";
+  const errorKey = `${state.videoId}|${sourceId}|${embedUrl}`;
+  const unavailable = !!data && state.videoId !== null && dataVideoId === Number(state.videoId.slice(2)) && !available;
+  const error = unavailable
+    ? "This video is no longer available on its original platform."
+    : adapterError?.key === errorKey ? adapterError.message : null;
   const capabilities = useMemo(() => (platform ? getPlatform(platform).capabilities : null), [platform]);
   const timeEvents = capabilities?.timeEvents ?? false;
   // Platforms that cannot pause are unmounted while the player is closed
@@ -259,11 +269,12 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   }, [isReady, isPaused, pageVisible, timeEvents, syncFromPlayer]);
 
   useEffect(() => {
-    if (!playback.data) return;
-    const video=playback.data.video;
-    setDuration(video.durationSeconds);
-    setState(previous=>({...previous,meta:{streamerName:video.creator.name,streamerAvatar:video.creator.avatarUrl??"",vodTitle:video.title,date:video.publishedAt??""}}));
-  },[playback.data, setDuration]);
+    if (playback.data) setDuration(playback.data.video.durationSeconds);
+  }, [playback.data, setDuration]);
+  const playbackMeta = useMemo<EmbedMeta | null>(() => {
+    const video = playback.data?.video;
+    return video ? { streamerName: video.creator.name, streamerAvatar: video.creator.avatarUrl ?? "", vodTitle: video.title, date: video.publishedAt ?? "" } : null;
+  }, [playback.data]);
 
   const pause = useCallback(() => {
     adapterRef.current?.pause();
@@ -272,7 +283,6 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
 
   // ---- Create / swap the player through its adapter ----
   useEffect(() => {
-    setError(null);
     if (!state.videoId || dataVideoId === null || platform === null || sourceId === null) return;
     if (dataVideoId !== Number(state.videoId.slice(2))) return;
     const container = document.getElementById(CONTAINER_ID);
@@ -285,11 +295,11 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
         disposeAdapter();
         setIsReady(false);
       }
-      setError("This video is no longer available on its original platform.");
       return;
     }
     if (unmountWhileHidden) {
       disposeAdapter();
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- readiness mirrors the external player's lifecycle
       setIsReady(false);
       return;
     }
@@ -330,10 +340,10 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
       adapter.on("ready", () => setIsReady(true)),
       adapter.on("state", applySnapshot),
       adapter.on("time", applySnapshot),
-      adapter.on("error", setError),
+      adapter.on("error", (message) => setAdapterError({ key: errorKey, message })),
     ];
     adapter.mount(container, take());
-  }, [state.videoId, dataVideoId, platform, sourceId, embedUrl, available, videoTitle, unmountWhileHidden, pause, applySnapshot, disposeAdapter, setCurrentTime, setIsPaused]);
+  }, [state.videoId, errorKey, dataVideoId, platform, sourceId, embedUrl, available, videoTitle, unmountWhileHidden, pause, applySnapshot, disposeAdapter, setCurrentTime, setIsPaused]);
 
   // Cleanup on unmount
   useEffect(() => disposeAdapter, [disposeAdapter]);
@@ -364,15 +374,13 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
    * Clear the optimistic override once the time-derived ghost matches it,
    * meaning the player has caught up to the seek target.
    */
-  useEffect(() => {
-    if (
-      ghostOverride &&
-      timeDerivedGhost &&
-      ghostOverride.matchup_id === timeDerivedGhost.matchup_id
-    ) {
-      setGhostOverride(null);
-    }
-  }, [ghostOverride, timeDerivedGhost]);
+  if (
+    ghostOverride &&
+    timeDerivedGhost &&
+    ghostOverride.matchup_id === timeDerivedGhost.matchup_id
+  ) {
+    setGhostOverride(null);
+  }
 
   /** The active ghost: optimistic override wins, falls back to time-derived. */
   const activeGhost = ghostOverride ?? timeDerivedGhost;
@@ -406,7 +414,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
       }));
       if (changed) {
         setGhostOverride(null);
-        setError(null);
+        setAdapterError(null);
       }
       setIsVisible(true);
       seek(timestamp);
@@ -438,16 +446,40 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     adapter.setMuted(!(adapter.snapshot()?.muted ?? timeStore.get().isMuted));
   }, [timeStore]);
 
+  // Latest view of what goToGhost needs, so the action itself stays referentially stable
+  const nav = useRef({ ghosts: sortedGhosts, activeGhost, capabilities, videoId: state.videoId });
+  useLayoutEffect(() => {
+    nav.current = { ghosts: sortedGhosts, activeGhost, capabilities, videoId: state.videoId };
+  });
+  const goToGhost = useCallback((target: "prev" | "next" | EmbedGhost) => {
+    const { ghosts, activeGhost: active, capabilities: caps, videoId } = nav.current;
+    if (!caps?.seek) return;
+    let ghost: EmbedGhost | null;
+    if (typeof target === "string") {
+      // Step from the active ghost; fall back to the playhead when there is none
+      const index = active ? ghosts.findIndex((g) => g.detection_id === active.detection_id) : -1;
+      ghost = index >= 0
+        ? ghosts[target === "next" ? index + 1 : index - 1] ?? null
+        : (target === "next" ? findNextGhost : findPrevGhost)(ghosts, timeStore.get().currentTime);
+    } else ghost = target;
+    if (!ghost) return;
+    setGhostOverride(ghost);
+    const url = ghost.matchup_id ? `/matchups/${ghost.matchup_id}` : videoId?.startsWith("v:") ? `/videos/${videoId.slice(2)}` : null;
+    if (url && window.location.pathname !== url) router.push(url, { scroll: false });
+    seek(ghost.frame_time_seconds);
+  }, [router, seek, timeStore]);
+
   const actions = useMemo<EmbedActions>(
-    () => ({ setEmbed, hideEmbed, containerId: CONTAINER_ID, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost,
+    () => ({ setEmbed, hideEmbed, containerId: CONTAINER_ID, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, goToGhost,
       getTime: () => timeStore.get() }),
-    [setEmbed, hideEmbed, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, timeStore]
+    [setEmbed, hideEmbed, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, goToGhost, timeStore]
   );
   const mergedError = error ?? playback.error;
   const ghostIsOptimistic = ghostOverride !== null;
   const slow = useMemo<EmbedSlowState>(
     () => ({
       ...state,
+      meta: playbackMeta ?? state.meta,
       isVisible,
       isReady,
       error: mergedError,
@@ -458,7 +490,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
       bazaarChapters,
       capabilities,
     }),
-    [state, isVisible, isReady, mergedError, playback.data, sortedGhosts, activeGhost, ghostIsOptimistic, bazaarChapters, capabilities]
+    [state, playbackMeta, isVisible, isReady, mergedError, playback.data, sortedGhosts, activeGhost, ghostIsOptimistic, bazaarChapters, capabilities]
   );
 
   return (
@@ -470,7 +502,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
         containerId={CONTAINER_ID}
         slotRef={slotRef}
         show={isVisible && !!state.videoId}
-        error={error ?? playback.error}
+        error={mergedError}
         onExpand={() => {
           const url = activeGhost?.matchup_id ? `/matchups/${activeGhost.matchup_id}` : state.videoId?.startsWith("v:") ? `/videos/${state.videoId.slice(2)}` : null;
           if (url) router.push(url, { scroll: false });

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-provider";
 import { listFavoritePage, setFavorite } from "@/lib/social-client";
@@ -21,7 +21,10 @@ class BookmarkStore {
   private controller: AbortController | undefined;
   private version = 0;
   private generation = 0;
-  csrf: string | null = null;
+  private csrf: string | null = null;
+  setCsrf(token: string | null) {
+    this.csrf = token;
+  }
   /** True once every saved ID is known, so `has() === false` is trustworthy. */
   ready = false;
   error = false;
@@ -170,11 +173,15 @@ const BookmarksContext = createContext<BookmarksContextValue | null>(null);
 
 export function BookmarksProvider({ children }: { children: React.ReactNode }) {
   const { state } = useAuth();
-  const storeRef = useRef<BookmarkStore | null>(null);
-  const store = (storeRef.current ??= new BookmarkStore());
+  const [store] = useState(() => new BookmarkStore());
   const userId = state.status === "authenticated" ? state.identity.userId : null;
   const known = state.status !== "loading";
-  store.csrf = state.status === "authenticated" ? state.identity.csrfToken : null;
+  const csrf = state.status === "authenticated" ? state.identity.csrfToken : null;
+
+  // Layout effect so the token is set before any child effect issues a request
+  useLayoutEffect(() => {
+    store.setCsrf(csrf);
+  }, [store, csrf]);
 
   useEffect(() => {
     store.reset(userId !== null, known);

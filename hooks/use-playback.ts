@@ -4,13 +4,13 @@ import { ApiError } from "@/lib/api-client";
 import { cachedGet, invalidate } from "@/lib/api-cache";
 import type { Playback, TimelineMarker } from "@/lib/api-contract";
 
+const EMPTY: TimelineMarker[] = [];
+
 /** Load playback and every timeline page with cancellation and one correction refresh. */
 export function usePlayback(videoKey: string | null) {
-  const [data, setData] = useState<Playback | null>(null);
-  const [markers, setMarkers] = useState<TimelineMarker[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState<{ key: string; data: Playback | null; markers: TimelineMarker[]; error: string | null } | null>(null);
   useEffect(() => {
-    const controller = new AbortController(); setData(null); setMarkers([]); setError(null);
+    const controller = new AbortController();
     if (!videoKey) return;
     const load = async () => {
       try {
@@ -27,7 +27,7 @@ export function usePlayback(videoKey: string | null) {
               all.push(...page.items); cursor = page.nextCursor;
             }
             if (controller.signal.aborted) return;
-            setData(playback); setMarkers(all);
+            setLoaded({ key: videoKey, data: playback, markers: all, error: null });
             return;
           } catch (error) {
             if (!(error instanceof ApiError) || error.status !== 409 || attempt === 1) throw error;
@@ -35,10 +35,11 @@ export function usePlayback(videoKey: string | null) {
           }
         }
       } catch (error) {
-        if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "Could not load video");
+        if (!controller.signal.aborted) setLoaded({ key: videoKey, data: null, markers: [], error: error instanceof Error ? error.message : "Could not load video" });
       }
     };
     void load(); return () => controller.abort();
   }, [videoKey]);
-  return { data, markers, error };
+  const current = loaded && loaded.key === videoKey ? loaded : null;
+  return { data: current?.data ?? null, markers: current?.markers ?? EMPTY, error: current?.error ?? null };
 }

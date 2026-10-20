@@ -20,20 +20,28 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { ConfirmAction } from "@/components/auth/confirm-action";
 import { authClient, type UserSession } from "@/lib/auth-client";
 
+async function fetchSessions() {
+  const { data } = await authClient.$fetch<{ sessions: UserSession[] }>("/sessions");
+  return data?.sessions ?? [];
+}
+
 export function SessionList({ fresh }: { fresh: boolean }) {
   const { state, post, refresh } = useAuth();
   const router = useRouter();
   const [sessions, setSessions] = useState<UserSession[] | null>(null);
   const currentId = state.status === "authenticated" ? state.identity.sessionId : null;
 
-  const load = useCallback(async () => {
-    const { data } = await authClient.$fetch<{ sessions: UserSession[] }>("/sessions");
-    setSessions(data?.sessions ?? []);
-  }, []);
+  const load = useCallback(async () => setSessions(await fetchSessions()), []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    void fetchSessions().then((list) => {
+      if (!cancelled) setSessions(list);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function leave(path: string, body?: Record<string, unknown>, done?: string) {
     try {

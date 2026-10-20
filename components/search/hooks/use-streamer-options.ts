@@ -13,26 +13,27 @@ export function useStreamerOptions({ effectiveStreamer, searchMode, queryParam, 
  const [pickerQuery,setPickerQuery]=useState("");
  const [debouncedQuery,setDebouncedQuery]=useState("");
  useEffect(()=>{const timer=setTimeout(()=>setDebouncedQuery(pickerQuery),250);return()=>clearTimeout(timer);},[pickerQuery]);
- const [selected,setSelected]=useState<StreamerOption|null>(null);
- const [resolveError,setResolveError]=useState<string|null>(null);
- const [resolving,setResolving]=useState(false);
+ const [resolved,setResolved]=useState<{key:string;selected:StreamerOption|null;error:string|null}|null>(null);
  const [revision,setRevision]=useState(0);
  const result=useApiPage("/creators", {q: searchMode === "streamers" ? queryParam : debouncedQuery}, openStreamerPopover || searchMode === "streamers");
+ const resolveKey=`${effectiveStreamer}|${revision}`;
+ const settled=resolved?.key===resolveKey?resolved:null;
+ const selected=settled?.selected??null;
+ const resolveError=settled?.error??null;
+ const resolving=!!effectiveStreamer&&!settled;
  useEffect(()=>{
-   const controller=new AbortController(); setResolveError(null); setSelected(null);
-   if(!effectiveStreamer) {setResolving(false);return;}
-   setResolving(true);
+   if(!effectiveStreamer) return;
+   const controller=new AbortController();
    const resolve=async()=>{
     try {
      const account=effectiveStreamer.includes(":")
        ? (await apiGet("/creators",{creatorId:effectiveStreamer},controller.signal)).items[0]
        : await apiGet("/creators/resolve",{source:"twitch",name:effectiveStreamer},controller.signal);
      if(!account) throw new Error("Creator not found");
-     if(!controller.signal.aborted)setSelected(streamerOption(account));
-    }catch(error){if(!controller.signal.aborted)setResolveError(error instanceof Error?error.message:"Could not load creator");}
-    finally{if(!controller.signal.aborted)setResolving(false);}
+     if(!controller.signal.aborted)setResolved({key:resolveKey,selected:streamerOption(account),error:null});
+    }catch(error){if(!controller.signal.aborted)setResolved({key:resolveKey,selected:null,error:error instanceof Error?error.message:"Could not load creator"});}
    }; void resolve(); return()=>controller.abort();
- },[effectiveStreamer,revision]);
+ },[effectiveStreamer,resolveKey]);
  const options=result.items.map(streamerOption);
  return {streamerOptions:options,filteredStreamers:options,
    resolvedStreamer:selected?{id:selected.streamer_id,displayName:selected.streamer_display_name,avatar:selected.streamer_avatar}:null,
