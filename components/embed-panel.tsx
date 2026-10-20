@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -42,6 +42,7 @@ import { BookmarkButton } from "@/components/social/bookmark-button";
 import { Kbd } from "@/components/ui/kbd";
 import { PLAYER_SHORTCUTS, type PlayerShortcutAction } from "@/lib/player-shortcuts";
 import { sourcePin } from "@/lib/sources";
+import type { SearchMode } from "@/components/search/types";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -101,7 +102,12 @@ function IconButton({
 // EmbedPanel
 // ---------------------------------------------------------------------------
 
-export function EmbedPanel() {
+/**
+ * The one right panel. Top: the persistent player with its control row. Beneath, by mode: Ghosts
+ * show the info row and timeline; Recordings the info row and `children` (the Session's ghosts);
+ * Streamers just `children` (the Streamer's Recordings).
+ */
+export function EmbedPanel({ mode, children }: { mode: SearchMode; children?: ReactNode }) {
   const {
     videoId,
     playback,
@@ -120,13 +126,17 @@ export function EmbedPanel() {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
 
-  /** Canonical URL path: `/matchups/:id` for a ghost, else `/videos/:id`. */
+  const sessionMode = mode === "recordings" || mode === "streamers";
+  const sessionId = playback?.recording.sessionId ?? null;
+
+  /** Canonical URL path: `/recordings/:id` in the Session modes, else `/matchups/:id` for a ghost. */
   const buildGhostUrl = useCallback(
     (ghost: EmbedGhost | null) => {
       if (!videoId) return null;
-      return ghost?.matchup_id ? `/matchups/${ghost.matchup_id}` : `/videos/${videoId.slice(2)}`;
+      if (sessionId && (sessionMode || !ghost?.matchup_id)) return `/recordings/${sessionId}`;
+      return ghost?.matchup_id ? `/matchups/${ghost.matchup_id}` : null;
     },
-    [videoId]
+    [videoId, sessionId, sessionMode]
   );
 
   /**
@@ -143,7 +153,7 @@ export function EmbedPanel() {
 
     const url = buildGhostUrl(currentGhost);
     const here = window.location.pathname;
-    if (url && here !== url && (here.startsWith("/matchups/") || here.startsWith("/videos/"))) {
+    if (url && here !== url && here.startsWith("/matchups/")) {
       window.history.replaceState(window.history.state, "", url);
     }
   }, [currentGhost, ghostIsOptimistic, buildGhostUrl]);
@@ -167,21 +177,22 @@ export function EmbedPanel() {
     if (!videoId) return;
     const path = buildGhostUrl(currentGhost);
     if (path) {
-      const pin = pinned && playingSource && currentGhost?.matchup_id ? `?source=${sourcePin(playingSource.recording.id)}` : "";
+      const pin = pinned && playingSource && (sessionMode || currentGhost?.matchup_id) ? `?source=${sourcePin(playingSource.recording.id)}` : "";
       navigator.clipboard.writeText(`${window.location.origin}${path}${pin}`);
     }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
-  }, [videoId, buildGhostUrl, currentGhost, playingSource]);
+  }, [videoId, buildGhostUrl, currentGhost, playingSource, sessionMode]);
 
   const showChrome = isVisible && !!videoId;
   const when = meta?.date ? relativeDate(meta.date) : null;
   const rank = currentGhost?.rank?.toLowerCase();
-  const showTimeline = !capabilities || capabilities.timeEvents;
+  const showTimeline = mode === "ghosts" && (!capabilities || capabilities.timeEvents);
+  const showInfo = mode !== "streamers";
 
   // Nothing selected: a still empty state, not loading placeholders. Desktop only;
   // on mobile the results take the whole screen.
-  if (!showChrome) {
+  if (!showChrome && !children) {
     return (
       <Empty className="max-md:hidden md:m-2 md:border md:border-border">
         <EmptyHeader>
@@ -197,12 +208,14 @@ export function EmbedPanel() {
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden border-border bg-card md:m-2 md:rounded-lg md:border"
+        "flex flex-col overflow-hidden border-border bg-card md:m-2 md:rounded-lg md:border",
+        children && "md:h-[calc(100%-1rem)] md:min-h-[28rem]"
       )}
     >
+      {showChrome && <>
       {/* The persistent PlayerHost is positioned over this slot */}
-      <div className="relative">
-        <PlayerSlot />
+      <div className={cn("relative", children && "md:bg-black")}>
+        <PlayerSlot className={cn(children && "md:mx-auto md:h-[42svh] md:w-auto md:max-w-full")} />
         {playback && playback.processing.remainingRanges.length > 0 && (
           <p className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-card/80 px-3 py-1 text-xs text-muted-foreground">Processing is incomplete. More matchups may appear as the remaining sections finish.</p>
         )}
@@ -261,7 +274,7 @@ export function EmbedPanel() {
             <Search />
           </IconButton>
         )}
-        {playingSource && currentGhost?.matchup_id ? (
+        {playingSource && (sessionMode ? sources.length > 1 : currentGhost?.matchup_id) ? (
           <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -274,7 +287,7 @@ export function EmbedPanel() {
               <TooltipContent>{copied ? "Copied" : "Copy link"}</TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => copyLink(false)}>Matchup link</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => copyLink(false)}>{sessionMode ? "Recording link" : "Matchup link"}</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => copyLink(true)}>Link to this source</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -289,7 +302,7 @@ export function EmbedPanel() {
       </div>
 
       {/* Stream info — fixed height so late data doesn't shift layout */}
-      <div className="flex h-8 items-center gap-2 border-t border-border px-3 text-xs text-muted-foreground">
+      {showInfo && <div className="flex h-8 items-center gap-2 border-t border-border px-3 text-xs text-muted-foreground">
         {meta ? (
           <>
             <Badge variant="outline" asChild className="min-w-0 max-w-[40%] cursor-pointer text-foreground has-disabled:cursor-default">
@@ -297,7 +310,7 @@ export function EmbedPanel() {
                 type="button"
                 disabled={!meta.streamerId}
                 onClick={() =>
-                  router.push(`/search?streamer=${meta.streamerId}`, { scroll: false })
+                  router.push(mode === "ghosts" ? `/search?streamer=${meta.streamerId}` : `/streamers/${meta.streamerId}`, { scroll: false })
                 }
               >
                 <Avatar className="size-4 shrink-0">
@@ -332,7 +345,7 @@ export function EmbedPanel() {
         ) : (
           <Skeleton className="h-3 w-48 bg-muted" />
         )}
-      </div>
+      </div>}
 
       {/* Timeline — fixed-height slot so late data doesn't shift layout */}
       {showTimeline && (
@@ -348,6 +361,13 @@ export function EmbedPanel() {
           ) : (
             <Skeleton className="h-full w-full bg-muted" />
           )}
+        </div>
+      )}
+      </>}
+
+      {children && (
+        <div className={cn("flex min-h-0 flex-1 flex-col border-border max-md:h-[36svh]", showChrome && "border-t")}>
+          {children}
         </div>
       )}
     </div>

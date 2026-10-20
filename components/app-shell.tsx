@@ -7,7 +7,6 @@ import { EmbedProvider } from "@/components/embed-provider";
 import { PlayerHotkeys } from "@/components/player/player-hotkeys";
 import Navbar from "@/components/navbar";
 import SearchPanel from "@/components/search";
-import { showSearchTabs } from "@/flags";
 import { cn } from "@/lib/utils";
 
 /** Routes that render their own content instead of the search/player workspace. */
@@ -40,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <WorkspaceContext.Provider value={workspace}>
             <Suspense>
-              <SearchPanel showSearchTabs={showSearchTabs} />
+              <SearchPanel />
             </Suspense>
           </WorkspaceContext.Provider>
         </main>

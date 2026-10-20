@@ -1,14 +1,10 @@
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { showSearchTabs } from "@/flags";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Search VODs",
-  description: "Browse and search Bazaar Twitch VODs tracked by BazaarGhost.",
-};
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-export default async function VodsPage() {
-  const tabs = showSearchTabs;
-  if (!tabs) redirect("/search");
-  return null;
+/** Legacy `/vods`: the Recordings list, keeping the query. */
+export default async function VodsPage({ searchParams }: Props) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(await searchParams)) for (const v of [value ?? []].flat()) query.append(key, v);
+  permanentRedirect(`/recordings${query.size ? `?${query}` : ""}`);
 }

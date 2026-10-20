@@ -4,6 +4,7 @@ import { type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNo
 import { GripVertical } from "lucide-react";
 import { EmbedDrawer } from "@/components/embed-drawer";
 import { EmbedPanel } from "@/components/embed-panel";
+import type { SearchMode } from "./types";
 
 const DEFAULT_RESULTS_WIDTH = "clamp(20rem, 28%, 26rem)";
 const MIN_RESULTS_PX = 200;
@@ -11,8 +12,11 @@ const MIN_EMBED_PX = 400;
 const DRAG_THRESHOLD_PX = 3;
 
 interface SearchLayoutProps {
+  mode: SearchMode;
   searchHeader: ReactNode;
   searchResults: ReactNode;
+  /** The right panel's mode content beneath the player. */
+  detail: ReactNode;
 }
 
 /**
@@ -25,8 +29,10 @@ interface SearchLayoutProps {
  * list and the player are never remounted when crossing the breakpoint.
  */
 export function SearchLayout({
+  mode,
   searchHeader,
   searchResults,
+  detail,
 }: SearchLayoutProps) {
   const groupRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ startX: number; moved: boolean } | null>(null);
@@ -123,7 +129,7 @@ export function SearchLayout({
           </div>
         </div>
         <EmbedDrawer>
-          <EmbedPanel />
+          <EmbedPanel mode={mode}>{detail}</EmbedPanel>
         </EmbedDrawer>
       </div>
     </>

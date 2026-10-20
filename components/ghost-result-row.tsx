@@ -17,6 +17,8 @@ const KNOWN_RANKS = new Set(["bronze", "silver", "gold", "diamond", "legend"]);
 
 interface GhostResultRowProps {
   ghost: GhostResult;
+  /** Selection URL; defaults to the canonical `/matchups/:id`. */
+  href?: string;
   onNavigateToStreamer: (streamerId: string, name: string) => void;
 }
 
@@ -30,6 +32,7 @@ function formatDate(iso: string): string {
 
 export const GhostResultRow = memo(function GhostResultRow({
   ghost,
+  href = `/matchups/${ghost.matchup_id}`,
   onNavigateToStreamer,
 }: GhostResultRowProps) {
   const { setEmbed, setActiveGhost } = useEmbedActions();
@@ -117,7 +120,7 @@ export const GhostResultRow = memo(function GhostResultRow({
               />
             )}
             <Link
-              href={`/matchups/${ghost.matchup_id}`}
+              href={href}
               scroll={false}
               prefetch={false}
               onClick={handlePlay}

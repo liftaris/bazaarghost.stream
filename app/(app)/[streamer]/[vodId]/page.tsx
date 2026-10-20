@@ -1,16 +1,17 @@
 import { notFound, permanentRedirect } from "next/navigation";
-import { resolveVideoId } from "@/lib/api-server";
+import { recordingUrl, resolveVideoId } from "@/lib/api-server";
 
 type Props = {
   params: Promise<{ streamer: string; vodId: string }>;
 };
 
-/** Legacy `/:streamer/:vodId` link: one-hop redirect to the durable video URL. */
+/** Legacy `/:streamer/:vodId` link: one-hop redirect to the Recording's Session page. */
 export default async function VodPage({ params }: Props) {
   const { vodId } = await params;
   const id = await resolveVideoId(safeDecode(vodId));
-  if (!id) notFound();
-  permanentRedirect(`/videos/${id}`);
+  const url = id ? await recordingUrl(id) : null;
+  if (!url) notFound();
+  permanentRedirect(url);
 }
 
 function safeDecode(value: string) {

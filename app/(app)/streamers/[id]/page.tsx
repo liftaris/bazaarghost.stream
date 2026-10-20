@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { SessionLoader } from "@/components/session-player";
 import { getStreamer } from "@/lib/api-server";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ recording?: string; source?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const streamer = await getStreamer(Number((await params).id));
@@ -17,8 +18,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** A Streamer's Channels, Matchups and Sessions, rendered by the search workspace. */
-export default async function StreamerPage({ params }: Props) {
+/** The Streamers-mode selection URL; `?recording=` plays one of the Streamer's Sessions. */
+export default async function StreamerPage({ params, searchParams }: Props) {
   if (!(await getStreamer(Number((await params).id)))) notFound();
-  return null;
+  const { recording, source } = await searchParams;
+  return typeof recording === "string" ? <SessionLoader sessionId={recording} source={typeof source === "string" ? source : null} /> : null;
 }

@@ -1,270 +1,168 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
+import { useAuth } from "@/components/auth/auth-provider";
+import { useEmbedState } from "@/components/embed-provider";
+import { useSessionPlayer } from "@/components/session-player";
+import { prefetch } from "@/lib/api-cache";
+import type { SessionCard, StreamerCard } from "@/lib/api-contract";
+import { filterParams, type PlatformFilter } from "@/lib/search-filters";
+
 import { useSearchUrl } from "./hooks/use-search-url";
-import { useStreamerOptions } from "./hooks/use-streamer-options";
-import { useGhostSearch } from "./hooks/use-ghost-search";
-import { useVodSearch } from "./hooks/use-vod-search";
-import { useSessionSearch } from "./hooks/use-session-search";
+import { streamerIdOf, useStreamerOptions } from "./hooks/use-streamer-options";
+import { useGhostSearch, type ListFilters } from "./hooks/use-ghost-search";
+import { useRecordingSearch } from "./hooks/use-recording-search";
+import { useStreamerList } from "./hooks/use-streamer-list";
 import { useChannelName } from "./hooks/use-channel-name";
 import { usePlatformOptions } from "./hooks/use-platform-options";
 import { useSavedMatchups } from "./hooks/use-saved-matchups";
-import { useAuth } from "@/components/auth/auth-provider";
 
 import { SearchHeader } from "./search-header";
 import { SearchResults } from "./search-results";
-import { StreamerPicker } from "./streamer-picker";
-import type { StreamerOption } from "./types";
-import { StreamerProfile, type StreamerView } from "./streamer-profile";
-import { StreamerSessions } from "./streamer-sessions";
 import { SearchLayout } from "./desktop-layout";
+import { SessionGhosts } from "./session-ghosts";
+import { StreamerRecordings } from "./streamer-recordings";
 
 /**
- * Props for {@link SearchPanel}.
+ * Top-level search workspace: the URL model ({@link useSearchUrl}) drives one list per mode on
+ * the left and one right panel; nothing here remounts when the mode or selection changes.
  */
-interface SearchPanelProps {
-  showSearchTabs?: boolean;
-}
-
-/**
- * Top-level search panel orchestrator.
- *
- * Composes the search hooks ({@link useSearchUrl}, {@link useStreamerOptions},
- * {@link useGhostSearch}, {@link useVodSearch}) with the presentational
- * components ({@link SearchHeader}, {@link SearchResults}) inside the single
- * CSS-responsive {@link SearchLayout}.
- *
- * This component owns no data-fetching or URL-mutation logic itself — it
- * delegates entirely to the hooks and passes their return values through as
- * props to the UI layer.
- */
-export default function SearchPanel({
-  showSearchTabs = false,
-}: SearchPanelProps) {
+export default function SearchPanel() {
   const router = useRouter();
+  const url = useSearchUrl();
+  const { mode, selection, filters, setParams, selectionHref, switchMode } = url;
+  const { playback } = useEmbedState();
+  const playingSessionId = playback?.recording.sessionId ?? null;
+  const startSession = useSessionPlayer();
 
-  // ---- URL state ----
-  const {
-    searchMode,
-    routeContext,
-    queryParam,
-    effectiveStreamer,
-    effectiveVod,
-    channelParam,
-    platformParam,
-    inputValue,
-    handleInputChange,
-    replaceParams,
-  } = useSearchUrl();
+  const listFilters = useMemo<ListFilters>(
+    () => ({ q: filters.q, include: filters.include, exclude: filters.exclude, from: filters.from, to: filters.to }),
+    [filters.q, filters.include, filters.exclude, filters.from, filters.to],
+  );
+  const platformFilter = useMemo<PlatformFilter>(() => ({ include: filters.include, exclude: filters.exclude }), [filters.include, filters.exclude]);
+  const streamerId = streamerIdOf(url.streamerParam);
 
   // ---- Saved matchups ----
   const { state: authState } = useAuth();
-  const {
-    ghostResults: savedResults,
-    isLoading: isSavedLoading,
-    isEmpty: isSavedEmpty,
-    isLoadingMore: isSavedLoadingMore,
-    error: savedError,
-    retry: retrySaved,
-    hasMore: hasMoreSaved,
-    loadMore: loadMoreSaved,
-  } = useSavedMatchups({ enabled: searchMode === "saved" && authState.status === "authenticated", query: queryParam });
-
+  const savedState = useSavedMatchups({ enabled: mode === "saved" && authState.status === "authenticated", query: filters.q });
   useEffect(() => {
-    if (searchMode === "saved" && (authState.status === "anonymous" || authState.status === "disabled"))
+    if (mode === "saved" && (authState.status === "anonymous" || authState.status === "disabled"))
       router.replace("/login?next=/saved");
-  }, [searchMode, authState.status, router]);
+  }, [mode, authState.status, router]);
 
-  // ---- Streamer options & picker ----
-  const {
-    streamer,
-    streamerOptions,
-    resolvedStreamer,
-    filteredStreamers,
-    openStreamerPopover,
-    setOpenStreamerPopover,
-    handleSelectStreamer,
-    pickerQuery,setPickerQuery,loading:creatorsLoading,error:creatorsError,hasMore:moreCreators,loadMore:loadCreators,retry:retryCreators,filterReady,
-  } = useStreamerOptions({
-    effectiveStreamer,
-    searchMode,
-    queryParam,
-    replaceParams,
-    routePathStreamer: routeContext.pathStreamer,
-  });
+  // ---- Lists (only the active mode's is enabled) ----
+  const ghostList = useGhostSearch({ filters: listFilters, streamerId, channelId: url.channelParam, enabled: mode === "ghosts" });
+  const streamerList = useStreamerList({ filters: listFilters, enabled: mode === "streamers" });
+  const recordingList = useRecordingSearch({ filters: listFilters, streamerId, enabled: mode === "recordings" });
 
-  // ---- Ghost search ----
-  const {
-    ghostResults,
-    totalResults: ghostTotalResults,
-    isLoading: isGhostLoading,
-    isLoadingMore: isGhostLoadingMore,
-    hasMoreGhosts,
-    loadMoreGhosts,isStale:isGhostStale,error:ghostError,retry:retryGhosts,
-  } = useGhostSearch({
-    queryParam,
-    streamerId: resolvedStreamer?.id ?? null,
-    channelId: channelParam,
-    platform: platformParam,
-    effectiveVod,
-    enabled: searchMode === "ghosts" && filterReady,
-  });
+  // ---- Header pieces ----
+  const picker = useStreamerOptions({ streamerId, onSelect: (id) => setParams({ streamer: id }) });
+  const platforms = usePlatformOptions();
+  const channelName = useChannelName(url.channelParam);
 
-  // ---- Streamer page (Sessions) ----
-  const [view, setView] = useState<StreamerView>("matchups");
-  const sessionsShown = routeContext.streamerPage && view === "sessions";
-  const sessions = useSessionSearch({
-    streamerId: resolvedStreamer?.id ?? null,
-    enabled: sessionsShown && filterReady,
-  });
-  const platformOptions = usePlatformOptions(
-    ghostResults,
-    `${queryParam}|${resolvedStreamer?.id}|${channelParam}`,
-    platformParam,
-  );
+  // ---- Selection ----
+  const selectedStreamerId = mode === "streamers" && selection?.kind === "streamer" ? selection.id : null;
+  const selectedSessionId = mode === "recordings" && selection?.kind === "recording" ? selection.id : null;
 
-  const channelName = useChannelName(channelParam);
+  const warmSession = useCallback((session: SessionCard) => {
+    prefetch(`/sessions/${session.id}`);
+    prefetch(`/recordings/${session.defaultRecording.id}/playback`);
+    if (mode === "recordings") prefetch("/search", { sessionId: session.id, sort: "time", limit: 50 });
+  }, [mode]);
 
-  // ---- VOD search ----
-  const {
-    vodResults,
-    totalResults: vodTotalResults,
-    isLoading: isVodLoading,
-    isLoadingMore: isVodLoadingMore,
-    hasMoreVods,
-    loadMoreVods,error:vodError,retry:retryVods,
-  } = useVodSearch({
-    queryParam,
-    streamerId: resolvedStreamer?.id ?? null,
-    enabled: searchMode === "vods" && filterReady,
-  });
+  const warmStreamer = useCallback((streamer: StreamerCard) => {
+    prefetch(`/streamers/${streamer.id}`);
+    const { platform, excludePlatform } = filterParams({ ...platformFilter, from: null, to: null });
+    prefetch("/sessions", { streamerId: streamer.id, platform, excludePlatform, limit: 50 });
+  }, [platformFilter]);
 
-  /** Navigate to a streamer's page. */
-  const handleNavigateToStreamer = useCallback(
-    (streamerId: string) => {
-      router.push(`/streamers/${encodeURIComponent(streamerId)}`, { scroll: false });
-    },
-    [router]
-  );
+  const selectStreamer = useCallback((streamer: StreamerCard) => {
+    router.push(selectionHref(`/streamers/${streamer.id}`), { scroll: false });
+  }, [router, selectionHref]);
 
-  /** Add a `?vod=` filter to show ghosts for a specific VOD. */
-  const handleNavigateToVodGhosts = useCallback(
-    (vodSourceId: string) => {
-      replaceParams({ vod: vodSourceId });
-    },
-    [replaceParams]
-  );
+  const selectRecording = useCallback((session: SessionCard) => {
+    router.push(selectionHref(`/recordings/${session.id}`), { scroll: false });
+    void startSession(session.id, null, platformFilter).catch(() => undefined);
+  }, [router, selectionHref, startSession, platformFilter]);
 
-  /** Navigate to a streamer's page (used from the streamers result list). */
-  const handleStreamerClick = useCallback(
-    (streamerId: string) => {
-      router.push(`/streamers/${encodeURIComponent(streamerId)}`, { scroll: false });
-    },
-    [router]
-  );
+  const playStreamerRecording = useCallback((session: SessionCard) => {
+    if (!selectedStreamerId) return;
+    router.push(selectionHref(`/streamers/${selectedStreamerId}`, { recording: session.id }), { scroll: false });
+    void startSession(session.id, null, platformFilter).catch(() => undefined);
+  }, [router, selectionHref, selectedStreamerId, startSession, platformFilter]);
 
-  /** Build a tab href that preserves the current `?q=` across mode switches. */
-  const buildModeHref = useCallback(
-    (baseHref: string) => {
-      if (queryParam) return `${baseHref}?q=${encodeURIComponent(queryParam)}`;
-      return baseHref;
-    },
-    [queryParam]
-  );
+  const goToStreamer = useCallback((id: string) => router.push(`/streamers/${encodeURIComponent(id)}`, { scroll: false }), [router]);
+  const ghostHref = useCallback((id: number) => selectionHref(`/matchups/${id}`), [selectionHref]);
 
-  /** Navigate to a different search mode tab. */
-  const handleModeChange = useCallback(
-    (href: string) => {
-      router.push(buildModeHref(href));
-    },
-    [router, buildModeHref]
-  );
+  const active = mode === "ghosts" ? ghostList : mode === "streamers" ? streamerList : mode === "recordings" ? recordingList : null;
+  const isLoading = mode === "saved" ? savedState.isLoading : !!active?.loading;
+  const error = mode === "saved" ? savedState.error : picker.error ?? active?.error ?? null;
+  const retry = mode === "saved" ? savedState.retry : picker.error ? picker.retry : active?.retry;
 
-  // ---- Shared UI elements ----
-  const isLoading =
-    (searchMode === "ghosts" && (sessionsShown ? sessions.isLoading : isGhostLoading)) ||
-    (searchMode === "vods" && isVodLoading) ||
-    (searchMode === "saved" && isSavedLoading);
-
-  const pickStreamer = (option: StreamerOption | null) => {
-    setOpenStreamerPopover(false);
-    router.push(option ? `/streamers/${encodeURIComponent(option.streamer_id)}` : "/search");
-  };
   const searchHeader = (
     <SearchHeader
-      searchMode={searchMode}
-      showSearchTabs={showSearchTabs}
-      inputValue={inputValue}
+      mode={mode}
+      inputValue={url.inputValue}
       isLoading={isLoading}
-      onInputChange={handleInputChange}
-      onModeChange={handleModeChange}
-      streamerOptions={streamerOptions}
-      resolvedStreamer={resolvedStreamer}
-      effectiveStreamer={effectiveStreamer}
-      openStreamerPopover={openStreamerPopover}
-      onOpenStreamerPopover={setOpenStreamerPopover}
-      onSelectStreamer={handleSelectStreamer}
-      pickerQuery={pickerQuery} onPickerQuery={setPickerQuery} moreCreators={moreCreators} onLoadCreators={loadCreators}
-      profile={routeContext.streamerPage ? (
-        <StreamerProfile streamer={streamer} view={view} onViewChange={setView} picker={
-          <StreamerPicker
-            streamerOptions={streamerOptions} pickerQuery={pickerQuery} onPickerQuery={setPickerQuery} moreCreators={moreCreators} onLoadCreators={loadCreators}
-            resolvedStreamer={resolvedStreamer} effectiveStreamer={effectiveStreamer}
-            open={openStreamerPopover} onOpenChange={setOpenStreamerPopover} onSelect={pickStreamer}
-          />
-        } />
-      ) : undefined}
-      hideInput={sessionsShown}
-      platforms={sessionsShown ? [] : platformOptions}
-      platform={sessionsShown ? null : platformParam}
-      onPlatformChange={(next) => replaceParams({ platform: next })}
+      onInputChange={url.handleInputChange}
+      onModeChange={switchMode}
+      picker={{
+        options: picker.options, query: picker.pickerQuery, onQuery: picker.setPickerQuery,
+        hasMore: picker.hasMore, onLoadMore: picker.loadMore, resolved: picker.resolved, streamerId,
+        open: picker.open, onOpenChange: picker.setOpen, onSelect: picker.select,
+      }}
+      platforms={platforms}
+      filter={platformFilter}
+      onFilterChange={(next) => setParams({ platform: next.include.join(",") || null, xplatform: next.exclude.join(",") || null })}
+      from={filters.from}
+      to={filters.to}
+      onDatesChange={(range) => setParams(range)}
       channelName={channelName}
-      onClearChannel={() => replaceParams({ channel: null })}
+      onClearChannel={() => setParams({ channel: null })}
     />
   );
 
-  const error = searchMode === "saved" ? savedError : creatorsError ?? (searchMode === "ghosts" ? (sessionsShown ? sessions.error : ghostError) : vodError);
-  const retry = searchMode === "saved" ? retrySaved : creatorsError ? retryCreators : searchMode === "ghosts" ? (sessionsShown ? sessions.retry : retryGhosts) : retryVods;
-  const searchResults = (<>
-    {error && <div role="alert" className="p-4">{error} <button onClick={retry}>Retry</button></div>}
-    {sessionsShown ? (
-      <StreamerSessions {...sessions} onNavigateToStreamer={handleNavigateToStreamer} onNavigateToVodGhosts={(vodSourceId) => { setView("matchups"); handleNavigateToVodGhosts(vodSourceId); }} />
-    ) : <SearchResults
-      searchMode={searchMode}
-      queryParam={queryParam}
-      savedResults={savedResults}
-      isSavedLoading={isSavedLoading}
-      isSavedLoadingMore={isSavedLoadingMore}
-      isSavedEmpty={isSavedEmpty}
-      hasMoreSaved={hasMoreSaved}
-      loadMoreSaved={loadMoreSaved}
-      ghostResults={ghostResults}
-      ghostTotalResults={ghostTotalResults}
-      isGhostLoading={isGhostLoading}
-      isGhostStale={isGhostStale}
-      isGhostLoadingMore={isGhostLoadingMore}
-      hasMoreGhosts={hasMoreGhosts}
-      loadMoreGhosts={loadMoreGhosts}
-      vodResults={vodResults}
-      vodTotalResults={vodTotalResults}
-      isVodLoading={isVodLoading}
-      isVodLoadingMore={isVodLoadingMore}
-      hasMoreVods={hasMoreVods}
-      loadMoreVods={loadMoreVods}
-      filteredStreamers={filteredStreamers}
-      hasMoreCreators={moreCreators} loadMoreCreators={loadCreators} creatorsLoading={creatorsLoading}
-      onNavigateToStreamer={handleNavigateToStreamer}
-      onNavigateToVodGhosts={handleNavigateToVodGhosts}
-      onStreamerClick={handleStreamerClick}
-    />}</>
+  const searchResults = (
+    <>
+      {error && <div role="alert" className="p-4">{error} <button onClick={retry}>Retry</button></div>}
+      <SearchResults
+        mode={mode}
+        queryParam={filters.q}
+        scrollKey={`${mode}|${url.listQuery}`}
+        saved={{ items: savedState.ghostResults, loading: savedState.isLoading, loadingMore: savedState.isLoadingMore, hasMore: savedState.hasMore, loadMore: savedState.loadMore, stale: false, empty: savedState.isEmpty }}
+        ghosts={{ items: ghostList.items, loading: ghostList.loading, loadingMore: ghostList.loadingMore, hasMore: ghostList.hasMore, loadMore: ghostList.loadMore, stale: ghostList.isStale }}
+        streamers={{ items: streamerList.items, loading: streamerList.loading, loadingMore: streamerList.loadingMore, hasMore: streamerList.hasMore, loadMore: streamerList.loadMore, stale: streamerList.isStale }}
+        recordings={{ items: recordingList.items, loading: recordingList.loading, loadingMore: recordingList.loadingMore, hasMore: recordingList.hasMore, loadMore: recordingList.loadMore, stale: recordingList.isStale }}
+        ghostHref={ghostHref}
+        selectedStreamerId={selectedStreamerId}
+        selectedSessionId={selectedSessionId}
+        playingSessionId={playingSessionId}
+        onNavigateToStreamer={goToStreamer}
+        onSelectStreamer={selectStreamer}
+        onSelectRecording={selectRecording}
+        onPrefetchStreamer={warmStreamer}
+        onPrefetchRecording={warmSession}
+      />
+    </>
   );
 
-  return (
-    <SearchLayout
-      searchHeader={searchHeader}
-      searchResults={searchResults}
-    />
-  );
+  const detailSessionId = selectedSessionId ?? (mode === "recordings" ? playingSessionId : null);
+  const detail =
+    mode === "streamers" && selectedStreamerId ? (
+      <StreamerRecordings
+        key={selectedStreamerId}
+        streamerId={selectedStreamerId}
+        filter={platformFilter}
+        activeSessionId={playingSessionId}
+        onPlay={playStreamerRecording}
+        onPrefetch={warmSession}
+      />
+    ) : detailSessionId ? (
+      <SessionGhosts key={detailSessionId} sessionId={detailSessionId} />
+    ) : null;
+
+  return <SearchLayout mode={mode} searchHeader={searchHeader} searchResults={searchResults} detail={detail} />;
 }
+

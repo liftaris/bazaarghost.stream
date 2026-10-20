@@ -1,228 +1,130 @@
 "use client";
 
 import { useCallback } from "react";
+import { Bookmark, Ghost, Users, Video } from "lucide-react";
 import { VirtualizedResultList } from "@/components/virtualized-result-list";
-import {
-  GhostResultRow,
-  type GhostResult,
-} from "@/components/ghost-result-row";
-import { VodResultRow, type VodResult } from "@/components/vod-result-row";
-import { StreamerResultRow } from "@/components/streamer-result-row";
-import { Bookmark } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { GhostResultRow, type GhostResult } from "@/components/ghost-result-row";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { SearchMode, StreamerOption } from "./types";
+import type { SessionCard, StreamerCard } from "@/lib/api-contract";
+import { ResultList } from "./result-list";
+import { RecordingRow, StreamerRow } from "./rows";
+import type { SearchMode } from "./types";
 
-/**
- * Props for {@link SearchResults}.
- */
-interface SearchResultsProps {
-  searchMode: SearchMode;
-  queryParam: string;
-
-  // Saved state
-  savedResults: GhostResult[];
-  isSavedLoading: boolean;
-  isSavedEmpty: boolean;
-  isSavedLoadingMore: boolean;
-  hasMoreSaved: boolean;
-  loadMoreSaved: () => void;
-
-  // Ghost state
-  ghostResults: GhostResult[];
-  ghostTotalResults: number;
-  isGhostLoading: boolean;
-  isGhostStale: boolean;
-  isGhostLoadingMore: boolean;
-  hasMoreGhosts: boolean;
-  loadMoreGhosts: () => void;
-
-  // VOD state
-  vodResults: VodResult[];
-  vodTotalResults: number;
-  isVodLoading: boolean;
-  isVodLoadingMore: boolean;
-  hasMoreVods: boolean;
-  loadMoreVods: () => void;
-
-  // Streamer state
-  filteredStreamers: StreamerOption[];
-  hasMoreCreators: boolean; loadMoreCreators: () => void; creatorsLoading: boolean;
-
-  // Navigation handlers
-  onNavigateToStreamer: (streamerId: string, name: string) => void;
-  onNavigateToVodGhosts: (vodSourceId: string, title: string) => void;
-  onStreamerClick: (streamerId: string, name: string) => void;
+/** One mode's paged list. */
+interface ListState<T> {
+  items: T[];
+  loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  loadMore: () => void;
+  /** Showing the previous query's results while the next ones load. */
+  stale: boolean;
 }
 
-/**
- * Renders the active search mode's result list inside a
- * {@link VirtualizedResultList}.
- *
- * Switches between ghost, VOD, and streamer result renderers based on
- * `searchMode`.  Shows an empty-state message when no results are found for a
- * given query, and a centered spinner while the initial fetch is in progress.
- *
- * Ghost results support date grouping, fuzzy search partitioning (prefix vs
- * "other matches"), and sticky date headers via `getItemDate` /
- * `getItemMatchField` / `searchQuery` props on the virtualizer.
- */
+interface SearchResultsProps {
+  mode: SearchMode;
+  queryParam: string;
+  /** Mode + filters: the identity of the list's scroll position. */
+  scrollKey: string;
+  saved: ListState<GhostResult> & { empty: boolean };
+  ghosts: ListState<GhostResult>;
+  streamers: ListState<StreamerCard>;
+  recordings: ListState<SessionCard>;
+  /** Selection URL for a ghost row (carries the list params). */
+  ghostHref: (matchupId: number) => string;
+  selectedStreamerId: string | null;
+  selectedSessionId: string | null;
+  playingSessionId: string | null;
+  onNavigateToStreamer: (streamerId: string) => void;
+  onSelectStreamer: (streamer: StreamerCard) => void;
+  onSelectRecording: (session: SessionCard) => void;
+  onPrefetchStreamer: (streamer: StreamerCard) => void;
+  onPrefetchRecording: (session: SessionCard) => void;
+}
+
+function Skeletons() {
+  return (
+    <div className="flex flex-col gap-2 p-2" aria-busy="true">
+      {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-[72px] w-full bg-muted" />)}
+    </div>
+  );
+}
+
+function None({ icon: Icon }: { icon: typeof Ghost }) {
+  return (
+    <div role="status" className="flex flex-1 items-center justify-center py-16">
+      <Icon aria-hidden className="size-10 text-muted-foreground/30" />
+      <span className="sr-only">No results</span>
+    </div>
+  );
+}
+
+/** The active mode's result list: previous results stay while loading, skeletons only when there are none. */
 export function SearchResults({
-  searchMode,
-  queryParam,
-  savedResults,
-  isSavedLoading,
-  isSavedEmpty,
-  isSavedLoadingMore,
-  hasMoreSaved,
-  loadMoreSaved,
-  ghostResults,
-  ghostTotalResults,
-  isGhostLoading,
-  isGhostStale,
-  isGhostLoadingMore,
-  hasMoreGhosts,
-  loadMoreGhosts,
-  vodResults,
-  vodTotalResults,
-  isVodLoading,
-  isVodLoadingMore,
-  hasMoreVods,
-  loadMoreVods,
-  filteredStreamers,hasMoreCreators,loadMoreCreators,creatorsLoading,
-  onNavigateToStreamer,
-  onNavigateToVodGhosts,
-  onStreamerClick,
+  mode, queryParam, scrollKey, saved, ghosts, streamers, recordings, ghostHref, selectedStreamerId, selectedSessionId,
+  playingSessionId, onNavigateToStreamer, onSelectStreamer, onSelectRecording, onPrefetchStreamer, onPrefetchRecording,
 }: SearchResultsProps) {
   const renderGhost = useCallback(
-    (ghost: GhostResult) => (
-      <GhostResultRow ghost={ghost} onNavigateToStreamer={onNavigateToStreamer} />
-    ),
-    [onNavigateToStreamer]
-  );
-  const renderVod = useCallback(
-    (vod: VodResult) => (
-      <VodResultRow
-        vod={vod}
-        onNavigateToStreamer={onNavigateToStreamer}
-        onNavigateToGhosts={onNavigateToVodGhosts}
-      />
-    ),
-    [onNavigateToStreamer, onNavigateToVodGhosts]
+    (ghost: GhostResult) => <GhostResultRow ghost={ghost} href={ghostHref(ghost.matchup_id)} onNavigateToStreamer={onNavigateToStreamer} />,
+    [ghostHref, onNavigateToStreamer],
   );
   const renderStreamer = useCallback(
-    (s: StreamerOption) => (
-      <StreamerResultRow streamer={s} onNavigateToVods={onStreamerClick} />
+    (s: StreamerCard) => (
+      <StreamerRow streamer={s} selected={String(s.id) === selectedStreamerId} onSelect={() => onSelectStreamer(s)} onPrefetch={() => onPrefetchStreamer(s)} />
     ),
-    [onStreamerClick]
+    [selectedStreamerId, onSelectStreamer, onPrefetchStreamer],
   );
-  const isLoading =
-    (searchMode === "ghosts" && isGhostLoading) ||
-    (searchMode === "vods" && isVodLoading) ||
-    (searchMode === "saved" && isSavedLoading);
-
-  return (
-    <>
-      {searchMode === "saved" && (
-        <>
-          {savedResults.length > 0 && (
-            <div className="flex min-h-0 flex-1 flex-col">
-              <VirtualizedResultList
-                items={savedResults}
-                totalCount={savedResults.length}
-                getItemKey={(g) => g.matchup_id}
-                renderItem={renderGhost}
-                onLoadMore={loadMoreSaved}
-                isLoadingMore={isSavedLoadingMore}
-                hasMore={hasMoreSaved}
-              />
-            </div>
-          )}
-          {isSavedEmpty && (
-            <div className="flex flex-1 items-center justify-center py-16">
-              <Bookmark aria-hidden className="size-10 text-muted-foreground/30" />
-            </div>
-          )}
-        </>
-      )}
-
-      {searchMode === "ghosts" && (
-        <>
-          {!isGhostLoading && ghostResults.length > 0 && (
-            <div className={cn("flex min-h-0 flex-1 flex-col transition-opacity", isGhostStale && "opacity-50")} aria-busy={isGhostStale}>
-            <VirtualizedResultList
-              items={ghostResults}
-              totalCount={ghostTotalResults}
-              getItemKey={(g) => g.matchup_id}
-              getItemDate={(g) => g.actual_timestamp}
-              getItemMatchField={(g) => g.username}
-              searchQuery={queryParam}
-              renderItem={renderGhost}
-              onLoadMore={loadMoreGhosts}
-              isLoadingMore={isGhostLoadingMore}
-              hasMore={hasMoreGhosts}
-            />
-            </div>
-          )}
-          {!isGhostLoading && ghostResults.length === 0 && queryParam && (
-            <p className="px-4 py-16 text-center text-muted-foreground">
-              No ghosts found for &ldquo;{queryParam}&rdquo;
-            </p>
-          )}
-        </>
-      )}
-
-      {searchMode === "vods" && (
-        <>
-          {!isVodLoading && vodResults.length > 0 && (
-            <VirtualizedResultList
-              items={vodResults}
-              totalCount={vodTotalResults}
-              getItemKey={(v) => v.vod_source_id}
-              getItemDate={(v) => v.published_at}
-              renderItem={renderVod}
-              onLoadMore={loadMoreVods}
-              isLoadingMore={isVodLoadingMore}
-              hasMore={hasMoreVods}
-            />
-          )}
-          {!isVodLoading && vodResults.length === 0 && queryParam && (
-            <p className="px-4 py-16 text-center text-muted-foreground">
-              No VODs found for &ldquo;{queryParam}&rdquo;
-            </p>
-          )}
-        </>
-      )}
-
-      {searchMode === "streamers" && (
-        <>
-          {filteredStreamers.length > 0 ? (
-            <VirtualizedResultList
-              items={filteredStreamers}
-              totalCount={filteredStreamers.length}
-              getItemKey={(s) => s.streamer_id}
-              renderItem={renderStreamer}
-              onLoadMore={loadMoreCreators}
-              isLoadingMore={creatorsLoading}
-              hasMore={hasMoreCreators}
-            />
-          ) : (
-            queryParam && (
-              <p className="px-4 py-16 text-center text-muted-foreground">
-                No streamers found for &ldquo;{queryParam}&rdquo;
-              </p>
-            )
-          )}
-        </>
-      )}
-
-      {isLoading && (
-        <div className="flex flex-col gap-2 p-2" aria-busy="true">
-          {Array.from({ length: 8 }, (_, i) => (
-            <Skeleton key={i} className="h-[72px] w-full" />
-          ))}
-        </div>
-      )}
-    </>
+  const renderRecording = useCallback(
+    (s: SessionCard) => (
+      <RecordingRow session={s} selected={s.id === selectedSessionId} active={s.id === playingSessionId} onSelect={() => onSelectRecording(s)} onPrefetch={() => onPrefetchRecording(s)} />
+    ),
+    [selectedSessionId, playingSessionId, onSelectRecording, onPrefetchRecording],
   );
+
+  if (mode === "saved")
+    return saved.items.length > 0 ? (
+      <ResultList scrollKey={scrollKey} stale={false}>
+        <VirtualizedResultList items={saved.items} totalCount={saved.items.length} getItemKey={(g) => g.matchup_id} renderItem={renderGhost} onLoadMore={saved.loadMore} isLoadingMore={saved.loadingMore} hasMore={saved.hasMore} />
+      </ResultList>
+    ) : saved.loading ? <Skeletons /> : saved.empty ? <None icon={Bookmark} /> : null;
+
+  if (mode === "ghosts")
+    return ghosts.items.length > 0 ? (
+      <ResultList scrollKey={scrollKey} stale={ghosts.stale}>
+        <VirtualizedResultList
+          items={ghosts.items}
+          totalCount={ghosts.items.length}
+          getItemKey={(g) => g.matchup_id}
+          getItemDate={(g) => g.actual_timestamp}
+          getItemMatchField={(g) => g.username}
+          searchQuery={queryParam}
+          renderItem={renderGhost}
+          onLoadMore={ghosts.loadMore}
+          isLoadingMore={ghosts.loadingMore}
+          hasMore={ghosts.hasMore}
+        />
+      </ResultList>
+    ) : ghosts.loading ? <Skeletons /> : <None icon={Ghost} />;
+
+  if (mode === "streamers")
+    return streamers.items.length > 0 ? (
+      <ResultList scrollKey={scrollKey} stale={streamers.stale}>
+        <VirtualizedResultList items={streamers.items} totalCount={streamers.items.length} getItemKey={(s) => s.id} renderItem={renderStreamer} onLoadMore={streamers.loadMore} isLoadingMore={streamers.loadingMore} hasMore={streamers.hasMore} />
+      </ResultList>
+    ) : streamers.loading ? <Skeletons /> : <None icon={Users} />;
+
+  return recordings.items.length > 0 ? (
+    <ResultList scrollKey={scrollKey} stale={recordings.stale}>
+      <VirtualizedResultList
+        items={recordings.items}
+        totalCount={recordings.items.length}
+        getItemKey={(s) => s.id}
+        getItemDate={queryParam ? undefined : (s) => s.startedAt ?? ""}
+        renderItem={renderRecording}
+        onLoadMore={recordings.loadMore}
+        isLoadingMore={recordings.loadingMore}
+        hasMore={recordings.hasMore}
+      />
+    </ResultList>
+  ) : recordings.loading ? <Skeletons /> : <None icon={Video} />;
 }

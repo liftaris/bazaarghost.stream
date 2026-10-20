@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { usePlayback } from "@/hooks/use-playback";
 import { cachedGet } from "@/lib/api-cache";
 import type { Playback, RecordingSource, Source } from "@/lib/api-contract";
-import { mapSessionTime, recordingSources, rememberPlatform, sourcePin } from "@/lib/sources";
+import { mapSessionTime, recordingPath, recordingSources, rememberPlatform, sourcePin } from "@/lib/sources";
 import {
   createPlayerAdapter,
   getPlatform,
@@ -165,6 +165,8 @@ export function useEmbed(): EmbedContextValue {
 // ---------------------------------------------------------------------------
 
 const CONTAINER_ID = "bazaarghost-player";
+/** In the Recordings and Streamers modes a ghost is a seek, not a navigation to its Matchup. */
+const inSessionMode = () => /^\/(recordings|streamers)(\/|$)/.test(window.location.pathname);
 const POLL_INTERVAL_MS = 500;
 
 export function EmbedProvider({ children }: { children: ReactNode }) {
@@ -490,12 +492,12 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   }, [timeStore]);
 
   // Latest view of what goToGhost needs, so the action itself stays referentially stable
-  const nav = useRef({ ghosts: sortedGhosts, activeGhost, capabilities, videoId: state.videoId });
+  const nav = useRef({ ghosts: sortedGhosts, activeGhost, capabilities });
   useLayoutEffect(() => {
-    nav.current = { ghosts: sortedGhosts, activeGhost, capabilities, videoId: state.videoId };
+    nav.current = { ghosts: sortedGhosts, activeGhost, capabilities };
   });
   const goToGhost = useCallback((target: "prev" | "next" | EmbedGhost) => {
-    const { ghosts, activeGhost: active, capabilities: caps, videoId } = nav.current;
+    const { ghosts, activeGhost: active, capabilities: caps } = nav.current;
     if (!caps?.navigate) return;
     let ghost: EmbedGhost | null;
     if (typeof target === "string") {
@@ -507,8 +509,8 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     } else ghost = target;
     if (!ghost) return;
     setGhostOverride(ghost);
-    const url = ghost.matchup_id ? `/matchups/${ghost.matchup_id}` : videoId?.startsWith("v:") ? `/videos/${videoId.slice(2)}` : null;
-    if (url && window.location.pathname !== url) router.push(url, { scroll: false });
+    const url = ghost.matchup_id ? `/matchups/${ghost.matchup_id}` : null;
+    if (url && window.location.pathname !== url && !inSessionMode()) router.push(url, { scroll: false });
     seek(ghost.frame_time_seconds);
   }, [router, seek, timeStore]);
 
@@ -559,7 +561,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
         show={isVisible && !!state.videoId}
         error={mergedError}
         onExpand={() => {
-          const url = activeGhost?.matchup_id ? `/matchups/${activeGhost.matchup_id}` : state.videoId?.startsWith("v:") ? `/videos/${state.videoId.slice(2)}` : null;
+          const url = activeGhost?.matchup_id && !inSessionMode() ? `/matchups/${activeGhost.matchup_id}` : recordingPath(playback.data?.recording.sessionId ?? null, dataVideoId ?? 0);
           if (url) router.push(url, { scroll: false });
         }}
         onClose={hideEmbed}
