@@ -2,6 +2,12 @@ import { ImageResponse } from "next/og";
 import { getMatchup } from "@/lib/api-server";
 import { matchupOwner } from "@/lib/result-models";
 import averiaBold from "../../../../public/Averia_Libre/AveriaLibre-Bold.ttf?inline";
+import logo from "../../../../public/og/logo.png?inline";
+import bronze from "../../../../public/og/bronze.png?inline";
+import silver from "../../../../public/og/silver.png?inline";
+import gold from "../../../../public/og/gold.png?inline";
+import diamond from "../../../../public/og/diamond.png?inline";
+import legend from "../../../../public/og/legend.png?inline";
 
 export const alt = "BazaarGhost matchup";
 export const size = { width: 1200, height: 630 };
@@ -12,6 +18,8 @@ type Props = { params: Promise<{ id: string }> };
 const CREAM = "#fcf9ea";
 const DARK = "#1a1a1a";
 const ORANGE = "#ff9933";
+
+const RANK_BADGES: Record<string, string> = { bronze, silver, gold, diamond, legend };
 
 function font() {
   try {
@@ -25,7 +33,7 @@ function font() {
 function Mark() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 34, color: DARK }}>
-      <div style={{ width: 18, height: 18, borderRadius: 9, background: ORANGE }} />
+      <img src={logo} width={64} height={40} alt="" />
       BazaarGhost
     </div>
   );
@@ -64,6 +72,7 @@ export default async function Image({ params }: Props) {
 
   const creator = matchupOwner(matchup);
   const { username, rank } = matchup.opponent;
+  const badge = rank ? RANK_BADGES[rank.toLowerCase()] : undefined;
   const long = (text: string) => (text.length > 18 ? 64 : 84);
   return new ImageResponse(
     (
@@ -80,12 +89,8 @@ export default async function Image({ params }: Props) {
           </div>
           <div style={{ fontSize: 56, color: ORANGE, display: "flex" }}>vs</div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 28, width: 480 }}>
-            <div style={{ width: 220, height: 220, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 0 }}>
-              {rank ? (
-                <div style={{ display: "flex", background: DARK, color: CREAM, fontSize: 44, padding: "10px 36px", borderRadius: 999 }}>
-                  {rank}
-                </div>
-              ) : null}
+            <div style={{ width: 220, height: 220, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {badge ? <img src={badge} width={200} height={200} alt={rank ?? ""} /> : null}
             </div>
             <div style={{ fontSize: long(username), textAlign: "center", display: "flex" }}>{username}</div>
           </div>
