@@ -59,6 +59,8 @@ interface EmbedActions {
   /** Load a VOD (or seek if already loaded). Pass meta for the info bar. */
   setEmbed: (videoId: string, timestamp: number, meta?: EmbedMeta) => void;
   hideEmbed: () => void;
+  /** Reserve the player's space at once (before playback data arrives) so nothing shifts when it fills. */
+  reservePlayer: (reserved: boolean) => void;
   /** The playable Sources of the Matchup being shown, and the Session that maps their Recordings together. */
   setSources: (sources: Source[], sessionId: string | null) => void;
   /** Move to another Source of the Matchup at the same moment (via the Session mapping), remembering its platform. */
@@ -85,6 +87,8 @@ interface EmbedSlowState extends EmbedState {
   playback: Playback | null;
   sources: RecordingSource[];
   isVisible: boolean;
+  /** The player area is shown ahead of its video. */
+  reserved: boolean;
   isReady: boolean;
   error: string | null;
   /** All ghost markers for the current VOD, sorted by time ascending. */
@@ -177,6 +181,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     meta: null,
   });
   const [isVisible, setIsVisible] = useState(false);
+  const [reserved, setReserved] = useState(false);
   const [sources, setSourceList] = useState<RecordingSource[]>([]);
   const sessionIdRef = useRef<string | null>(null);
   const failedSourcesRef = useRef(new Set<number>());
@@ -432,6 +437,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
         setAdapterError(null);
       }
       setIsVisible(true);
+      setReserved(false);
       seek(timestamp);
       if (!changed) adapterRef.current?.play();
     },
@@ -472,6 +478,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   const hideEmbed = useCallback(() => {
     pause();
     setIsVisible(false);
+    setReserved(false);
   }, [pause]);
 
   const play = useCallback(() => {
@@ -516,7 +523,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   }, [router, seek, timeStore]);
 
   const actions = useMemo<EmbedActions>(
-    () => ({ setEmbed, hideEmbed, setSources, switchSource, containerId: CONTAINER_ID, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, goToGhost,
+    () => ({ setEmbed, hideEmbed, reservePlayer: setReserved, setSources, switchSource, containerId: CONTAINER_ID, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, goToGhost,
       getTime: () => timeStore.get() }),
     [setEmbed, hideEmbed, setSources, switchSource, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, goToGhost, timeStore]
   );
@@ -538,6 +545,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
       ...state,
       meta: playbackMeta ?? state.meta,
       isVisible,
+      reserved,
       isReady,
       error: mergedError,
       playback: playback.data,
@@ -548,7 +556,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
       bazaarChapters,
       capabilities,
     }),
-    [state, playbackMeta, sources, isVisible, isReady, mergedError, playback.data, sortedGhosts, activeGhost, ghostIsOptimistic, bazaarChapters, capabilities]
+    [state, playbackMeta, sources, isVisible, reserved, isReady, mergedError, playback.data, sortedGhosts, activeGhost, ghostIsOptimistic, bazaarChapters, capabilities]
   );
 
   return (

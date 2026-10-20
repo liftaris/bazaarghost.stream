@@ -118,6 +118,7 @@ export function EmbedPanel({ mode, children }: { mode: SearchMode; children?: Re
     sources,
     meta,
     isVisible,
+    reserved,
     isReady,
     ghosts: sortedGhosts,
     activeGhost: currentGhost,
@@ -189,7 +190,7 @@ export function EmbedPanel({ mode, children }: { mode: SearchMode; children?: Re
     window.setTimeout(() => setCopied(false), 1500);
   }, [videoId, buildGhostUrl, currentGhost, playingSource, sessionMode]);
 
-  const showChrome = isVisible && !!videoId;
+  const showChrome = (isVisible && !!videoId) || reserved;
   const when = meta?.date ? relativeDate(meta.date) : null;
   const rank = currentGhost?.rank?.toLowerCase();
   const showTimeline = mode === "ghosts" && (!capabilities || capabilities.timeEvents);
@@ -220,8 +221,8 @@ export function EmbedPanel({ mode, children }: { mode: SearchMode; children?: Re
     >
       {showChrome && <>
       {/* The persistent PlayerHost is positioned over this slot */}
-      <div className={cn("relative", children && "md:bg-black")}>
-        <PlayerSlot className={cn(children && "md:mx-auto md:h-[42svh] md:w-auto md:max-w-full")} />
+      <div className={cn("relative", sessionMode && "md:bg-black")}>
+        <PlayerSlot className={cn(sessionMode && "md:mx-auto md:h-[42svh] md:w-auto md:max-w-full")} />
         {playback && playback.processing.remainingRanges.length > 0 && (
           <p className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-card/80 px-3 py-1 text-xs text-muted-foreground">Processing is incomplete. More matchups may appear as the remaining sections finish.</p>
         )}

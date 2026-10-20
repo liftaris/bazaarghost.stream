@@ -11,17 +11,24 @@ const DEDUPE_MS = 1500;
 
 /** Start a Session in the persistent player: its Recording per the platform filter and the viewer's preference. */
 export function useSessionPlayer() {
-  const { setEmbed, setSources } = useEmbedActions();
+  const { setEmbed, setSources, reservePlayer } = useEmbedActions();
   return useCallback(async (sessionId: string, pin: string | null, filter: PlatformFilter, signal?: AbortSignal) => {
     const key = `${sessionId}|${pin}`;
     const started = () => lastStart?.key === key && Date.now() - lastStart.at < DEDUPE_MS;
     if (started()) return;
-    const session = await cachedGet(`/sessions/${sessionId}`, {}, { signal });
-    if (signal?.aborted || started()) return;
+    reservePlayer(true);
+    const session = await cachedGet(`/sessions/${sessionId}`, {}, { signal }).catch((error) => {
+      reservePlayer(false);
+      throw error;
+    });
+    if (signal?.aborted || started()) return reservePlayer(false);
     if (session.redirectedFrom !== undefined) window.history.replaceState(window.history.state, "", `/recordings/${session.id}${window.location.search}`);
     const sources = sessionSources(session);
     const pick = pickRecordingSource(sources, pin, preferredPlatform(), filter);
-    if (!pick) throw new Error("This recording has no playable source");
+    if (!pick) {
+      reservePlayer(false);
+      throw new Error("This recording has no playable source");
+    }
     lastStart = { key, at: Date.now() };
     setSources(sources, session.id);
     setEmbed(`v:${pick.recording.id}`, 0, {
@@ -31,7 +38,7 @@ export function useSessionPlayer() {
       vodTitle: pick.recording.title,
       date: pick.recording.publishedAt ?? "",
     });
-  }, [setEmbed, setSources]);
+  }, [setEmbed, setSources, reservePlayer]);
 }
 
 /** Bootstrap the player from a `/recordings/:id` (or `?recording=`) URL. */
