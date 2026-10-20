@@ -31,6 +31,7 @@ export class YouTubePlayer extends BasePlayer {
     this.pendingSeek = null;
     const url = new URL(src.embedUrl);
     url.searchParams.set("start", String(start));
+    url.searchParams.set("autoplay", "1");
     url.searchParams.set("enablejsapi", "1");
     url.searchParams.set("origin", window.location.origin);
     const frame = this.createFrame(url.href, src.title);
