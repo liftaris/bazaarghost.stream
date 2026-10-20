@@ -1,0 +1,14 @@
+diff --git a/node_modules/@vinext/cloudflare/dist/cache/cdn-adapter.worker.js b/node_modules/@vinext/cloudflare/dist/cache/cdn-adapter.worker.js
+index 4281650..b29bdb5 100644
+--- a/node_modules/@vinext/cloudflare/dist/cache/cdn-adapter.worker.js
++++ b/node_modules/@vinext/cloudflare/dist/cache/cdn-adapter.worker.js
+@@ -132,7 +132,8 @@ async function createCacheFacingRequest(request, serializedInvocation) {
+ 	return new Request(url, {
+ 		cf: { vary: { default: { action: "passthrough" } } },
+ 		headers,
+-		method: request.method
++		method: request.method,
++		redirect: "manual"
+ 	});
+ }
+ function restoreResponseStageRequest(request, requestUrl, requestMethod) {

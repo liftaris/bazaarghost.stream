@@ -11,7 +11,8 @@
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "deploy": "vinext-cloudflare deploy",
     "typecheck": "vinext typegen && cf workers types && tsc --noEmit",
-    "deploy:validation": "vite build --mode validation && cf deploy --prebuilt --mode validation"
+    "deploy:validation": "vite build --mode validation && cf deploy --prebuilt --mode validation",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",
@@ -56,6 +57,7 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
+    "patch-package": "^8.0.1",
     "postcss": "^8.5",
     "prettier": "^3.9.10",
     "react-server-dom-webpack": "^19.3.1",
