@@ -16,6 +16,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import {
@@ -29,11 +35,13 @@ import {
   useEmbedTime,
   type EmbedGhost,
 } from "@/components/embed-provider";
+import { SourceSwitcher } from "@/components/source-switcher";
 import { EmbedTimeline } from "@/components/embed-timeline";
 import { PlayerSlot } from "@/components/player/player-slot";
 import { BookmarkButton } from "@/components/social/bookmark-button";
 import { Kbd } from "@/components/ui/kbd";
 import { PLAYER_SHORTCUTS, type PlayerShortcutAction } from "@/lib/player-shortcuts";
+import { sourcePin } from "@/lib/sources";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -97,6 +105,7 @@ export function EmbedPanel() {
   const {
     videoId,
     playback,
+    sources,
     meta,
     isVisible,
     isReady,
@@ -106,7 +115,7 @@ export function EmbedPanel() {
     bazaarChapters,
     capabilities,
   } = useEmbedState();
-  const { hideEmbed, seek, goToGhost } = useEmbedActions();
+  const { hideEmbed, seek, goToGhost, switchSource } = useEmbedActions();
   const duration = useEmbedTime((s) => s.duration);
   const router = useRouter();
   const [copied, setCopied] = useState(false);
@@ -153,13 +162,17 @@ export function EmbedPanel() {
   const navigatePrevGhost = useCallback(() => goToGhost("prev"), [goToGhost]);
   const navigateNextGhost = useCallback(() => goToGhost("next"), [goToGhost]);
 
-  const copyLink = useCallback(() => {
+  const playingSource = sources.find((s) => `v:${s.recording.id}` === videoId);
+  const copyLink = useCallback((pinned: boolean) => {
     if (!videoId) return;
     const path = buildGhostUrl(currentGhost);
-    if (path) navigator.clipboard.writeText(`${window.location.origin}${path}`);
+    if (path) {
+      const pin = pinned && playingSource && currentGhost?.matchup_id ? `?source=${sourcePin(playingSource.recording.id)}` : "";
+      navigator.clipboard.writeText(`${window.location.origin}${path}${pin}`);
+    }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
-  }, [videoId, buildGhostUrl, currentGhost]);
+  }, [videoId, buildGhostUrl, currentGhost, playingSource]);
 
   const showChrome = isVisible && !!videoId;
   const when = meta?.date ? relativeDate(meta.date) : null;
@@ -235,6 +248,7 @@ export function EmbedPanel() {
 
         <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-5" />
 
+        <SourceSwitcher sources={sources} videoId={videoId} onSelect={switchSource} />
         {currentGhost?.matchup_id ? (
           <BookmarkButton matchupId={currentGhost.matchup_id} tooltip />
         ) : null}
@@ -247,9 +261,28 @@ export function EmbedPanel() {
             <Search />
           </IconButton>
         )}
-        <IconButton label={copied ? "Copied" : "Copy link"} onClick={copyLink}>
-          {copied ? <Check /> : <Copy />}
-        </IconButton>
+        {playingSource && currentGhost?.matchup_id ? (
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label={copied ? "Copied" : "Copy link"} className="text-muted-foreground hover:text-foreground">
+                    {copied ? <Check /> : <Copy />}
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>{copied ? "Copied" : "Copy link"}</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => copyLink(false)}>Matchup link</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => copyLink(true)}>Link to this source</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <IconButton label={copied ? "Copied" : "Copy link"} onClick={() => copyLink(false)}>
+            {copied ? <Check /> : <Copy />}
+          </IconButton>
+        )}
         <IconButton label="Close player" shortcut="close" onClick={hideEmbed}>
           <X />
         </IconButton>
