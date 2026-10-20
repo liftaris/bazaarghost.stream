@@ -45,7 +45,6 @@ export const twitch: PlatformDefinition = {
   formatTimestamp: twitchTime,
   watchUrl: (ref, t) =>
     `https://www.twitch.tv/videos/${ref.sourceId}${t === undefined ? "" : `?t=${twitchTime(t)}`}`,
-  channelUrl: (ref) => (ref.login ? `https://www.twitch.tv/${ref.login}` : null),
   parseUrl(input) {
     const u = url(input);
     if (!u) return null;
@@ -76,7 +75,6 @@ export const youtube: PlatformDefinition = {
     const base = ref.watchUrl || `https://www.youtube.com/watch?v=${ref.sourceId}`;
     return t === undefined ? base : withParam(base, "t", `${secs(t)}s`);
   },
-  channelUrl: (ref) => `https://www.youtube.com/channel/${ref.sourceId}`,
   parseUrl(input) {
     const u = url(input);
     if (!u) return null;
@@ -114,7 +112,6 @@ export const bilibili: PlatformDefinition = {
     const base = ref.watchUrl || `https://www.bilibili.com/video/${ref.sourceId.split(":")[0]}`;
     return t === undefined ? base : withParam(base, "t", secs(t));
   },
-  channelUrl: (ref) => `https://space.bilibili.com/${ref.sourceId}`,
   parseUrl(input) {
     const u = url(input);
     if (!u) return null;
@@ -139,7 +136,6 @@ export function genericPlatform(id: string): PlatformDefinition {
       const base = ref.watchUrl ?? "";
       return base && t !== undefined ? withParam(base, "t", secs(t)) : base;
     },
-    channelUrl: () => null,
     parseUrl: (): { kind: PlatformRefKind; id: string } | null => null,
   };
 }

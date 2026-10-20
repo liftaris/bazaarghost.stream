@@ -8,12 +8,15 @@ import { useStreamerOptions } from "./hooks/use-streamer-options";
 import { useGhostSearch } from "./hooks/use-ghost-search";
 import { useVodSearch } from "./hooks/use-vod-search";
 import { useSessionSearch } from "./hooks/use-session-search";
+import { useChannelName } from "./hooks/use-channel-name";
 import { usePlatformOptions } from "./hooks/use-platform-options";
 import { useSavedMatchups } from "./hooks/use-saved-matchups";
 import { useAuth } from "@/components/auth/auth-provider";
 
 import { SearchHeader } from "./search-header";
 import { SearchResults } from "./search-results";
+import { StreamerPicker } from "./streamer-picker";
+import type { StreamerOption } from "./types";
 import { StreamerProfile, type StreamerView } from "./streamer-profile";
 import { StreamerSessions } from "./streamer-sessions";
 import { SearchLayout } from "./desktop-layout";
@@ -122,6 +125,8 @@ export default function SearchPanel({
     platformParam,
   );
 
+  const channelName = useChannelName(channelParam);
+
   // ---- VOD search ----
   const {
     vodResults,
@@ -183,6 +188,10 @@ export default function SearchPanel({
     (searchMode === "vods" && isVodLoading) ||
     (searchMode === "saved" && isSavedLoading);
 
+  const pickStreamer = (option: StreamerOption | null) => {
+    setOpenStreamerPopover(false);
+    router.push(option ? `/streamers/${encodeURIComponent(option.streamer_id)}` : "/search");
+  };
   const searchHeader = (
     <SearchHeader
       searchMode={searchMode}
@@ -198,12 +207,20 @@ export default function SearchPanel({
       onOpenStreamerPopover={setOpenStreamerPopover}
       onSelectStreamer={handleSelectStreamer}
       pickerQuery={pickerQuery} onPickerQuery={setPickerQuery} moreCreators={moreCreators} onLoadCreators={loadCreators}
-      profile={routeContext.streamerPage ? <StreamerProfile streamer={streamer} view={view} onViewChange={setView} /> : undefined}
+      profile={routeContext.streamerPage ? (
+        <StreamerProfile streamer={streamer} view={view} onViewChange={setView} picker={
+          <StreamerPicker
+            streamerOptions={streamerOptions} pickerQuery={pickerQuery} onPickerQuery={setPickerQuery} moreCreators={moreCreators} onLoadCreators={loadCreators}
+            resolvedStreamer={resolvedStreamer} effectiveStreamer={effectiveStreamer}
+            open={openStreamerPopover} onOpenChange={setOpenStreamerPopover} onSelect={pickStreamer}
+          />
+        } />
+      ) : undefined}
       hideInput={sessionsShown}
       platforms={sessionsShown ? [] : platformOptions}
       platform={sessionsShown ? null : platformParam}
       onPlatformChange={(next) => replaceParams({ platform: next })}
-      channelName={channelParam ? ghostResults[0]?.streamer_display_name ?? "Channel" : null}
+      channelName={channelName}
       onClearChannel={() => replaceParams({ channel: null })}
     />
   );

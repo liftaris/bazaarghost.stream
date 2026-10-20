@@ -1,7 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Ghost, Layers } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlatformIcon } from "@/components/platform-icon";
 import { getPlatform } from "@/lib/platforms";
@@ -9,22 +9,18 @@ import type { Streamer } from "@/lib/api-contract";
 
 export type StreamerView = "matchups" | "sessions";
 
-/** The Streamer, a mark per owned Channel linking out to its platform, and the Matchups / Sessions switch. */
-export function StreamerProfile({ streamer, view, onViewChange }: {
-  streamer: Streamer | null; view: StreamerView; onViewChange: (view: StreamerView) => void;
+/** The Streamer picker, a mark per owned Channel linking out to its platform, and the Matchups / Sessions switch. */
+export function StreamerProfile({ streamer, view, onViewChange, picker }: {
+  streamer: Streamer | null; view: StreamerView; onViewChange: (view: StreamerView) => void; picker: ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex h-10 items-center gap-3">
-        <Avatar className="size-9 shrink-0">
-          <AvatarImage src={streamer?.avatarUrl ?? undefined} alt="" />
-          <AvatarFallback className="bg-primary text-xs text-primary-foreground">{streamer?.displayName[0]?.toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <h2 className="min-w-0 flex-1 truncate text-base font-semibold">{streamer?.displayName}</h2>
+        <div className="min-w-0 flex-1">{picker}</div>
         <ul aria-label="Channels" className="flex shrink-0 items-center gap-2 text-muted-foreground">
           {streamer?.channels.map((channel) => {
             const platform = getPlatform(channel.platform);
-            const href = platform.channelUrl(channel);
+            const href = channel.url;
             const label = `${platform.name}: ${channel.displayName}`;
             return (
               <li key={channel.id}>

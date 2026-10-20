@@ -35,12 +35,6 @@ export interface WatchRef {
   watchUrl?: string | null;
 }
 
-/** What a channel link is built from: the platform's account id plus its login, when known. */
-export interface ChannelRef {
-  sourceId: string;
-  login: string | null;
-}
-
 export interface PlatformDefinition {
   id: PlatformId;
   name: string;
@@ -48,8 +42,6 @@ export interface PlatformDefinition {
   mark: PlatformMark | null;
   capabilities: PlatformCapabilities;
   watchUrl(ref: WatchRef, t?: number): string;
-  /** Public page of a channel, or null when the platform has none we can build. */
-  channelUrl(ref: ChannelRef): string | null;
   parseUrl(url: string): { kind: PlatformRefKind; id: string } | null;
   /** Timestamp in the form this platform's links use. */
   formatTimestamp(seconds: number): string;

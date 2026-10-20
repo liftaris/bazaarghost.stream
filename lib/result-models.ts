@@ -1,4 +1,4 @@
-import type { Matchup, Recording, RecordingSource, Streamer } from "./api-contract";
+import type { Matchup, Recording, RecordingSource, Session, Streamer } from "./api-contract";
 import type { SourceStackItem } from "@/components/source-stack";
 
 /** Presentation fields of one Matchup row; playback uses its default Source. */
@@ -65,21 +65,15 @@ export function vodResult(value: Recording): VodResult {
     streamer_display_name: value.channel.displayName, streamer_avatar: value.channel.avatarUrl ?? "",
     ghost_count: value.matchupCount ?? 0 };
 }
-/** One row per Session: its Recordings (platform copies, reuploads) collapse into the Streamer's own copy, or the first. */
-export function sessionResults(recordings: Recording[], streamerId: string): VodResult[] {
-  const groups = new Map<string, Recording[]>();
-  for (const recording of recordings) {
-    const key = recording.sessionId ?? `recording:${recording.id}`;
-    groups.set(key, [...(groups.get(key) ?? []), recording]);
-  }
-  return [...groups.values()].map((group) => {
-    const own = (r: Recording) => String(r.channel.streamerId) === streamerId;
-    const primary = group.find(own) ?? group[0];
-    const marks = new Map<string, SourceStackItem>();
-    for (const r of [...group].sort((a, b) => Number(own(b)) - Number(own(a))))
-      if (!marks.has(r.platform)) marks.set(r.platform, { platform: r.platform, channel: r.channel.displayName, reupload: !own(r) });
-    return { ...vodResult(primary), ghost_count: Math.max(...group.map((r) => r.matchupCount ?? 0)), sources: [...marks.values()] };
-  });
+/** One row per Session: its Recordings collapse into the Streamer's own copy, or the first. */
+export function sessionResult(session: Session, streamerId: string): VodResult {
+  const recordings = session.recordings.map((entry) => entry.recording);
+  const own = (r: Recording) => String(r.channel.streamerId) === streamerId;
+  const primary = recordings.find(own) ?? recordings[0];
+  const marks = new Map<string, SourceStackItem>();
+  for (const r of [...recordings].sort((a, b) => Number(own(b)) - Number(own(a))))
+    if (!marks.has(r.platform)) marks.set(r.platform, { platform: r.platform, channel: r.channel.displayName, reupload: !own(r) });
+  return { ...vodResult(primary), ghost_count: session.matchupCount, sources: [...marks.values()] };
 }
 /** Adapt a Streamer to a picker option. */
 export function streamerOption(value: Streamer): StreamerOption {
