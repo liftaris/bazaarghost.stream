@@ -11,6 +11,7 @@ import "./globals.css";
 
 import { Inter, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
+import { SITE_URL } from "@/lib/site";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -42,7 +43,7 @@ const averiaLibre = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://bazaarghost.stream"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "BazaarGhost - Bazaar Matchup Search",
     template: "%s | BazaarGhost",
