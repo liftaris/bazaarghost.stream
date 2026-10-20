@@ -98,13 +98,13 @@ export async function mockAuth(request: Request): Promise<Response> {
 export async function mockSocial(request: Request): Promise<Response | null> {
   const path = new URL(request.url).pathname.replace("/api/v1", "");
   const list = path === "/me/favorites";
-  const one = /^\/clips\/(\d+)\/favorite$/.exec(path);
+  const one = /^\/(?:clips|matchups)\/(\d+)\/favorite$/.exec(path);
   if (!list && !one) return null;
   const sid = cookieOf(request);
   const live = sid ? store.sessions.get(sid) : undefined;
   if (!live || live.expiresAt <= Date.now()) return json({ error: "Sign in required" }, 401);
   if (list) {
-    const items = [...store.favorites].sort((a, b) => a - b).map((id) => ({ id }));
+    const items = [...store.favorites].sort((a, b) => a - b).map((id) => ({ id, matchup_id: id }));
     return json({ items, next_after: null });
   }
   if (request.headers.get("x-csrf-token") !== `csrf-${live.id}`) return json({ error: "Invalid CSRF token" }, 403);
@@ -112,5 +112,5 @@ export async function mockSocial(request: Request): Promise<Response | null> {
   await new Promise((r) => setTimeout(r, 250));
   if (request.method === "PUT") store.favorites.add(id);
   else store.favorites.delete(id);
-  return json({ favorite: request.method === "PUT" });
+  return json({ favorite: request.method === "PUT", matchup_id: id });
 }

@@ -1,6 +1,6 @@
 /** Caller-private social routes of the backend, reached through the `/api/v1` gateway. */
 interface FavoritePage {
-  items: { id: number }[];
+  items: { id: number; matchup_id?: number }[];
   next_after: number | null;
 }
 
@@ -9,7 +9,7 @@ async function failure(response: Response) {
   return new Error(typeof body?.error === "string" ? body.error : "Request failed");
 }
 
-/** One page of bookmarked clip IDs, ascending after the cursor. Clip IDs are matchup IDs. */
+/** One page of bookmarked clip IDs, ascending after the cursor. Items are keyed by their canonical `matchup_id`. */
 export async function listFavoritePage(after: number, signal?: AbortSignal): Promise<FavoritePage> {
   const response = await fetch(`/api/v1/me/favorites?limit=50&after=${after}`, {
     credentials: "same-origin",
@@ -17,11 +17,12 @@ export async function listFavoritePage(after: number, signal?: AbortSignal): Pro
     signal,
   });
   if (!response.ok) throw await failure(response);
-  return (await response.json()) as FavoritePage;
+  const page = (await response.json()) as FavoritePage;
+  return { ...page, items: page.items.map((item) => ({ id: item.matchup_id ?? item.id })) };
 }
 
 export async function setFavorite(id: number, saved: boolean, csrfToken: string) {
-  const response = await fetch(`/api/v1/clips/${id}/favorite`, {
+  const response = await fetch(`/api/v1/matchups/${id}/favorite`, {
     method: saved ? "PUT" : "DELETE",
     headers: { "X-CSRF-Token": csrfToken },
     credentials: "same-origin",
