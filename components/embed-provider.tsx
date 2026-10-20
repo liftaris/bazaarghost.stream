@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { PlayerHost, SLOT_EVENT } from "@/components/player/player-host";
 import { usePlayback } from "@/hooks/use-playback";
 import type { Playback } from "@/lib/api-contract";
+import "@/lib/platforms/players/twitch";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -141,12 +142,6 @@ export function useEmbed(): EmbedContextValue {
 // ---------------------------------------------------------------------------
 // Twitch script loader (singleton)
 // ---------------------------------------------------------------------------
-
-declare global {
-  interface Window {
-    Twitch?: { Player: any };
-  }
-}
 
 let scriptPromise: Promise<void> | null = null;
 

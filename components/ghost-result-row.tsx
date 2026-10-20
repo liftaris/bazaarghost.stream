@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { memo, type MouseEvent } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SourceStack } from "@/components/source-stack";
 import { cn } from "@/lib/utils";
 import { prefetch } from "@/lib/api-cache";
 import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
@@ -123,6 +124,7 @@ export const GhostResultRow = memo(function GhostResultRow({
             </Link>
           </div>
         </div>
+        <SourceStack sources={[{ platform: ghost.vod_platform }]} className="hidden @[200px]:flex" />
       </div>
     </div>
   );

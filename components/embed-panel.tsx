@@ -34,7 +34,8 @@ import { PlayerSlot } from "@/components/player/player-slot";
 import { BookmarkButton } from "@/components/social/bookmark-button";
 import { Kbd } from "@/components/ui/kbd";
 import { PLAYER_SHORTCUTS, type PlayerShortcutAction } from "@/lib/player-shortcuts";
-import { cn, secondsToTwitchTimestamp } from "@/lib/utils";
+import { getPlatform } from "@/lib/platforms";
+import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -208,9 +209,9 @@ export function EmbedPanel() {
     if (path && videoId.startsWith("v:")) {
       navigator.clipboard.writeText(`${window.location.origin}${path}`);
     } else {
-      const t = secondsToTwitchTimestamp(timestamp ?? 0);
-      const url = playback?.player.platform === "twitch" ? `https://www.twitch.tv/videos/${playback.player.sourceId}?t=${t}` : playback?.player.watchUrl ?? "";
-      navigator.clipboard.writeText(url);
+      if (!playback) return;
+      const { platform, sourceId, watchUrl } = playback.player;
+      navigator.clipboard.writeText(getPlatform(platform).watchUrl({ sourceId, watchUrl }, timestamp ?? 0));
     }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
