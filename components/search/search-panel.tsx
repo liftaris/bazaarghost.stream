@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth/auth-provider";
@@ -63,7 +63,10 @@ export default function SearchPanel() {
   const channelName = useChannelName(url.channelParam);
 
   // ---- Selection ----
-  const selectedStreamerId = mode === "streamers" && selection?.kind === "streamer" ? selection.id : null;
+  // A clicked Streamer's panel opens in the same frame; the URL catches up with the navigation
+  const [pendingStreamer, setPendingStreamer] = useState<StreamerCard | null>(null);
+  if (pendingStreamer && selection?.kind === "streamer") setPendingStreamer(null);
+  const selectedStreamerId = mode !== "streamers" ? null : selection?.kind === "streamer" ? selection.id : pendingStreamer ? String(pendingStreamer.id) : null;
   const selectedSessionId = mode === "recordings" && selection?.kind === "recording" ? selection.id : null;
 
   const warmSession = useCallback((session: SessionCard) => {
@@ -79,6 +82,7 @@ export default function SearchPanel() {
   }, [platformFilter]);
 
   const selectStreamer = useCallback((streamer: StreamerCard) => {
+    setPendingStreamer(streamer);
     router.push(selectionHref(`/streamers/${streamer.id}`), { scroll: false });
   }, [router, selectionHref]);
 
@@ -155,6 +159,7 @@ export default function SearchPanel() {
       <StreamerRecordings
         key={selectedStreamerId}
         streamerId={selectedStreamerId}
+        card={pendingStreamer && String(pendingStreamer.id) === selectedStreamerId ? pendingStreamer : null}
         filter={platformFilter}
         activeSessionId={playingSessionId}
         onPlay={playStreamerRecording}

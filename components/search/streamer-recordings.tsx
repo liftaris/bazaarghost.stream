@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
 import { RecordingResultRow, RecordingResultRowSkeleton } from "@/components/recording-result-row";
-import type { SessionCard } from "@/lib/api-contract";
+import type { SessionCard, StreamerCard } from "@/lib/api-contract";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { VirtualizedResultList } from "@/components/virtualized-result-list";
@@ -14,18 +14,24 @@ import { useStreamer } from "./hooks/use-streamer-options";
 
 
 /** Avatar, name and the Streamer's Channels, each linking out to its page on its platform. */
-function StreamerHeader({ streamerId }: { streamerId: string }) {
+function StreamerHeader({ streamerId, card }: { streamerId: string; card: StreamerCard | null }) {
   const { streamer } = useStreamer(streamerId);
-  if (!streamer) return <Skeleton className="m-2 h-9 bg-muted" />;
+  const shown = streamer ?? card;
+  if (!shown) return <Skeleton className="m-2 h-9" />;
   return (
     <div className="flex items-center gap-3 border-b border-border px-3 py-2">
       <Avatar className="size-9 shrink-0">
-        <AvatarImage src={streamer.avatarUrl ?? undefined} alt="" />
-        <AvatarFallback className="bg-primary text-xs text-primary-foreground">{streamer.displayName[0]?.toUpperCase()}</AvatarFallback>
+        <AvatarImage src={shown.avatarUrl ?? undefined} alt="" />
+        <AvatarFallback className="bg-primary text-xs text-primary-foreground">{shown.displayName[0]?.toUpperCase()}</AvatarFallback>
       </Avatar>
-      <h2 className="min-w-0 flex-1 truncate text-sm font-medium">{streamer.displayName}</h2>
+      <h2 className="min-w-0 flex-1 truncate text-sm font-medium">{shown.displayName}</h2>
       <ul className="flex shrink-0 items-center gap-1.5" aria-label="Channels">
-        {streamer.channels.map((channel) => {
+        {!streamer && card?.platforms.map((platform) => (
+          <li key={platform} className="flex size-7 items-center justify-center text-muted-foreground">
+            <PlatformIcon platform={platform} className="size-4" />
+          </li>
+        ))}
+        {streamer?.channels.map((channel) => {
           const label = `${getPlatform(channel.platform).name} · ${channel.displayName}`;
           return (
             <li key={channel.id}>
@@ -52,8 +58,10 @@ function StreamerHeader({ streamerId }: { streamerId: string }) {
 }
 
 /** The selected Streamer: compact header and its Recordings; a click plays one in the player above. */
-export function StreamerRecordings({ streamerId, filter, activeSessionId, onPlay, onPrefetch }: {
+export function StreamerRecordings({ streamerId, card, filter, activeSessionId, onPlay, onPrefetch }: {
   streamerId: string;
+  /** The clicked row's data, shown until the Streamer itself loads. */
+  card: StreamerCard | null;
   filter: PlatformFilter;
   activeSessionId: string | null;
   onPlay: (session: SessionCard) => void;
@@ -63,7 +71,7 @@ export function StreamerRecordings({ streamerId, filter, activeSessionId, onPlay
   const result = useApiPage("/sessions", { streamerId, platform, excludePlatform });
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <StreamerHeader streamerId={streamerId} />
+      <StreamerHeader streamerId={streamerId} card={card} />
       {result.items.length > 0 ? (
         <VirtualizedResultList
           items={result.items}

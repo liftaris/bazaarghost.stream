@@ -4,7 +4,7 @@ import { ApiError } from "@/lib/api-client";
 import { cachedGet, invalidate, peek } from "@/lib/api-cache";
 import type { PublicRoutes } from "@/lib/api-contract";
 
-type ListPath = "/search" | "/recordings" | "/sessions" | "/streamers";
+type ListPath = "/search" | "/sessions" | "/streamers";
 type Item<P extends ListPath> = PublicRoutes[P]["items"][number];
 
 /** Cursor pagination with cancellation, bounded refresh, and visible retryable errors. */
