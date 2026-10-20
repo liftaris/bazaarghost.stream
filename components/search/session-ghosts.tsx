@@ -82,7 +82,7 @@ export function SessionGhosts({ sessionId }: { sessionId: string }) {
   if (result.items.length === 0)
     return result.loading ? (
       <div className="flex flex-col gap-2 p-2" aria-busy="true">
-        {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-[72px] w-full bg-muted" />)}
+        {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-[72px] w-full" />)}
       </div>
     ) : null;
 
@@ -104,6 +104,7 @@ export function SessionGhosts({ sessionId }: { sessionId: string }) {
       onLoadMore={result.loadMore}
       isLoadingMore={result.loadingMore}
       hasMore={result.hasMore}
+      activeKey={activeId ?? null}
     />
   );
 }

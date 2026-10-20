@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, type ReactNode } from "react";
 import { Bookmark, Ghost, Users, Video } from "lucide-react";
 import { VirtualizedResultList } from "@/components/virtualized-result-list";
 import { GhostResultRow, type GhostResult } from "@/components/ghost-result-row";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { SessionCard, StreamerCard } from "@/lib/api-contract";
-import { ResultList } from "./result-list";
-import { RecordingRow, StreamerRow } from "./rows";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RecordingResultRow, RecordingResultRowSkeleton } from "@/components/recording-result-row";
+import { StreamerResultRow, StreamerResultRowSkeleton } from "@/components/streamer-result-row";
+import { ScrollMemory } from "./scroll-memory";
 import type { SearchMode } from "./types";
 
 /** One mode's paged list. */
@@ -42,12 +43,16 @@ interface SearchResultsProps {
   onPrefetchRecording: (session: SessionCard) => void;
 }
 
-function Skeletons() {
+function Skeletons({ row: Row }: { row: () => ReactNode }) {
   return (
     <div className="flex flex-col gap-2 p-2" aria-busy="true">
-      {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-[72px] w-full bg-muted" />)}
+      {Array.from({ length: 8 }, (_, i) => <Row key={i} />)}
     </div>
   );
+}
+
+function GhostSkeleton() {
+  return <Skeleton className="h-[72px] w-full" />;
 }
 
 function None({ icon: Icon }: { icon: typeof Ghost }) {
@@ -70,27 +75,27 @@ export function SearchResults({
   );
   const renderStreamer = useCallback(
     (s: StreamerCard) => (
-      <StreamerRow streamer={s} selected={String(s.id) === selectedStreamerId} onSelect={() => onSelectStreamer(s)} onPrefetch={() => onPrefetchStreamer(s)} />
+      <StreamerResultRow streamer={s} selected={String(s.id) === selectedStreamerId} onSelect={() => onSelectStreamer(s)} onPrefetch={() => onPrefetchStreamer(s)} />
     ),
     [selectedStreamerId, onSelectStreamer, onPrefetchStreamer],
   );
   const renderRecording = useCallback(
     (s: SessionCard) => (
-      <RecordingRow session={s} selected={s.id === selectedSessionId} active={s.id === playingSessionId} onSelect={() => onSelectRecording(s)} onPrefetch={() => onPrefetchRecording(s)} />
+      <RecordingResultRow session={s} selected={s.id === selectedSessionId} active={s.id === playingSessionId} onSelect={() => onSelectRecording(s)} onPrefetch={() => onPrefetchRecording(s)} />
     ),
     [selectedSessionId, playingSessionId, onSelectRecording, onPrefetchRecording],
   );
 
   if (mode === "saved")
     return saved.items.length > 0 ? (
-      <ResultList scrollKey={scrollKey} stale={false}>
+      <ScrollMemory scrollKey={scrollKey} stale={false}>
         <VirtualizedResultList items={saved.items} totalCount={saved.items.length} getItemKey={(g) => g.matchup_id} renderItem={renderGhost} onLoadMore={saved.loadMore} isLoadingMore={saved.loadingMore} hasMore={saved.hasMore} />
-      </ResultList>
-    ) : saved.loading ? <Skeletons /> : saved.empty ? <None icon={Bookmark} /> : null;
+      </ScrollMemory>
+    ) : saved.loading ? <Skeletons row={GhostSkeleton} /> : saved.empty ? <None icon={Bookmark} /> : null;
 
   if (mode === "ghosts")
     return ghosts.items.length > 0 ? (
-      <ResultList scrollKey={scrollKey} stale={ghosts.stale}>
+      <ScrollMemory scrollKey={scrollKey} stale={ghosts.stale}>
         <VirtualizedResultList
           items={ghosts.items}
           totalCount={ghosts.items.length}
@@ -101,20 +106,20 @@ export function SearchResults({
           renderItem={renderGhost}
           onLoadMore={ghosts.loadMore}
           isLoadingMore={ghosts.loadingMore}
-          hasMore={ghosts.hasMore}
+          hasMore={ghosts.hasMore} stale={ghosts.stale}
         />
-      </ResultList>
-    ) : ghosts.loading ? <Skeletons /> : <None icon={Ghost} />;
+      </ScrollMemory>
+    ) : ghosts.loading ? <Skeletons row={GhostSkeleton} /> : <None icon={Ghost} />;
 
   if (mode === "streamers")
     return streamers.items.length > 0 ? (
-      <ResultList scrollKey={scrollKey} stale={streamers.stale}>
-        <VirtualizedResultList items={streamers.items} totalCount={streamers.items.length} getItemKey={(s) => s.id} renderItem={renderStreamer} onLoadMore={streamers.loadMore} isLoadingMore={streamers.loadingMore} hasMore={streamers.hasMore} />
-      </ResultList>
-    ) : streamers.loading ? <Skeletons /> : <None icon={Users} />;
+      <ScrollMemory scrollKey={scrollKey} stale={streamers.stale}>
+        <VirtualizedResultList items={streamers.items} totalCount={streamers.items.length} getItemKey={(s) => s.id} renderItem={renderStreamer} onLoadMore={streamers.loadMore} isLoadingMore={streamers.loadingMore} hasMore={streamers.hasMore} stale={streamers.stale} />
+      </ScrollMemory>
+    ) : streamers.loading ? <Skeletons row={StreamerResultRowSkeleton} /> : <None icon={Users} />;
 
   return recordings.items.length > 0 ? (
-    <ResultList scrollKey={scrollKey} stale={recordings.stale}>
+    <ScrollMemory scrollKey={scrollKey} stale={recordings.stale}>
       <VirtualizedResultList
         items={recordings.items}
         totalCount={recordings.items.length}
@@ -123,8 +128,8 @@ export function SearchResults({
         renderItem={renderRecording}
         onLoadMore={recordings.loadMore}
         isLoadingMore={recordings.loadingMore}
-        hasMore={recordings.hasMore}
+        hasMore={recordings.hasMore} stale={recordings.stale}
       />
-    </ResultList>
-  ) : recordings.loading ? <Skeletons /> : <None icon={Video} />;
+    </ScrollMemory>
+  ) : recordings.loading ? <Skeletons row={RecordingResultRowSkeleton} /> : <None icon={Video} />;
 }

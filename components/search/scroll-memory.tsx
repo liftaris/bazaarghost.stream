@@ -1,16 +1,12 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { cn } from "@/lib/utils";
 
 /** Left-list scroll offsets by mode and filters, so back/forward and mode switches land where the user was. */
 const positions = new Map<string, number>();
 
-/**
- * Wraps a result list: previous results stay visible (dimmed) while the next ones load, and the
- * scroll position of each list is remembered.
- */
-export function ResultList({ scrollKey, stale, children }: { scrollKey: string; stale: boolean; children: ReactNode }) {
+/** Remembers and restores the scroll position of the list inside it. */
+export function ScrollMemory({ scrollKey, stale, children }: { scrollKey: string; stale: boolean; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (stale) return;
@@ -20,9 +16,8 @@ export function ResultList({ scrollKey, stale, children }: { scrollKey: string; 
   return (
     <div
       ref={ref}
-      aria-busy={stale}
       onScrollCapture={(e) => { if (!stale) positions.set(scrollKey, (e.target as HTMLElement).scrollTop); }}
-      className={cn("flex min-h-0 flex-1 flex-col transition-[opacity,filter] duration-150", stale && "opacity-50 blur-[2px] motion-reduce:blur-none")}
+      className="flex min-h-0 flex-1 flex-col"
     >
       {children}
     </div>

@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -28,6 +29,9 @@ const SEPARATOR_HEIGHT = 32;
 
 /** How far from the bottom (in px) to trigger fetching the next batch */
 const LOAD_MORE_PX = 400;
+
+/** After the user last touched the list, a followed item does not scroll it for this long */
+const USER_SCROLL_GRACE_MS = 4000;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -74,6 +78,10 @@ interface VirtualizedResultListProps<T> {
   getItemMatchField?: (item: T) => string;
   /** Current search query — used together with getItemMatchField. */
   searchQuery?: string;
+  /** A newer query is pending: blur/fade the current rows until they are replaced. */
+  stale?: boolean;
+  /** Key of the highlighted item; it is scrolled into view when it changes, unless the user is scrolling. */
+  activeKey?: string | number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -216,8 +224,11 @@ export function VirtualizedResultList<T>({
   getItemDate,
   getItemMatchField,
   searchQuery,
+  stale = false,
+  activeKey = null,
 }: VirtualizedResultListProps<T>) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastInteraction = useRef(0);
   // Ref-based guard prevents duplicate fetches between scroll events
   // (React state updates are async, so isLoadingMore can be stale in the handler)
   const loadingRef = useRef(false);
@@ -266,6 +277,24 @@ export function VirtualizedResultList<T>({
   });
 
   const virtualItems = virtualizer.getVirtualItems();
+
+  // Follow the highlighted item, but never fight a user who is scrolling the list
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const touch = () => { lastInteraction.current = Date.now(); };
+    const events = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+    events.forEach((name) => el.addEventListener(name, touch, { passive: true }));
+    return () => events.forEach((name) => el.removeEventListener(name, touch));
+  }, []);
+  useEffect(() => {
+    if (activeKey === null || Date.now() - lastInteraction.current < USER_SCROLL_GRACE_MS) return;
+    const index = entries.findIndex((e) => e.type === "item" && getItemKey(e.item) === activeKey);
+    if (index < 0) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    virtualizer.scrollToIndex(index, { align: "auto", behavior: reduced ? "auto" : "smooth" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a change of the highlighted item scrolls
+  }, [activeKey]);
 
   // ---- Sticky header state ----
   // Track which header is stuck, its type, and an optional upward offset
@@ -384,7 +413,13 @@ export function VirtualizedResultList<T>({
     stickyType === "date" ? DATE_HEADER_HEIGHT : SEPARATOR_HEIGHT;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div
+      aria-busy={stale}
+      className={cn(
+        "flex min-h-0 flex-1 flex-col transition-[opacity,filter] duration-150 ease-out motion-reduce:transition-opacity",
+        stale && "pointer-events-none opacity-50 blur-[2px] motion-reduce:blur-none"
+      )}
+    >
       {/* Scroll container wrapper — relative so the sticky overlay is positioned to it */}
       <div className="relative min-h-0 flex-1">
         {/* Sticky header overlay */}

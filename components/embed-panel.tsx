@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Copy,
   Ghost,
   Search,
+  Video,
   X,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -126,6 +129,7 @@ export function EmbedPanel({ mode, children }: { mode: SearchMode; children?: Re
   const duration = useEmbedTime((s) => s.duration);
   const router = useRouter();
   const [copied, setCopied] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
 
   const sessionMode = mode === "recordings" || mode === "streamers";
   const sessionId = playback?.recording.sessionId ?? null;
@@ -190,6 +194,7 @@ export function EmbedPanel({ mode, children }: { mode: SearchMode; children?: Re
   const rank = currentGhost?.rank?.toLowerCase();
   const showTimeline = mode === "ghosts" && (!capabilities || capabilities.timeEvents);
   const showInfo = mode !== "streamers";
+  const expanded = listOpen || !showChrome;
 
   // Nothing selected: a still empty state, not loading placeholders. Desktop only;
   // on mobile the results take the whole screen.
@@ -367,9 +372,22 @@ export function EmbedPanel({ mode, children }: { mode: SearchMode; children?: Re
       </>}
 
       {children && (
-        <div className={cn("flex min-h-0 flex-1 flex-col border-border max-md:h-[30svh]", showChrome && "border-t")}>
-          {children}
-        </div>
+        <>
+          {/* Below md the list is a collapsed section, so the results beneath the drawer stay reachable */}
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-label={expanded ? "Hide list" : mode === "streamers" ? "Show recordings" : "Show ghosts"}
+            onClick={() => setListOpen((v) => !v)}
+            className={cn("flex h-9 items-center justify-center gap-2 text-muted-foreground md:hidden", showChrome && "border-t border-border")}
+          >
+            {mode === "streamers" ? <Video aria-hidden className="size-4" /> : <Ghost aria-hidden className="size-4" />}
+            {expanded ? <ChevronUp aria-hidden className="size-4" /> : <ChevronDown aria-hidden className="size-4" />}
+          </button>
+          <div className={cn("flex min-h-0 flex-1 flex-col border-border max-md:h-[30svh]", showChrome && "md:border-t", !expanded && "max-md:hidden")}>
+            {children}
+          </div>
+        </>
       )}
     </div>
   );

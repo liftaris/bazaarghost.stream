@@ -2,6 +2,8 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
+import { RecordingResultRow, RecordingResultRowSkeleton } from "@/components/recording-result-row";
+import type { SessionCard } from "@/lib/api-contract";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { VirtualizedResultList } from "@/components/virtualized-result-list";
@@ -9,7 +11,7 @@ import { getPlatform } from "@/lib/platforms";
 import { filterParams, type PlatformFilter } from "@/lib/search-filters";
 import { useApiPage } from "./hooks/use-api-page";
 import { useStreamer } from "./hooks/use-streamer-options";
-import { RecordingRow, type SessionCardData } from "./rows";
+
 
 /** Avatar, name and the Streamer's Channels, each linking out to its page on its platform. */
 function StreamerHeader({ streamerId }: { streamerId: string }) {
@@ -54,8 +56,8 @@ export function StreamerRecordings({ streamerId, filter, activeSessionId, onPlay
   streamerId: string;
   filter: PlatformFilter;
   activeSessionId: string | null;
-  onPlay: (session: SessionCardData) => void;
-  onPrefetch: (session: SessionCardData) => void;
+  onPlay: (session: SessionCard) => void;
+  onPrefetch: (session: SessionCard) => void;
 }) {
   const { platform, excludePlatform } = filterParams({ ...filter, from: null, to: null });
   const result = useApiPage("/sessions", { streamerId, platform, excludePlatform });
@@ -68,15 +70,17 @@ export function StreamerRecordings({ streamerId, filter, activeSessionId, onPlay
           totalCount={result.items.length}
           getItemKey={(s) => s.id}
           renderItem={(session) => (
-            <RecordingRow session={session} active={session.id === activeSessionId} onSelect={() => onPlay(session)} onPrefetch={() => onPrefetch(session)} />
+            <RecordingResultRow session={session} active={session.id === activeSessionId} onSelect={() => onPlay(session)} onPrefetch={() => onPrefetch(session)} />
           )}
           onLoadMore={result.loadMore}
           isLoadingMore={result.loadingMore}
           hasMore={result.hasMore}
+          stale={result.isStale}
+          activeKey={activeSessionId}
         />
       ) : result.loading ? (
         <div className="flex flex-col gap-2 p-2" aria-busy="true">
-          {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-[72px] w-full bg-muted" />)}
+          {Array.from({ length: 4 }, (_, i) => <RecordingResultRowSkeleton key={i} />)}
         </div>
       ) : null}
     </div>

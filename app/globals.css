@@ -291,3 +291,18 @@
     }
   }
 }
+
+@keyframes marquee-slide {
+  0%, 15% { transform: translateX(0); }
+  100% { transform: translateX(var(--marquee-distance)); }
+}
+
+.recording-row:is(:hover, :focus-within) .marquee-title[data-overflow] {
+  animation: marquee-slide var(--marquee-duration) linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recording-row .marquee-title {
+    animation: none !important;
+  }
+}
