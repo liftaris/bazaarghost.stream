@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { backendFetch } from "./backend-server";
-import type { ChannelLookup, Matchup, MatchupDetail, Page, Playback, Recording, Streamer, TimelineMarker } from "./api-contract";
+import type { ChannelLookup, Matchup, MatchupDetail, Page, Playback, Recording, Session, Streamer, TimelineMarker } from "./api-contract";
+import { recordingPath } from "./sources";
 
 /** Share the current public matchup between metadata and rendering within one request. */
 export const getMatchup = cache(
@@ -51,6 +52,18 @@ export const getStreamer = cache(async (id: number): Promise<Streamer | null> =>
   if (!Number.isSafeInteger(id) || id < 1) return null;
   return publicGet<Streamer>(`/streamers/${id}`);
 });
+
+/** Share one Session lookup between metadata and rendering within a request. */
+export const getSession = cache(async (id: string): Promise<Session | null> => {
+  if (!/^[0-9a-f]{32}$/.test(id)) return null;
+  return publicGet<Session>(`/sessions/${id}`);
+});
+
+/** Where a Recording lives now: its Session, pinned to it; null when it has no Session. */
+export async function recordingUrl(videoId: number): Promise<string | null> {
+  const recording = await getVideo(videoId);
+  return recording ? recordingPath(recording.sessionId, recording.id) : null;
+}
 
 /** Resolve a legacy Twitch VOD id (`v:<id>` or source id) to a recording id, or null. */
 export async function resolveVideoId(vodId: string): Promise<number | null> {

@@ -1,4 +1,4 @@
-import type { Matchup, Recording, RecordingSource, Session, Streamer } from "./api-contract";
+import type { Matchup, RecordingSource, Streamer } from "./api-contract";
 import type { SourceStackItem } from "@/components/source-stack";
 
 /** Presentation fields of one Matchup row; playback uses its default Source. */
@@ -9,13 +9,6 @@ export interface GhostResult {
   /** Null when the Channel has no Streamer; the row then names the Channel. */
   streamer_id: string | null; streamer_display_name: string; streamer_avatar: string;
   sources: SourceStackItem[];
-}
-/** Complete recording card; the browser never joins it to a separate streamer list. */
-export interface VodResult {
-  vod_id: number; vod_source_id: string; title: string; published_at: string; duration_seconds: number;
-  streamer_id: string | null; streamer_display_name: string; streamer_avatar: string; ghost_count: number;
-  /** Set on Session rows: one mark per platform the Session can be watched on. */
-  sources?: SourceStackItem[];
 }
 /** Streamer picker option. */
 export interface StreamerOption {
@@ -56,24 +49,6 @@ export function ghostResult(value: Matchup, chosen?: RecordingSource | null): Gh
     vod_id: source.recording.id, vod_source_id: `v:${source.recording.id}`, vod_title: source.recording.title,
     streamer_id: owner.id, streamer_display_name: owner.name, streamer_avatar: owner.avatar,
     sources: sourceMarks(value) };
-}
-/** Adapt a Recording for the result layout. */
-export function vodResult(value: Recording): VodResult {
-  return { vod_id: value.id, vod_source_id: `v:${value.id}`, title: value.title,
-    published_at: value.publishedAt ?? "", duration_seconds: value.durationSeconds,
-    streamer_id: value.channel.streamerId === null ? null : String(value.channel.streamerId),
-    streamer_display_name: value.channel.displayName, streamer_avatar: value.channel.avatarUrl ?? "",
-    ghost_count: value.matchupCount ?? 0 };
-}
-/** One row per Session: its Recordings collapse into the Streamer's own copy, or the first. */
-export function sessionResult(session: Session, streamerId: string): VodResult {
-  const recordings = session.recordings.map((entry) => entry.recording);
-  const own = (r: Recording) => String(r.channel.streamerId) === streamerId;
-  const primary = recordings.find(own) ?? recordings[0];
-  const marks = new Map<string, SourceStackItem>();
-  for (const r of [...recordings].sort((a, b) => Number(own(b)) - Number(own(a))))
-    if (!marks.has(r.platform)) marks.set(r.platform, { platform: r.platform, channel: r.channel.displayName, reupload: !own(r) });
-  return { ...vodResult(primary), ghost_count: session.matchupCount, sources: [...marks.values()] };
 }
 /** Adapt a Streamer to a picker option. */
 export function streamerOption(value: Streamer): StreamerOption {
