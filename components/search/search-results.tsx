@@ -9,7 +9,6 @@ import {
 import { VodResultRow, type VodResult } from "@/components/vod-result-row";
 import { StreamerResultRow } from "@/components/streamer-result-row";
 import { Bookmark } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SearchMode, StreamerOption } from "./types";
 
@@ -112,7 +111,10 @@ export function SearchResults({
   );
   const renderStreamer = useCallback(
     (s: StreamerOption) => (
-      <StreamerResultRow streamer={s} onNavigateToVods={onStreamerClick} />
+      <StreamerResultRow
+        streamer={{ id: Number(s.streamer_id), displayName: s.streamer_display_name, avatarUrl: s.streamer_avatar || null, sessionCount: 0, matchupCount: 0, platforms: s.platforms }}
+        onSelect={() => onStreamerClick(s.streamer_id, s.streamer_display_name)}
+      />
     ),
     [onStreamerClick]
   );
@@ -149,8 +151,8 @@ export function SearchResults({
       {searchMode === "ghosts" && (
         <>
           {!isGhostLoading && ghostResults.length > 0 && (
-            <div className={cn("flex min-h-0 flex-1 flex-col transition-opacity", isGhostStale && "opacity-50")} aria-busy={isGhostStale}>
             <VirtualizedResultList
+              stale={isGhostStale}
               items={ghostResults}
               totalCount={ghostTotalResults}
               getItemKey={(g) => g.matchup_id}
@@ -162,7 +164,6 @@ export function SearchResults({
               isLoadingMore={isGhostLoadingMore}
               hasMore={hasMoreGhosts}
             />
-            </div>
           )}
           {!isGhostLoading && ghostResults.length === 0 && queryParam && (
             <p className="px-4 py-16 text-center text-muted-foreground">

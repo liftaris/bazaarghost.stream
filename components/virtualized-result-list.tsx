@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -74,6 +75,8 @@ interface VirtualizedResultListProps<T> {
   getItemMatchField?: (item: T) => string;
   /** Current search query — used together with getItemMatchField. */
   searchQuery?: string;
+  /** A newer query is pending: blur/fade the current rows until they are replaced. */
+  stale?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -216,6 +219,7 @@ export function VirtualizedResultList<T>({
   getItemDate,
   getItemMatchField,
   searchQuery,
+  stale = false,
 }: VirtualizedResultListProps<T>) {
   const scrollRef = useRef<HTMLDivElement>(null);
   // Ref-based guard prevents duplicate fetches between scroll events
@@ -384,7 +388,13 @@ export function VirtualizedResultList<T>({
     stickyType === "date" ? DATE_HEADER_HEIGHT : SEPARATOR_HEIGHT;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div
+      aria-busy={stale}
+      className={cn(
+        "flex min-h-0 flex-1 flex-col transition-[opacity,filter] duration-150 ease-out motion-reduce:transition-opacity",
+        stale && "pointer-events-none opacity-50 blur-[2px] motion-reduce:blur-none"
+      )}
+    >
       {/* Scroll container wrapper — relative so the sticky overlay is positioned to it */}
       <div className="relative min-h-0 flex-1">
         {/* Sticky header overlay */}
