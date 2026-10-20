@@ -88,7 +88,10 @@ export function useSavedMatchups({ enabled, query }: { enabled: boolean; query: 
       );
   }, [shown, cards, query, limit]);
 
-  const isLoading = enabled && (ids === null || shown.slice(0, limit).some((id) => !cards.has(id) && !failed.has(id)) && ghostResults.length === 0);
-  return { ghostResults, isLoading, isEmpty: enabled && ids !== null && shown.length === 0,
+  const pending = shown.slice(0, limit).some((id) => !cards.has(id) && !failed.has(id));
+  const isLoading = enabled && (ids === null || (pending && ghostResults.length === 0));
+  // Cards from an earlier visit stay up (dimmed) while newly saved ones resolve
+  const isStale = enabled && ghostResults.length > 0 && shown.slice(0, PAGE).some((id) => !cards.has(id) && !failed.has(id));
+  return { ghostResults, isLoading, isStale, isEmpty: enabled && ids !== null && shown.length === 0,
     hasMore: shown.length > limit, loadMore: () => setLimit((n) => n + PAGE) };
 }

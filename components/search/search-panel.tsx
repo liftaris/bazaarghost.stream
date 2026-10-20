@@ -55,6 +55,7 @@ export default function SearchPanel({
   const {
     ghostResults: savedResults,
     isLoading: isSavedLoading,
+    isStale: isSavedStale,
     isEmpty: isSavedEmpty,
     hasMore: hasMoreSaved,
     loadMore: loadMoreSaved,
@@ -185,6 +186,7 @@ export default function SearchPanel({
       queryParam={queryParam}
       savedResults={savedResults}
       isSavedLoading={isSavedLoading}
+      isSavedStale={isSavedStale}
       isSavedEmpty={isSavedEmpty}
       hasMoreSaved={hasMoreSaved}
       loadMoreSaved={loadMoreSaved}

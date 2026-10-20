@@ -259,6 +259,7 @@ export function EmbedPanel() {
         {currentGhost && (
           <IconButton
             label="Search ghost"
+            className="hidden sm:inline-flex"
             onClick={() => router.push(`/search?q=${encodeURIComponent(currentGhost.username)}`, { scroll: false })}
           >
             <Search />

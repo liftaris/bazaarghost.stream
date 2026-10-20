@@ -23,6 +23,7 @@ interface SearchResultsProps {
   // Saved state
   savedResults: GhostResult[];
   isSavedLoading: boolean;
+  isSavedStale: boolean;
   isSavedEmpty: boolean;
   hasMoreSaved: boolean;
   loadMoreSaved: () => void;
@@ -71,6 +72,7 @@ export function SearchResults({
   queryParam,
   savedResults,
   isSavedLoading,
+  isSavedStale,
   isSavedEmpty,
   hasMoreSaved,
   loadMoreSaved,
@@ -124,15 +126,17 @@ export function SearchResults({
       {searchMode === "saved" && (
         <>
           {savedResults.length > 0 && (
-            <VirtualizedResultList
-              items={savedResults}
-              totalCount={savedResults.length}
-              getItemKey={(g) => g.matchup_id}
-              renderItem={renderGhost}
-              onLoadMore={loadMoreSaved}
-              isLoadingMore={false}
-              hasMore={hasMoreSaved}
-            />
+            <div className={cn("flex min-h-0 flex-1 flex-col transition-opacity", isSavedStale && "opacity-50")} aria-busy={isSavedStale}>
+              <VirtualizedResultList
+                items={savedResults}
+                totalCount={savedResults.length}
+                getItemKey={(g) => g.matchup_id}
+                renderItem={renderGhost}
+                onLoadMore={loadMoreSaved}
+                isLoadingMore={false}
+                hasMore={hasMoreSaved}
+              />
+            </div>
           )}
           {isSavedEmpty && (
             <div className="flex flex-1 items-center justify-center py-16">
