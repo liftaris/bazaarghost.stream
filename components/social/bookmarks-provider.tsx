@@ -13,7 +13,7 @@ class BookmarkStore {
   private all = new Set<() => void>();
   private byId = new Map<number, Set<() => void>>();
   private sorted: number[] | null = null;
-  private cursor: number | null = 0;
+  private cursor: string | null | undefined = undefined;
   private pending = new Set<number>();
   private rest: Promise<void> | null = null;
   private flight: Promise<void> | null = null;
@@ -62,7 +62,7 @@ class BookmarkStore {
     this.controller?.abort();
     clearTimeout(this.timer);
     this.set = new Set();
-    this.cursor = 0;
+    this.cursor = undefined;
     this.rest = null;
     this.flight = null;
     this.error = false;
@@ -93,7 +93,7 @@ class BookmarkStore {
             added.push(id);
           }
         }
-        this.cursor = page.next_after;
+        this.cursor = page.nextCursor;
         if (this.cursor === null) this.ready = true;
         this.error = false;
         this.emit(added);
@@ -233,19 +233,3 @@ export function useBookmarks(): BookmarksValue {
     toggle: store.toggle,
   };
 }
-
-/** Saved IDs only (newest first, null until loaded). Inert (no subscription, no loading) while `enabled` is false. */
-export function useBookmarkIds(enabled: boolean): number[] | null {
-  const { store, signedIn } = useContextValue();
-  const ids = useSyncExternalStore(
-    enabled ? store.subscribeAll : noopSubscribe,
-    () => (enabled ? store.ids : null),
-    () => null,
-  );
-  useEffect(() => {
-    if (enabled && signedIn) void store.loadRest();
-  }, [store, enabled, signedIn]);
-  return ids;
-}
-
-const noopSubscribe = () => () => {};

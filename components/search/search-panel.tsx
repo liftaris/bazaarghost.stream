@@ -55,11 +55,13 @@ export default function SearchPanel({
   const {
     ghostResults: savedResults,
     isLoading: isSavedLoading,
-    isStale: isSavedStale,
     isEmpty: isSavedEmpty,
+    isLoadingMore: isSavedLoadingMore,
+    error: savedError,
+    retry: retrySaved,
     hasMore: hasMoreSaved,
     loadMore: loadMoreSaved,
-  } = useSavedMatchups({ enabled: searchMode === "saved", query: queryParam });
+  } = useSavedMatchups({ enabled: searchMode === "saved" && authState.status === "authenticated", query: queryParam });
 
   useEffect(() => {
     if (searchMode === "saved" && (authState.status === "anonymous" || authState.status === "disabled"))
@@ -177,8 +179,8 @@ export default function SearchPanel({
     />
   );
 
-  const error = searchMode === "saved" ? null : creatorsError ?? (searchMode === "ghosts" ? ghostError : vodError);
-  const retry = creatorsError ? retryCreators : searchMode === "ghosts" ? retryGhosts : retryVods;
+  const error = searchMode === "saved" ? savedError : creatorsError ?? (searchMode === "ghosts" ? ghostError : vodError);
+  const retry = searchMode === "saved" ? retrySaved : creatorsError ? retryCreators : searchMode === "ghosts" ? retryGhosts : retryVods;
   const searchResults = (<>
     {error && <div role="alert" className="p-4">{error} <button onClick={retry}>Retry</button></div>}
     <SearchResults
@@ -186,7 +188,7 @@ export default function SearchPanel({
       queryParam={queryParam}
       savedResults={savedResults}
       isSavedLoading={isSavedLoading}
-      isSavedStale={isSavedStale}
+      isSavedLoadingMore={isSavedLoadingMore}
       isSavedEmpty={isSavedEmpty}
       hasMoreSaved={hasMoreSaved}
       loadMoreSaved={loadMoreSaved}

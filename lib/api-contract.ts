@@ -188,6 +188,8 @@ export interface Stats {
 /** Response types for the supported public GET routes. */
 export interface PublicRoutes {
   "/search": Page<MatchupResult>;
+  /** Private (cookie session, no-store): the caller's saved public Matchups, most recently saved first. */
+  "/me/favorites": Page<MatchupResult>;
   "/streamers": Page<Streamer>;
   "/streamers/quality": Page<StreamerQuality>;
   "/recordings": Page<Recording>;

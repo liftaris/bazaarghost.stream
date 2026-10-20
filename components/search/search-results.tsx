@@ -23,8 +23,8 @@ interface SearchResultsProps {
   // Saved state
   savedResults: GhostResult[];
   isSavedLoading: boolean;
-  isSavedStale: boolean;
   isSavedEmpty: boolean;
+  isSavedLoadingMore: boolean;
   hasMoreSaved: boolean;
   loadMoreSaved: () => void;
 
@@ -72,8 +72,8 @@ export function SearchResults({
   queryParam,
   savedResults,
   isSavedLoading,
-  isSavedStale,
   isSavedEmpty,
+  isSavedLoadingMore,
   hasMoreSaved,
   loadMoreSaved,
   ghostResults,
@@ -126,14 +126,14 @@ export function SearchResults({
       {searchMode === "saved" && (
         <>
           {savedResults.length > 0 && (
-            <div className={cn("flex min-h-0 flex-1 flex-col transition-opacity", isSavedStale && "opacity-50")} aria-busy={isSavedStale}>
+            <div className="flex min-h-0 flex-1 flex-col">
               <VirtualizedResultList
                 items={savedResults}
                 totalCount={savedResults.length}
                 getItemKey={(g) => g.matchup_id}
                 renderItem={renderGhost}
                 onLoadMore={loadMoreSaved}
-                isLoadingMore={false}
+                isLoadingMore={isSavedLoadingMore}
                 hasMore={hasMoreSaved}
               />
             </div>

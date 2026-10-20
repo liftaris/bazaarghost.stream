@@ -1,4 +1,6 @@
 // LOCAL REVIEW ONLY. Not committed. Enabled with AUTH_MOCK=1 in dev.
+import { backendFetch } from "./backend-server";
+import type { MatchupDetail, MatchupResult, Page } from "./api-contract";
 const FRESH = 5 * 60_000;
 type Store = {
   sessions: Map<string, { id: string; createdAt: number; expiresAt: number }>;
@@ -104,8 +106,22 @@ export async function mockSocial(request: Request): Promise<Response | null> {
   const live = sid ? store.sessions.get(sid) : undefined;
   if (!live || live.expiresAt <= Date.now()) return json({ error: "Sign in required" }, 401);
   if (list) {
-    const items = [...store.favorites].sort((a, b) => a - b).map((id) => ({ matchup_id: id }));
-    return json({ items, next_after: null });
+    const { origin, searchParams } = new URL(request.url);
+    const start = Number(searchParams.get("cursor") ?? 0);
+    const limit = Math.min(Number(searchParams.get("limit") ?? 50), 100);
+    const newestFirst = [...store.favorites].reverse();
+    const cards = await Promise.all(newestFirst.slice(start, start + limit).map(async (id) => {
+      const response = await backendFetch(new Request(`${origin}/api/v1/matchups/${id}`));
+      if (!response.ok) return null;
+      const { id: matchupId, opponent, streamer, session, recordedAt, indexedAt, sources } = (await response.json()) as MatchupDetail;
+      return { id: matchupId, opponent, streamer, session, recordedAt, indexedAt, sources, relevance: { score: 0, exact: false } } satisfies MatchupResult;
+    }));
+    const end = start + limit;
+    const page: Page<MatchupResult> = {
+      items: cards.filter((card) => card !== null),
+      nextCursor: end < newestFirst.length ? String(end) : null,
+    };
+    return json(page);
   }
   if (request.headers.get("x-csrf-token") !== `csrf-${live.id}`) return json({ error: "Invalid CSRF token" }, 403);
   const id = Number(one![1]);
