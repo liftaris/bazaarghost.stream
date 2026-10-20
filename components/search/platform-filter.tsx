@@ -1,27 +1,50 @@
 "use client";
 
 import { PlatformIcon } from "@/components/platform-icon";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getPlatform } from "@/lib/platforms";
+import { cyclePlatform, platformState, type PlatformFilter as Filter, type PlatformState } from "@/lib/search-filters";
+import { cn } from "@/lib/utils";
 
-/** One toggle per platform in the current results; pressing the active one clears the filter. */
-export function PlatformFilter({ platforms, value, onChange }: {
-  platforms: string[]; value: string | null; onChange: (platform: string | null) => void;
+const STYLES: Record<PlatformState, string> = {
+  any: "text-muted-foreground",
+  include: "border-accent bg-accent text-accent-foreground hover:bg-accent/90 hover:text-accent-foreground",
+  exclude: "border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
+};
+
+function labelOf(name: string, state: PlatformState) {
+  return state === "include" ? `Only ${name}` : state === "exclude" ? `Excluding ${name}` : `${name}: any`;
+}
+
+/** One tri-state button per platform: any (gray) → only (accent) → excluding (red) → any. */
+export function PlatformFilter({ platforms, filter, onChange }: {
+  platforms: string[]; filter: Filter; onChange: (next: Filter) => void;
 }) {
   return (
-    <ToggleGroup
-      type="single"
-      variant="outline"
-      aria-label="Platform"
-      value={value ?? ""}
-      onValueChange={(next) => onChange(next || null)}
-      className="shrink-0"
-    >
-      {platforms.map((platform) => (
-        <ToggleGroupItem key={platform} value={platform} aria-label={getPlatform(platform).name} className="h-10 px-3">
-          <PlatformIcon platform={platform} decorative />
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
+    <div role="group" aria-label="Platforms" className="flex shrink-0 items-center gap-1.5">
+      {platforms.map((id) => {
+        const state = platformState(filter, id);
+        const label = labelOf(getPlatform(id).name, state);
+        return (
+          <Tooltip key={id}>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                aria-label={label}
+                data-state={state}
+                onClick={() => onChange(cyclePlatform(filter, id))}
+                className={cn("border-border bg-card", STYLES[state])}
+              >
+                <PlatformIcon platform={id} decorative />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </div>
   );
 }

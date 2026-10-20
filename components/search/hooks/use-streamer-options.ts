@@ -1,45 +1,45 @@
 "use client";
 import { useEffect, useState } from "react";
 import { cachedGet } from "@/lib/api-cache";
-import { streamerOption, type StreamerOption } from "@/lib/result-models";
+import { streamerOption } from "@/lib/result-models";
 import type { Streamer } from "@/lib/api-contract";
 import { useApiPage } from "./use-api-page";
-import type { SearchMode } from "../types";
-/** Search Streamers on the server; selection uses the numeric Streamer id. */
-export function useStreamerOptions({ effectiveStreamer, searchMode, queryParam, replaceParams }: {
- effectiveStreamer: string | null; searchMode: SearchMode; queryParam: string;
- replaceParams: (values: Record<string,string|null|undefined>) => void; routePathStreamer: string | null;
-}) {
- const [openStreamerPopover,setOpenStreamerPopover]=useState(false);
- const [pickerQuery,setPickerQuery]=useState("");
- const [debouncedQuery,setDebouncedQuery]=useState("");
- useEffect(()=>{const timer=setTimeout(()=>setDebouncedQuery(pickerQuery),250);return()=>clearTimeout(timer);},[pickerQuery]);
- const [resolved,setResolved]=useState<{key:string;selected:StreamerOption|null;streamer:Streamer|null;error:string|null}|null>(null);
- const [revision,setRevision]=useState(0);
- const result=useApiPage("/streamers", {q: searchMode === "streamers" ? queryParam : debouncedQuery}, openStreamerPopover || searchMode === "streamers");
- const resolveKey=`${effectiveStreamer}|${revision}`;
- const settled=resolved?.key===resolveKey?resolved:null;
- const selected=settled?.selected??null;
- const resolveError=settled?.error??null;
- const resolving=!!effectiveStreamer&&!settled;
- useEffect(()=>{
-   if(!effectiveStreamer) return;
-   const controller=new AbortController();
-   const resolve=async()=>{
-    try {
-     const id=Number(effectiveStreamer.replace(/^twitch:/,""));
-     if(!Number.isSafeInteger(id)||id<1) throw new Error("Streamer not found");
-     const account=await cachedGet(`/streamers/${id}`,{},{signal:controller.signal});
-     if(!controller.signal.aborted)setResolved({key:resolveKey,selected:streamerOption(account),streamer:account,error:null});
-    }catch(error){if(!controller.signal.aborted)setResolved({key:resolveKey,selected:null,streamer:null,error:error instanceof Error?error.message:"Could not load streamer"});}
-   }; void resolve(); return()=>controller.abort();
- },[effectiveStreamer,resolveKey]);
- const options=result.items.map(streamerOption);
- return {streamer:settled?.streamer??null,streamerOptions:options,filteredStreamers:options,
-   resolvedStreamer:selected?{id:selected.streamer_id,displayName:selected.streamer_display_name,avatar:selected.streamer_avatar}:null,
-   openStreamerPopover,setOpenStreamerPopover,pickerQuery,setPickerQuery,
-   loading:result.loading||resolving, error:resolveError??result.error, hasMore:result.hasMore,loadMore:result.loadMore,
-   filterReady:!effectiveStreamer||!!selected,
-   retry:()=>{setRevision(v=>v+1);result.retry();},
-   handleSelectStreamer:(option:StreamerOption|null)=>{replaceParams({streamer:option?.streamer_id??null});setOpenStreamerPopover(false);}};
+
+/** A positive integer Streamer id, or null. */
+export function streamerIdOf(value: string | null): string | null {
+ return value && /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value)) ? value : null;
+}
+
+/** One Streamer with its Channels; cached, so every caller shares one request. */
+export function useStreamer(id: string | null) {
+ const [loaded, setLoaded] = useState<{ id: string; streamer: Streamer | null; error: string | null } | null>(null);
+ useEffect(() => {
+  if (!id) return;
+  const controller = new AbortController();
+  cachedGet(`/streamers/${Number(id)}`, {}, { signal: controller.signal }).then(
+   (streamer) => { if (!controller.signal.aborted) setLoaded({ id, streamer, error: null }); },
+   (error) => { if (!controller.signal.aborted) setLoaded({ id, streamer: null, error: error instanceof Error ? error.message : "Could not load streamer" }); },
+  );
+  return () => controller.abort();
+ }, [id]);
+ const current = id && loaded?.id === id ? loaded : null;
+ return { streamer: current?.streamer ?? null, error: current?.error ?? null };
+}
+
+/** The streamer picker: server-side search while open, plus the display data of the selected Streamer. */
+export function useStreamerOptions({ streamerId, onSelect }: { streamerId: string | null; onSelect: (id: string | null) => void }) {
+ const [open, setOpen] = useState(false);
+ const [pickerQuery, setPickerQuery] = useState("");
+ const [debouncedQuery, setDebouncedQuery] = useState("");
+ useEffect(() => { const timer = setTimeout(() => setDebouncedQuery(pickerQuery), 250); return () => clearTimeout(timer); }, [pickerQuery]);
+ const result = useApiPage("/streamers", { q: debouncedQuery }, open);
+ const { streamer, error: resolveError } = useStreamer(streamerId);
+ return {
+  options: result.items.map(streamerOption),
+  resolved: streamer ? { id: String(streamer.id), displayName: streamer.displayName, avatar: streamer.avatarUrl ?? "" } : null,
+  open, setOpen, pickerQuery, setPickerQuery,
+  hasMore: result.hasMore, loadMore: result.loadMore,
+  error: resolveError ?? result.error, retry: result.retry,
+  select: (id: string | null) => { onSelect(id); setOpen(false); },
+ };
 }

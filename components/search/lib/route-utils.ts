@@ -1,12 +1,13 @@
-import type { SearchMode, RouteContext } from "../types";
+import type { SearchMode, Selection } from "../types";
 
 /**
  * Reserved top-level names that must NOT be matched by the dynamic `[streamer]`
- * catch-all. Used by {@link deriveRouteContext} and the `[streamer]` page.
+ * catch-all. Used by the `[streamer]` page.
  */
 export const RESERVED_TOP_LEVEL = [
   "search",
   "streamers",
+  "recordings",
   "vods",
   "saved",
   "ghost",
@@ -20,102 +21,28 @@ export const RESERVED_TOP_LEVEL = [
   "videos",
 ];
 
-/** `/streamers/:id`: one Streamer's page inside the workspace. */
-const STREAMER_PAGE = /^\/streamers\/(\d+)\/?$/;
-
-const STATIC_PREFIXES = RESERVED_TOP_LEVEL.map((name) => `/${name}`);
+/** Search mode paths, in chip order. */
+export const MODE_PATHS: Record<Exclude<SearchMode, "saved">, string> = {
+  ghosts: "/search",
+  streamers: "/streamers",
+  recordings: "/recordings",
+};
 
 /**
- * Derive the active {@link SearchMode} from the current pathname.
- *
- * - `/streamers` -> `"streamers"`
- * - `/vods`      -> `"vods"`
- * - Everything else (`/search`, `/:streamer`, `/ghost/*`, `/`) -> `"ghosts"`
- *
- * @param pathname - The Next.js `usePathname()` value.
- * @returns The search mode that should be active for this route.
+ * The mode a pathname belongs to: `/streamers[/:id]`, `/recordings[/:id]`, `/saved`;
+ * everything else (`/search`, `/matchups/:id`, `/`) is Ghosts.
  */
 export function deriveSearchMode(pathname: string): SearchMode {
-  if (pathname.startsWith("/streamers") && !STREAMER_PAGE.test(pathname)) return "streamers";
-  if (pathname.startsWith("/vods")) return "vods";
-  if (pathname.startsWith("/saved")) return "saved";
+  if (/^\/streamers(\/|$)/.test(pathname)) return "streamers";
+  if (/^\/recordings(\/|$)/.test(pathname)) return "recordings";
+  if (/^\/saved(\/|$)/.test(pathname)) return "saved";
   return "ghosts";
 }
 
-/**
- * Extract implicit filter values embedded in the URL path segments.
- *
- * Handles route patterns (checked in order of specificity):
- *
- * 1. `/:streamer/:vodId/:ghost` — ghost matchup route
- * 2. `/:streamer/:vodId` — VOD embed route
- * 3. `/:streamer` — streamer page
- * 4. `/ghost/:username` — ghost profile route
- *
- * Static routes (`/search`, `/contact`, etc.) return nulls.
- * Values are URI-decoded.
- *
- * @param pathname - The Next.js `usePathname()` value.
- * @returns A {@link RouteContext} with any path-implied filter values.
- */
-export function deriveRouteContext(pathname: string): RouteContext {
-  const empty: RouteContext = {
-    pathStreamer: null,
-    pathVodId: null,
-    pathUsername: null,
-    streamerPage: false,
-  };
-
-  const streamerPage = pathname.match(STREAMER_PAGE);
-  if (streamerPage) return { ...empty, pathStreamer: streamerPage[1], streamerPage: true };
-
-  const video = pathname.match(/^\/videos\/(\d+)$/);
-  if(video)return {...empty,pathVodId:`v:${video[1]}`};
-
-  // Bail out on known static prefixes
-  if (
-    STATIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))
-  ) {
-    // Special case: /ghost/:username sets pathUsername
-    const ghostMatch = pathname.match(/^\/ghost\/([^/]+)/);
-    if (ghostMatch) {
-      return { ...empty, pathUsername: decodeURIComponent(ghostMatch[1]) };
-    }
-    return empty;
-  }
-
-  // Split into segments: /:streamer, /:streamer/:vodId, /:streamer/:vodId/:ghost
-  const segments = pathname.split("/").filter(Boolean);
-
-  if (segments.length >= 3) {
-    // /:streamer/:vodId/:ghost
-    return {
-      pathStreamer: decodeURIComponent(segments[0]),
-      pathVodId: decodeURIComponent(segments[1]),
-      pathUsername: decodeURIComponent(segments[2]),
-      streamerPage: false,
-    };
-  }
-
-  if (segments.length === 2) {
-    // /:streamer/:vodId
-    return {
-      pathStreamer: decodeURIComponent(segments[0]),
-      pathVodId: decodeURIComponent(segments[1]),
-      pathUsername: null,
-      streamerPage: false,
-    };
-  }
-
-  if (segments.length === 1) {
-    // /:streamer
-    return {
-      pathStreamer: decodeURIComponent(segments[0]),
-      pathVodId: null,
-      pathUsername: null,
-      streamerPage: false,
-    };
-  }
-
-  return empty;
+/** The Matchup, Streamer or Session a pathname selects, if any. */
+export function deriveSelection(pathname: string): Selection | null {
+  const match = /^\/(matchups|streamers|recordings)\/([^/]+)\/?$/.exec(pathname);
+  if (!match) return null;
+  const kind = match[1] === "matchups" ? "matchup" : match[1] === "streamers" ? "streamer" : "recording";
+  return { kind, id: decodeURIComponent(match[2]) };
 }

@@ -1,42 +1,26 @@
 import type { StreamerOption as Option } from "@/lib/result-models";
 
 /**
- * The active search tab / content mode.
+ * The active search mode.
  *
- * - `"ghosts"` — fuzzy-search ghost detections (default mode)
- * - `"vods"` — search available VODs by title or source ID
- * - `"streamers"` — client-side filter over tracked streamers
+ * - `"ghosts"` — search Matchups (default mode)
+ * - `"streamers"` — browse Streamers
+ * - `"recordings"` — browse Sessions (one stream, possibly several platform copies)
  * - `"saved"` — the signed-in user's bookmarked matchups
  */
-export type SearchMode = "ghosts" | "vods" | "streamers" | "saved";
+export type SearchMode = "ghosts" | "streamers" | "recordings" | "saved";
 
-/**
- * Structured values extracted from the current URL pathname.
- *
- * Used to derive implicit filters (e.g. a streamer filter is implied when the
- * user is on `/nl_kripp`).
- */
-export interface RouteContext {
-  /** The streamer from the path (e.g. `/nl_kripp` -> `"nl_kripp"`). */
-  pathStreamer: string | null;
-  /** The VOD source ID from the path (e.g. `/nl_kripp/2345678`). */
-  pathVodId: string | null;
-  /** The ghost username from the path (e.g. `/nl_kripp/2345678/Ender` or `/ghost/Ender`). */
-  pathUsername: string | null;
-  /** True on `/streamers/:id`, where `pathStreamer` is the page's Streamer id. */
-  streamerPage: boolean;
+/** What the path selects: a Matchup, a Streamer or a Session. */
+export interface Selection {
+  kind: "matchup" | "streamer" | "recording";
+  id: string;
 }
 
-/** A Streamer with public Matchups; the option type of the picker and the streamers result list. */
+/** A Streamer with public Matchups; the option type of the picker. */
 export type StreamerOption =
   Option;
 
-/**
- * A display-ready representation of the currently-selected streamer filter.
- *
- * Resolved from a {@link StreamerOption} row by matching the URL's effective
- * streamer value against display names or IDs.
- */
+/** A display-ready representation of the currently-selected streamer filter. */
 export interface ResolvedStreamer {
   /** The streamer's numeric ID (nullable because the view column is nullable). */
   id: string | null;

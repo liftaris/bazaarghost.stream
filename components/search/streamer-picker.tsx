@@ -19,39 +19,28 @@ import {
 import { cn } from "@/lib/utils";
 import type { StreamerOption, ResolvedStreamer } from "./types";
 
-/**
- * Props for {@link StreamerPicker}.
- */
 interface StreamerPickerProps {
-  streamerOptions: StreamerOption[];
-  pickerQuery: string; onPickerQuery: (value:string)=>void; moreCreators:boolean; onLoadCreators:()=>void;
-  resolvedStreamer: ResolvedStreamer | null;
-  effectiveStreamer: string | null;
+  options: StreamerOption[];
+  query: string;
+  onQuery: (value: string) => void;
+  hasMore: boolean;
+  onLoadMore: () => void;
+  resolved: ResolvedStreamer | null;
+  streamerId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelect: (opt: StreamerOption | null) => void;
+  onSelect: (id: string | null) => void;
   /** Extra className for the trigger button */
   triggerClassName?: string;
 }
 
 /**
- * Combobox-style streamer filter dropdown.
- *
- * Renders a trigger button showing the selected streamer (with avatar) or a
- * placeholder, and a popover with a searchable list of all tracked streamers.
- * Includes an "Any streamer" option and an X clear button when a streamer is
- * selected.
- *
- * Used by both Ghost and VOD search modes in the {@link SearchHeader}.
+ * Combobox-style streamer filter: a trigger showing the selected streamer (or a
+ * placeholder, with a clear button) and a popover with a searchable list.
+ * Used by the Ghosts and Recordings headers.
  */
 export function StreamerPicker({
-  streamerOptions,pickerQuery,onPickerQuery,moreCreators,onLoadCreators,
-  resolvedStreamer,
-  effectiveStreamer,
-  open,
-  onOpenChange,
-  onSelect,
-  triggerClassName,
+  options, query, onQuery, hasMore, onLoadMore, resolved, streamerId, open, onOpenChange, onSelect, triggerClassName,
 }: StreamerPickerProps) {
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
@@ -65,25 +54,25 @@ export function StreamerPicker({
             triggerClassName
           )}
         >
-          {resolvedStreamer ? (
+          {resolved ? (
             <div className="flex items-center gap-1.5">
               <Avatar className="size-5">
                 <AvatarImage
-                  src={resolvedStreamer.avatar || undefined}
+                  src={resolved.avatar || undefined}
                   alt=""
                 />
                 <AvatarFallback className="bg-primary text-[7px] text-primary-foreground">
-                  {resolvedStreamer.displayName[0]?.toUpperCase()}
+                  {resolved.displayName[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <span className="max-w-[8rem] truncate text-sm">
-                {resolvedStreamer.displayName}
+                {resolved.displayName}
               </span>
             </div>
           ) : (
             <span className="text-sm text-muted-foreground">Streamer</span>
           )}
-          {resolvedStreamer ? (
+          {resolved ? (
             <span
               role="button"
               tabIndex={0}
@@ -110,7 +99,7 @@ export function StreamerPicker({
       </PopoverTrigger>
       <PopoverContent className="w-[280px] p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search streamers..." value={pickerQuery} onValueChange={onPickerQuery} />
+          <CommandInput placeholder="Search streamers..." value={query} onValueChange={onQuery} />
           <CommandList>
             <CommandEmpty>No streamer found.</CommandEmpty>
             <CommandGroup>
@@ -118,22 +107,22 @@ export function StreamerPicker({
                 <Check
                   className={cn(
                     "size-3",
-                    !effectiveStreamer ? "opacity-100" : "opacity-0"
+                    !streamerId ? "opacity-100" : "opacity-0"
                   )}
                 />
                 Any streamer
               </CommandItem>
-              {streamerOptions.map((s) => (
+              {options.map((s) => (
                 <CommandItem
                   key={s.streamer_id}
                   value={s.streamer_display_name ?? ""}
-                  onSelect={() => onSelect(s)}
+                  onSelect={() => onSelect(s.streamer_id)}
                   className="gap-2"
                 >
                   <Check
                     className={cn(
                       "size-3",
-                      resolvedStreamer?.id === s.streamer_id
+                      resolved?.id === s.streamer_id
                         ? "opacity-100"
                         : "opacity-0"
                     )}
@@ -149,7 +138,7 @@ export function StreamerPicker({
                   </span>
                 </CommandItem>
               ))}
-            {moreCreators && <CommandItem onSelect={onLoadCreators}>Load more creators</CommandItem>}
+            {hasMore && <CommandItem onSelect={onLoadMore}>Load more</CommandItem>}
             </CommandGroup>
           </CommandList>
         </Command>

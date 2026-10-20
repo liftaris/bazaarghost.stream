@@ -1,27 +1,14 @@
-import { Ghost, Video, Users } from "lucide-react";
+import { Ghost, Users, Video } from "lucide-react";
 import type { SearchMode } from "./types";
 
-/**
- * Number of items fetched per batch during infinite scroll.
- *
- * Both ghost and VOD searches use this as `result_limit` / range size.
- */
-export const FETCH_SIZE = 50;
-
-/**
- * Configuration for the search mode tab bar.
- *
- * Each entry maps a {@link SearchMode} to its display label, icon, and the
- * base route the tab navigates to.  The tabs are only rendered when the
- * `showSearchTabs` feature flag is enabled.
- */
+/** The modality chips, in display order. */
 export const modeOptions: {
-  value: SearchMode;
+  value: Exclude<SearchMode, "saved">;
   label: string;
   icon: typeof Ghost;
-  href: string;
+  placeholder: string;
 }[] = [
-  { value: "ghosts", label: "Ghosts", icon: Ghost, href: "/search" },
-  { value: "vods", label: "VODs", icon: Video, href: "/vods" },
-  { value: "streamers", label: "Streamers", icon: Users, href: "/streamers" },
+  { value: "ghosts", label: "Ghosts", icon: Ghost, placeholder: "Ghost username…" },
+  { value: "streamers", label: "Streamers", icon: Users, placeholder: "Streamer name…" },
+  { value: "recordings", label: "Recordings", icon: Video, placeholder: "Recording title…" },
 ];
