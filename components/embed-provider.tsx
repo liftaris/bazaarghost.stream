@@ -15,8 +15,11 @@ import {
 import { useRouter } from "next/navigation";
 import { findNextGhost, findPrevGhost } from "@/lib/ghost-nav";
 import { PlayerHost, SLOT_EVENT } from "@/components/player/player-host";
+import { toast } from "sonner";
 import { usePlayback } from "@/hooks/use-playback";
-import type { Playback } from "@/lib/api-contract";
+import { cachedGet } from "@/lib/api-cache";
+import type { Playback, RecordingSource, Source } from "@/lib/api-contract";
+import { mapSessionTime, recordingSources, rememberPlatform, sourcePin } from "@/lib/sources";
 import {
   createPlayerAdapter,
   getPlatform,
@@ -55,6 +58,10 @@ interface EmbedActions {
   /** Load a VOD (or seek if already loaded). Pass meta for the info bar. */
   setEmbed: (videoId: string, timestamp: number, meta?: EmbedMeta) => void;
   hideEmbed: () => void;
+  /** The playable Sources of the Matchup being shown, and the Session that maps their Recordings together. */
+  setSources: (sources: Source[], sessionId: string | null) => void;
+  /** Move to another Source of the Matchup at the same moment (via the Session mapping), remembering its platform. */
+  switchSource: (source: RecordingSource) => void;
   /** Stable container ID the platform adapters mount into. */
   containerId: string;
   /** Register the PlayerSlot element the persistent host should cover. */
@@ -75,6 +82,7 @@ interface EmbedActions {
 /** Slow-changing state: does not change while playback time advances. */
 interface EmbedSlowState extends EmbedState {
   playback: Playback | null;
+  sources: RecordingSource[];
   isVisible: boolean;
   isReady: boolean;
   error: string | null;
@@ -166,6 +174,9 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     meta: null,
   });
   const [isVisible, setIsVisible] = useState(false);
+  const [sources, setSourceList] = useState<RecordingSource[]>([]);
+  const sessionIdRef = useRef<string | null>(null);
+  const failedSourcesRef = useRef(new Set<number>());
   const [isReady, setIsReady] = useState(false);
   // Adapter errors belong to the video/source that raised them and lapse with it
   const [adapterError, setAdapterError] = useState<{ key: string; message: string } | null>(null);
@@ -424,6 +435,37 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     [seek]
   );
 
+  const setSources = useCallback((list: Source[], sessionId: string | null) => {
+    sessionIdRef.current = sessionId;
+    failedSourcesRef.current.clear();
+    setSourceList(recordingSources(list));
+  }, []);
+
+  const moveToSource = useCallback(async (target: RecordingSource) => {
+    const currentId = Number(videoIdRef.current?.slice(2));
+    let at = target.at;
+    if (sessionIdRef.current && currentId !== target.recording.id) {
+      try {
+        const session = await cachedGet(`/sessions/${sessionIdRef.current}`);
+        at = mapSessionTime(session, currentId, target.recording.id, timeStore.get().currentTime) ?? at;
+      } catch {
+        // Mapping unavailable: the Source's own moment is the fallback
+      }
+    }
+    setEmbed(`v:${target.recording.id}`, at);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("source")) {
+      url.searchParams.set("source", sourcePin(target.recording.id));
+      window.history.replaceState(window.history.state, "", url);
+    }
+  }, [setEmbed, timeStore]);
+
+  const switchSource = useCallback((target: RecordingSource) => {
+    failedSourcesRef.current.clear();
+    rememberPlatform(target.platform);
+    void moveToSource(target);
+  }, [moveToSource]);
+
   const hideEmbed = useCallback(() => {
     pause();
     setIsVisible(false);
@@ -471,12 +513,23 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   }, [router, seek, timeStore]);
 
   const actions = useMemo<EmbedActions>(
-    () => ({ setEmbed, hideEmbed, containerId: CONTAINER_ID, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, goToGhost,
+    () => ({ setEmbed, hideEmbed, setSources, switchSource, containerId: CONTAINER_ID, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, goToGhost,
       getTime: () => timeStore.get() }),
-    [setEmbed, hideEmbed, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, goToGhost, timeStore]
+    [setEmbed, hideEmbed, setSources, switchSource, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, goToGhost, timeStore]
   );
   const mergedError = error ?? playback.error;
   const ghostIsOptimistic = ghostOverride !== null;
+
+  // Failover: a Source that cannot load or play hands over to the next available one
+  const failedId = mergedError && state.videoId ? Number(state.videoId.slice(2)) : null;
+  useEffect(() => {
+    if (failedId === null || failedSourcesRef.current.has(failedId) || !sources.some((s) => s.recording.id === failedId)) return;
+    failedSourcesRef.current.add(failedId);
+    const next = sources.find((s) => !failedSourcesRef.current.has(s.recording.id));
+    if (!next) return;
+    toast(`Switched to ${getPlatform(next.platform).name}`, { description: "The previous source could not be played." });
+    void moveToSource(next);
+  }, [failedId, sources, moveToSource]);
   const slow = useMemo<EmbedSlowState>(
     () => ({
       ...state,
@@ -485,13 +538,14 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
       isReady,
       error: mergedError,
       playback: playback.data,
+      sources,
       ghosts: sortedGhosts,
       activeGhost,
       ghostIsOptimistic,
       bazaarChapters,
       capabilities,
     }),
-    [state, playbackMeta, isVisible, isReady, mergedError, playback.data, sortedGhosts, activeGhost, ghostIsOptimistic, bazaarChapters, capabilities]
+    [state, playbackMeta, sources, isVisible, isReady, mergedError, playback.data, sortedGhosts, activeGhost, ghostIsOptimistic, bazaarChapters, capabilities]
   );
 
   return (

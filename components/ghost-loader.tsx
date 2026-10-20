@@ -3,6 +3,7 @@ import { useEffect, useEffectEvent, useState } from "react";
 import type { MatchupDetail } from "@/lib/api-contract";
 import { cachedGet } from "@/lib/api-cache";
 import { ghostResult } from "@/lib/result-models";
+import { pickSource, preferredPlatform, recordingSources } from "@/lib/sources";
 import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
 
 /** Bootstrap the player from a durable URL. Legacy URLs are redirected on the server. */
@@ -11,14 +12,17 @@ export function GhostLoader({
   timestamp = 0,
   matchupId,
   initialMatchup,
+  source = null,
 }: {
   /** Internal video ID as `v:<id>`. */
   vodId?: string;
   timestamp?: number;
   matchupId?: number;
   initialMatchup?: MatchupDetail;
+  /** `?source=` pin; falls back to the default Source when it is not playable. */
+  source?: string | null;
 }) {
-  const { setEmbed, setActiveGhost } = useEmbedActions();
+  const { setEmbed, setActiveGhost, setSources } = useEmbedActions();
   const { activeGhost, videoId } = useEmbedState();
   // Read live player state inside the bootstrap effect without re-running it
   const readLive = useEffectEvent(() => ({ activeGhost, videoId, initialMatchup }));
@@ -34,13 +38,14 @@ export function GhostLoader({
           const initial = live.initialMatchup?.id === matchupId ? live.initialMatchup : undefined;
           // Already showing this matchup (user click or passive advance): don't re-seek
           const { activeGhost: ghost, videoId: loaded } = live;
-          const row = initial ? ghostResult(initial) : null;
-          if (ghost?.matchup_id === matchupId && (!row || loaded === row.vod_source_id)) return;
+          const showing = !initial || recordingSources(initial.sources).some((s) => `v:${s.recording.id}` === loaded);
+          if (ghost?.matchup_id === matchupId && showing) return;
           const matchup = initial ?? (await cachedGet(`/matchups/${matchupId}`, {}, { signal: controller.signal }));
           if (controller.signal.aborted) return;
-          if (matchup.redirectedFrom !== undefined) window.history.replaceState(window.history.state, "", `/matchups/${matchup.id}`);
-          const result = ghostResult(matchup);
+          if (matchup.redirectedFrom !== undefined) window.history.replaceState(window.history.state, "", `/matchups/${matchup.id}${window.location.search}`);
+          const result = ghostResult(matchup, pickSource(matchup, source, preferredPlatform()));
           if (!result) throw new Error("This matchup has no playable source");
+          setSources(matchup.sources, matchup.session?.id ?? null);
           setEmbed(result.vod_source_id, result.frame_time_seconds, {
             streamerId: result.streamer_id,
             streamerName: result.streamer_display_name,
@@ -74,8 +79,10 @@ export function GhostLoader({
     vodId,
     timestamp,
     matchupId,
+    source,
     requestKey,
     setEmbed,
+    setSources,
     setActiveGhost,
   ]);
   return error ? (

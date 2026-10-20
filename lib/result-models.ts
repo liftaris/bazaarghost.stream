@@ -42,8 +42,8 @@ export function matchupOwner(value: Matchup): { id: string | null; name: string;
   return { id: null, name: channel?.displayName ?? "Unknown channel", avatar: channel?.avatarUrl ?? "" };
 }
 /** Adapt a Matchup for the result layout; null when it has no playable recording. */
-export function ghostResult(value: Matchup): GhostResult | null {
-  const source = defaultSource(value);
+export function ghostResult(value: Matchup, chosen?: RecordingSource | null): GhostResult | null {
+  const source = chosen ?? defaultSource(value);
   if (!source) return null;
   const owner = matchupOwner(value);
   return { matchup_id: value.id, username: value.opponent.username, rank: value.opponent.rank,
