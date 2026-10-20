@@ -1,35 +1,45 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useFavoritesFirstPage } from "@/components/social/bookmarks-provider";
 import { listFavoritePage } from "@/lib/social-client";
 import { ghostResult, type GhostResult } from "@/lib/result-models";
 
 /**
- * Saved Matchups as full result cards, newest saved first. The favorites route returns the
- * cards themselves; rows unsaved while the list is open stay until it is left, so an
- * accidental unsave is one tap to undo.
+ * Saved Matchups as full result cards, newest saved first. The first page comes from the
+ * bookmark store's own request; rows unsaved while the list is open stay until it is left,
+ * so an accidental unsave is one tap to undo.
  */
 export function useSavedMatchups({ enabled, query }: { enabled: boolean; query: string }) {
-  const [items, setItems] = useState<GhostResult[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const first = useFavoritesFirstPage();
+  const [more, setMore] = useState<{ items: GhostResult[]; cursor: string | null } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [moreError, setMoreError] = useState<string | null>(null);
   const active = useRef<AbortController | null>(null);
+  const [seen, setSeen] = useState<{ enabled: boolean; page: unknown }>({ enabled, page: first.page });
+  if (seen.enabled !== enabled || seen.page !== first.page) {
+    setSeen({ enabled, page: first.page });
+    setMore(null);
+    setMoreError(null);
+  }
 
-  const fetchPage = useCallback(async (after: string | null) => {
+  const firstItems = useMemo(() => first.page?.items.flatMap((item) => ghostResult(item) ?? []) ?? [], [first.page]);
+  const items = useMemo(() => [...firstItems, ...(more?.items ?? [])], [firstItems, more]);
+  const loaded = enabled && first.page !== null;
+  const cursor = more ? more.cursor : first.page?.nextCursor ?? null;
+
+  const fetchMore = useCallback(async (after: string) => {
     active.current?.abort();
     const controller = (active.current = new AbortController());
+    setLoadingMore(true);
     try {
       const page = await listFavoritePage(after, controller.signal);
       if (controller.signal.aborted) return;
       const cards = page.items.flatMap((item) => ghostResult(item) ?? []);
-      setItems((previous) => (after ? [...previous, ...cards] : cards));
-      setCursor(page.nextCursor);
-      setLoaded(true);
-      setError(null);
+      setMore((previous) => ({ items: [...(previous?.items ?? []), ...cards], cursor: page.nextCursor }));
+      setMoreError(null);
     } catch (failure) {
-      if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : "Could not load saved matchups");
+      if (!controller.signal.aborted) setMoreError(failure instanceof Error ? failure.message : "Could not load saved matchups");
     } finally {
       if (active.current === controller) {
         active.current = null;
@@ -37,19 +47,6 @@ export function useSavedMatchups({ enabled, query }: { enabled: boolean; query: 
       }
     }
   }, []);
-
-  useEffect(() => {
-    if (!enabled) return;
-    void fetchPage(null);
-    return () => {
-      active.current?.abort();
-      active.current = null;
-      setItems([]);
-      setCursor(null);
-      setLoaded(false);
-      setError(null);
-    };
-  }, [enabled, fetchPage]);
 
   const ghostResults = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -61,21 +58,21 @@ export function useSavedMatchups({ enabled, query }: { enabled: boolean; query: 
     );
   }, [items, query]);
 
+  const error = moreError ?? (enabled && first.error && !first.page ? "Could not load saved matchups" : null);
   return {
     ghostResults,
     isLoading: enabled && !loaded && !error,
-    isEmpty: enabled && loaded && items.length === 0 && cursor === null,
+    isEmpty: loaded && items.length === 0 && cursor === null,
     hasMore: cursor !== null,
     isLoadingMore: loadingMore,
     error,
     loadMore: () => {
       if (!cursor || active.current) return;
-      setLoadingMore(true);
-      void fetchPage(cursor);
+      void fetchMore(cursor);
     },
     retry: () => {
-      setError(null);
-      void fetchPage(cursor && loaded ? cursor : null);
+      if (moreError && cursor) void fetchMore(cursor);
+      else first.reload();
     },
   };
 }

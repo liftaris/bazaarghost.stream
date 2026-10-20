@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useStat
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-provider";
 import { listFavoritePage, setFavorite } from "@/lib/social-client";
+import type { MatchupResult, Page } from "@/lib/api-contract";
 
 const REST_DELAY_MS = 2000;
 
@@ -28,6 +29,8 @@ class BookmarkStore {
   /** True once every saved ID is known, so `has() === false` is trustworthy. */
   ready = false;
   error = false;
+  /** The first page of full cards, kept so the Saved list needs no second request. */
+  firstPage: Page<MatchupResult> | null = null;
 
   subscribeAll = (fn: () => void) => {
     this.all.add(fn);
@@ -66,6 +69,7 @@ class BookmarkStore {
     this.rest = null;
     this.flight = null;
     this.error = false;
+    this.firstPage = null;
     this.ready = known && !signedIn;
     this.emit();
     if (signedIn) void this.run(true);
@@ -86,6 +90,7 @@ class BookmarkStore {
       while (this.cursor !== null) {
         const page = await listFavoritePage(this.cursor, controller.signal);
         if (generation !== this.generation) return;
+        if (this.cursor === undefined) this.firstPage = page;
         const added: number[] = [];
         for (const { id } of page.items) {
           if (!this.set.has(id)) {
@@ -214,6 +219,13 @@ export function useIsBookmarked(id: number) {
 export function useBookmarkActions() {
   const { store, enabled, signedIn } = useContextValue();
   return { enabled, signedIn, toggle: store.toggle };
+}
+
+/** The first page of saved cards the store already fetched, and a way to reload it after a failure. */
+export function useFavoritesFirstPage() {
+  const { store, signedIn } = useContextValue();
+  useSyncExternalStore(store.subscribeAll, store.getVersion, store.getVersion);
+  return { page: store.firstPage, error: store.error, reload: () => store.reset(signedIn, true) };
 }
 
 /** Whole-collection view; re-renders on any bookmark change and loads the full list. */
