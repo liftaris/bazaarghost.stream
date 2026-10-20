@@ -7,8 +7,8 @@ type Props = { params: Promise<{ id: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const video = await getVideo(Number((await params).id));
   if (!video) return { title: "Video unavailable" };
-  const title = `${video.title} - ${video.creator.name}`;
-  const description = `Browse ghost matchups from ${video.creator.name}'s stream on BazaarGhost.`;
+  const title = `${video.title} - ${video.channel.displayName}`;
+  const description = `Browse ghost matchups from ${video.channel.displayName}'s stream on BazaarGhost.`;
   return {
     title,
     description,

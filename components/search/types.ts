@@ -25,12 +25,7 @@ export interface RouteContext {
   pathUsername: string | null;
 }
 
-/**
- * A row from the `streamers_with_detections` Supabase view.
- *
- * Contains streamer metadata plus aggregate detection/vod counts.  Used as the
- * option type for the streamer picker dropdown and the streamers result list.
- */
+/** A Streamer with public Matchups; the option type of the picker and the streamers result list. */
 export type StreamerOption =
   Option;
 

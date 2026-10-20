@@ -37,13 +37,14 @@ export const GhostResultRow = memo(function GhostResultRow({
 
   const warm = () => {
     prefetch(`/matchups/${ghost.matchup_id}`);
-    prefetch(`/videos/${ghost.vod_id}/playback`);
+    prefetch(`/recordings/${ghost.vod_id}/playback`);
   };
 
   // Optimistic update only; the Link performs the (single) navigation.
   const handlePlay = (e: MouseEvent) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     setEmbed(ghost.vod_source_id, ghost.frame_time_seconds, {
+      streamerId: ghost.streamer_id,
       streamerName: ghost.streamer_display_name,
       streamerAvatar: ghost.streamer_avatar,
       vodTitle: ghost.vod_title,
@@ -52,7 +53,7 @@ export const GhostResultRow = memo(function GhostResultRow({
     // After setEmbed: it clears the override when the video changes
     setActiveGhost({
       matchup_id: ghost.matchup_id,
-      detection_id: ghost.detection_id,
+      detection_id: String(ghost.matchup_id),
       username: ghost.username,
       rank: ghost.rank,
       frame_time_seconds: ghost.frame_time_seconds,
@@ -88,17 +89,20 @@ export const GhostResultRow = memo(function GhostResultRow({
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
           <div className="flex min-w-0 items-center gap-1 text-sm">
             {/* Streamer name + vs — hidden below 200px */}
-            <button
-              onClick={() => {
-                onNavigateToStreamer(
-                  ghost.streamer_id,
-                  ghost.streamer_display_name
-                );
-              }}
-              className="relative z-10 hidden min-w-0 shrink truncate font-medium text-primary hover:underline @[200px]:block"
-            >
-              {ghost.streamer_display_name}
-            </button>
+            {ghost.streamer_id ? (
+              <button
+                onClick={() => {
+                  onNavigateToStreamer(ghost.streamer_id!, ghost.streamer_display_name);
+                }}
+                className="relative z-10 hidden min-w-0 shrink truncate font-medium text-primary hover:underline @[200px]:block"
+              >
+                {ghost.streamer_display_name}
+              </button>
+            ) : (
+              <span className="hidden min-w-0 shrink truncate font-medium text-primary @[200px]:block">
+                {ghost.streamer_display_name}
+              </span>
+            )}
             <span className="hidden shrink-0 text-muted-foreground @[200px]:block">
               vs
             </span>
@@ -124,7 +128,7 @@ export const GhostResultRow = memo(function GhostResultRow({
             </Link>
           </div>
         </div>
-        <SourceStack sources={[{ platform: ghost.vod_platform }]} className="hidden @[200px]:flex" />
+        <SourceStack sources={ghost.sources} className="hidden @[200px]:flex" />
       </div>
     </div>
   );

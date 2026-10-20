@@ -14,7 +14,7 @@ async function fetchGlobalStats(): Promise<GlobalStats | null> {
   const response=await backendFetch(new Request("https://bazaarghost.stream/api/v1/stats",{signal:AbortSignal.timeout(STATS_TIMEOUT_MS)}));
   if(!response.ok)return null;
   const value:Stats=await response.json();
-  return {streamers:value.creators,vods:value.videos,matchups:value.matchups};
+  return {streamers:value.streamers,vods:value.recordings,matchups:value.matchups};
  } catch { return null; }
 }
 

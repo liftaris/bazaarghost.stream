@@ -38,6 +38,7 @@ export interface EmbedGhost {
 }
 
 interface EmbedMeta {
+  streamerId: string | null;
   streamerName: string;
   streamerAvatar: string;
   vodTitle: string;
@@ -244,12 +245,12 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const data = playback.data;
-  const dataVideoId = data?.video.id ?? null;
+  const dataVideoId = data?.recording.id ?? null;
   const platform = data?.player.platform ?? null;
   const sourceId = data?.player.sourceId ?? null;
   const embedUrl = data?.player.embedUrl ?? null;
   const available = data?.player.available ?? true;
-  const videoTitle = data?.video.title ?? "";
+  const videoTitle = data?.recording.title ?? "";
   const errorKey = `${state.videoId}|${sourceId}|${embedUrl}`;
   const unavailable = !!data && state.videoId !== null && dataVideoId === Number(state.videoId.slice(2)) && !available;
   const error = unavailable
@@ -269,11 +270,11 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   }, [isReady, isPaused, pageVisible, timeEvents, syncFromPlayer]);
 
   useEffect(() => {
-    if (playback.data) setDuration(playback.data.video.durationSeconds);
+    if (playback.data) setDuration(playback.data.recording.durationSeconds);
   }, [playback.data, setDuration]);
   const playbackMeta = useMemo<EmbedMeta | null>(() => {
-    const video = playback.data?.video;
-    return video ? { streamerName: video.creator.name, streamerAvatar: video.creator.avatarUrl ?? "", vodTitle: video.title, date: video.publishedAt ?? "" } : null;
+    const recording = playback.data?.recording;
+    return recording ? { streamerId: recording.channel.streamerId === null ? null : String(recording.channel.streamerId), streamerName: recording.channel.displayName, streamerAvatar: recording.channel.avatarUrl ?? "", vodTitle: recording.title, date: recording.publishedAt ?? "" } : null;
   }, [playback.data]);
 
   const pause = useCallback(() => {

@@ -34,7 +34,6 @@ import { PlayerSlot } from "@/components/player/player-slot";
 import { BookmarkButton } from "@/components/social/bookmark-button";
 import { Kbd } from "@/components/ui/kbd";
 import { PLAYER_SHORTCUTS, type PlayerShortcutAction } from "@/lib/player-shortcuts";
-import { getPlatform } from "@/lib/platforms";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -98,7 +97,6 @@ export function EmbedPanel() {
   const {
     videoId,
     playback,
-    timestamp,
     meta,
     isVisible,
     isReady,
@@ -113,23 +111,13 @@ export function EmbedPanel() {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
 
-  /**
-   * Build the canonical URL path for the given ghost + VOD context.
-   * Returns `/:streamer/:vodId/:ghost` or `/:streamer/:vodId`.
-   */
+  /** Canonical URL path: `/matchups/:id` for a ghost, else `/videos/:id`. */
   const buildGhostUrl = useCallback(
-    (
-      ghost: EmbedGhost | null,
-      overrideVideoId?: string,
-      overrideStreamer?: string
-    ) => {
-      const vid = overrideVideoId ?? videoId;
-      if (!vid) return null;
-      return ghost?.matchup_id ? `/matchups/${ghost.matchup_id}`
-        : vid.startsWith("v:") ? `/videos/${vid.slice(2)}`
-        : `/${encodeURIComponent(overrideStreamer ?? meta?.streamerName ?? "")}/${vid}`;
+    (ghost: EmbedGhost | null) => {
+      if (!videoId) return null;
+      return ghost?.matchup_id ? `/matchups/${ghost.matchup_id}` : `/videos/${videoId.slice(2)}`;
     },
-    [videoId, meta?.streamerName]
+    [videoId]
   );
 
   /**
@@ -168,16 +156,10 @@ export function EmbedPanel() {
   const copyLink = useCallback(() => {
     if (!videoId) return;
     const path = buildGhostUrl(currentGhost);
-    if (path && videoId.startsWith("v:")) {
-      navigator.clipboard.writeText(`${window.location.origin}${path}`);
-    } else {
-      if (!playback) return;
-      const { platform, sourceId, watchUrl } = playback.player;
-      navigator.clipboard.writeText(getPlatform(platform).watchUrl({ sourceId, watchUrl }, timestamp ?? 0));
-    }
+    if (path) navigator.clipboard.writeText(`${window.location.origin}${path}`);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
-  }, [videoId, buildGhostUrl, currentGhost, timestamp, playback]);
+  }, [videoId, buildGhostUrl, currentGhost]);
 
   const showChrome = isVisible && !!videoId;
   const when = meta?.date ? relativeDate(meta.date) : null;
@@ -277,11 +259,12 @@ export function EmbedPanel() {
       <div className="flex h-8 items-center gap-2 border-t border-border px-3 text-xs text-muted-foreground">
         {meta ? (
           <>
-            <Badge variant="outline" asChild className="min-w-0 max-w-[40%] cursor-pointer text-foreground">
+            <Badge variant="outline" asChild className="min-w-0 max-w-[40%] cursor-pointer text-foreground has-disabled:cursor-default">
               <button
                 type="button"
+                disabled={!meta.streamerId}
                 onClick={() =>
-                  router.push(`/search?streamer=${encodeURIComponent(meta.streamerName)}`, { scroll: false })
+                  router.push(`/search?streamer=${meta.streamerId}`, { scroll: false })
                 }
               >
                 <Avatar className="size-4 shrink-0">

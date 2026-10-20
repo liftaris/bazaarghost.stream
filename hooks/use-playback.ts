@@ -14,16 +14,15 @@ export function usePlayback(videoKey: string | null) {
     if (!videoKey) return;
     const load = async () => {
       try {
-        const id = videoKey.startsWith("v:") ? Number(videoKey.slice(2))
-          : (await cachedGet("/videos/resolve", { source: "twitch", sourceId: videoKey }, { signal: controller.signal })).id;
+        const id = Number(videoKey.slice(2)) as number;
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
-            const playback = await cachedGet(`/videos/${id}/playback`, {}, { signal: controller.signal });
+            const playback = await cachedGet(`/recordings/${id}/playback`, {}, { signal: controller.signal });
             if (controller.signal.aborted) return;
             const all = [...playback.timeline.items];
             let cursor = playback.timeline.nextCursor;
             while (cursor) {
-              const page = await cachedGet(`/videos/${id}/timeline`, { cursor, limit: 100 }, { signal: controller.signal });
+              const page = await cachedGet(`/recordings/${id}/timeline`, { cursor, limit: 100 }, { signal: controller.signal });
               all.push(...page.items); cursor = page.nextCursor;
             }
             if (controller.signal.aborted) return;
@@ -31,7 +30,7 @@ export function usePlayback(videoKey: string | null) {
             return;
           } catch (error) {
             if (!(error instanceof ApiError) || error.status !== 409 || attempt === 1) throw error;
-            invalidate(`/videos/${id}/`);
+            invalidate(`/recordings/${id}/`);
           }
         }
       } catch (error) {

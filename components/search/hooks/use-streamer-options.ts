@@ -4,7 +4,7 @@ import { apiGet } from "@/lib/api-client";
 import { streamerOption, type StreamerOption } from "@/lib/result-models";
 import { useApiPage } from "./use-api-page";
 import type { SearchMode } from "../types";
-/** Search creators on the server; selection uses stable platform-qualified identities. */
+/** Search Streamers on the server; selection uses the numeric Streamer id. */
 export function useStreamerOptions({ effectiveStreamer, searchMode, queryParam, replaceParams }: {
  effectiveStreamer: string | null; searchMode: SearchMode; queryParam: string;
  replaceParams: (values: Record<string,string|null|undefined>) => void; routePathStreamer: string | null;
@@ -15,7 +15,7 @@ export function useStreamerOptions({ effectiveStreamer, searchMode, queryParam, 
  useEffect(()=>{const timer=setTimeout(()=>setDebouncedQuery(pickerQuery),250);return()=>clearTimeout(timer);},[pickerQuery]);
  const [resolved,setResolved]=useState<{key:string;selected:StreamerOption|null;error:string|null}|null>(null);
  const [revision,setRevision]=useState(0);
- const result=useApiPage("/creators", {q: searchMode === "streamers" ? queryParam : debouncedQuery}, openStreamerPopover || searchMode === "streamers");
+ const result=useApiPage("/streamers", {q: searchMode === "streamers" ? queryParam : debouncedQuery}, openStreamerPopover || searchMode === "streamers");
  const resolveKey=`${effectiveStreamer}|${revision}`;
  const settled=resolved?.key===resolveKey?resolved:null;
  const selected=settled?.selected??null;
@@ -26,12 +26,11 @@ export function useStreamerOptions({ effectiveStreamer, searchMode, queryParam, 
    const controller=new AbortController();
    const resolve=async()=>{
     try {
-     const account=effectiveStreamer.includes(":")
-       ? (await apiGet("/creators",{creatorId:effectiveStreamer},controller.signal)).items[0]
-       : await apiGet("/creators/resolve",{source:"twitch",name:effectiveStreamer},controller.signal);
-     if(!account) throw new Error("Creator not found");
+     const id=Number(effectiveStreamer.replace(/^twitch:/,""));
+     if(!Number.isSafeInteger(id)||id<1) throw new Error("Streamer not found");
+     const account=await apiGet(`/streamers/${id}`,{},controller.signal);
      if(!controller.signal.aborted)setResolved({key:resolveKey,selected:streamerOption(account),error:null});
-    }catch(error){if(!controller.signal.aborted)setResolved({key:resolveKey,selected:null,error:error instanceof Error?error.message:"Could not load creator"});}
+    }catch(error){if(!controller.signal.aborted)setResolved({key:resolveKey,selected:null,error:error instanceof Error?error.message:"Could not load streamer"});}
    }; void resolve(); return()=>controller.abort();
  },[effectiveStreamer,resolveKey]);
  const options=result.items.map(streamerOption);

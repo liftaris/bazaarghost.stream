@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getMatchup } from "@/lib/api-server";
+import { matchupOwner } from "@/lib/result-models";
 import averiaBold from "../../../../public/Averia_Libre/AveriaLibre-Bold.ttf?inline";
 
 export const alt = "BazaarGhost matchup";
@@ -35,7 +36,7 @@ export default async function Image({ params }: Props) {
   const id = Number((await params).id);
   const detail = await getMatchup(id).catch(() => null);
   const bold = font();
-  const matchup = detail?.matchup;
+  const matchup = detail;
   const fonts = bold ? [{ name: "Averia", data: bold, weight: 700 as const, style: "normal" as const }] : undefined;
   const root = {
     width: "100%",
@@ -61,8 +62,8 @@ export default async function Image({ params }: Props) {
     );
   }
 
-  const { creator } = matchup.video;
-  const { username, rank } = matchup.detection;
+  const creator = matchupOwner(matchup);
+  const { username, rank } = matchup.opponent;
   const long = (text: string) => (text.length > 18 ? 64 : 84);
   return new ImageResponse(
     (
@@ -70,8 +71,8 @@ export default async function Image({ params }: Props) {
         <Mark />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 32 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 28, width: 480 }}>
-            {creator.avatarUrl ? (
-              <img src={creator.avatarUrl} width={220} height={220} alt="" style={{ borderRadius: 110, border: `8px solid ${ORANGE}` }} />
+            {creator.avatar ? (
+              <img src={creator.avatar} width={220} height={220} alt="" style={{ borderRadius: 110, border: `8px solid ${ORANGE}` }} />
             ) : (
               <div style={{ width: 220, height: 220, borderRadius: 110, background: ORANGE }} />
             )}

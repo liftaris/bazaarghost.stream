@@ -2,6 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getPlatform } from "@/lib/platforms";
 import type { StreamerWithDetections } from "@/lib/server-utils";
 
 interface StreamerResultRowProps {
@@ -37,7 +38,7 @@ export function StreamerResultRow({
         <p className="truncate text-sm font-medium text-card-foreground">
           {streamer.streamer_display_name}
         </p>
-        <p className="text-xs text-muted-foreground">{streamer.platform}</p>
+        <p className="text-xs text-muted-foreground">{streamer.platforms.map((p) => getPlatform(p).name).join(", ")}</p>
       </div>
 
       <ChevronRight className="size-4 shrink-0 text-muted-foreground" />

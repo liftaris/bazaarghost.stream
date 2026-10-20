@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import type { MatchupDetail } from "./api-contract";
+import { matchupOwner } from "./result-models";
 
 /** Canonical title, description and share-card metadata for a matchup. */
 export function buildMatchupMetadata(detail: MatchupDetail): Metadata {
-  const { matchup } = detail;
-  const title = `${matchup.video.creator.name} vs ${matchup.detection.username}`;
+  const owner = matchupOwner(detail).name;
+  const title = `${owner} vs ${detail.opponent.username}`;
   const description = `Watch ${title} in The Bazaar${
-    matchup.detection.rank ? ` (${matchup.detection.rank})` : ""
+    detail.opponent.rank ? ` (${detail.opponent.rank})` : ""
   } on BazaarGhost.`;
-  const url = `/matchups/${matchup.id}`;
+  const url = `/matchups/${detail.id}`;
   return {
     title,
     description,

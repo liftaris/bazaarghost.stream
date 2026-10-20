@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { backendFetch } from "./backend-server";
-import type { Creator, Matchup, MatchupDetail, Page, Playback, TimelineMarker, Video } from "./api-contract";
+import type { ChannelLookup, Matchup, MatchupDetail, Page, Playback, Recording, TimelineMarker } from "./api-contract";
 
 /** Share the current public matchup between metadata and rendering within one request. */
 export const getMatchup = cache(
@@ -39,19 +39,21 @@ async function publicGet<T>(path: string, params: Record<string, string | number
   }
 }
 
-/** Resolve a Twitch creator login/name to its canonical creator, or null. */
-export const resolveTwitchCreator = cache((name: string) =>
-  publicGet<Creator>("/creators/resolve", { source: "twitch", name })
-);
+/** Resolve a Twitch login to the redirect search query for its Streamer (or Channel), or null. */
+export const resolveTwitchSearch = cache(async (login: string): Promise<string | null> => {
+  const found = await publicGet<ChannelLookup>("/channels/lookup", { platform: "twitch", login });
+  if (!found) return null;
+  return found.streamer ? `streamer=${found.streamer.id}` : `channel=${encodeURIComponent(found.channel.id)}`;
+});
 
-/** Resolve a legacy VOD id (`v:<id>` or Twitch source id) to a video id, or null. */
+/** Resolve a legacy Twitch VOD id (`v:<id>` or source id) to a recording id, or null. */
 export async function resolveVideoId(vodId: string): Promise<number | null> {
   if (vodId.startsWith("v:")) {
     const id = Number(vodId.slice(2));
     return Number.isSafeInteger(id) && id > 0 ? id : null;
   }
-  const video = await publicGet<Video>("/videos/resolve", { source: "twitch", sourceId: vodId });
-  return video?.id ?? null;
+  const recording = await publicGet<Recording>("/recordings/lookup", { platform: "twitch", sourceId: vodId });
+  return recording?.id ?? null;
 }
 
 /** Find the nth (1-based) timeline marker for a username in a video; paging is bounded. */
@@ -60,7 +62,7 @@ export async function findMatchupId(videoId: number, username: string, occurrenc
   let cursor: string | null = null;
   let seen = 0;
   for (let page = 0; page < MAX_TIMELINE_PAGES; page++) {
-    const result: Page<TimelineMarker> | null = await publicGet(`/videos/${videoId}/timeline`, { cursor, limit: 100 });
+    const result: Page<TimelineMarker> | null = await publicGet(`/recordings/${videoId}/timeline`, { cursor, limit: 100 });
     if (!result) return null;
     for (const marker of result.items) {
       if (marker.username.toLowerCase() === wanted && ++seen === occurrence) return marker.id;
@@ -71,10 +73,10 @@ export async function findMatchupId(videoId: number, username: string, occurrenc
   return null;
 }
 
-/** Playback metadata for a video (title/creator), or null. */
-export const getVideo = cache(async (id: number): Promise<Playback["video"] | null> => {
+/** Playback metadata for a recording (title/channel), or null. */
+export const getVideo = cache(async (id: number): Promise<Playback["recording"] | null> => {
   if (!Number.isSafeInteger(id) || id < 1) return null;
-  return (await publicGet<Playback>(`/videos/${id}/playback`))?.video ?? null;
+  return (await publicGet<Playback>(`/recordings/${id}/playback`))?.recording ?? null;
 });
 
 /** Most recent matchups for the sitemap. */

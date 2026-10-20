@@ -1,7 +1,7 @@
 import { backendFetch } from "@/lib/backend-server";
 import { mockSocial } from "@/lib/auth-mock";
 
-const PUBLIC_READS = new Set(["matchups", "stats", "search", "creators", "videos"]);
+const PUBLIC_READS = new Set(["matchups", "stats", "search", "streamers", "recordings"]);
 const SESSION_COOKIE = /(?:^|;\s*)(?:bazaarghost_session|__Host-bazaarghost_session|mock_session)=/;
 
 /** Same-origin gateway. No administrative credentials or arbitrary upstream URLs. */

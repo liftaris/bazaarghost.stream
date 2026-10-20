@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useEffectEvent, useState } from "react";
-import type { Matchup } from "@/lib/api-contract";
+import type { MatchupDetail } from "@/lib/api-contract";
 import { cachedGet } from "@/lib/api-cache";
+import { ghostResult } from "@/lib/result-models";
 import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
 
 /** Bootstrap the player from a durable URL. Legacy URLs are redirected on the server. */
@@ -15,7 +16,7 @@ export function GhostLoader({
   vodId?: string;
   timestamp?: number;
   matchupId?: number;
-  initialMatchup?: Matchup;
+  initialMatchup?: MatchupDetail;
 }) {
   const { setEmbed, setActiveGhost } = useEmbedActions();
   const { activeGhost, videoId } = useEmbedState();
@@ -33,27 +34,26 @@ export function GhostLoader({
           const initial = live.initialMatchup?.id === matchupId ? live.initialMatchup : undefined;
           // Already showing this matchup (user click or passive advance): don't re-seek
           const { activeGhost: ghost, videoId: loaded } = live;
-          if (
-            ghost?.matchup_id === matchupId &&
-            (!initial || loaded === `v:${initial.video.id}`)
-          )
-            return;
-          const { matchup } = initial
-            ? { matchup: initial }
-            : await cachedGet(`/matchups/${matchupId}`, {}, { signal: controller.signal });
+          const row = initial ? ghostResult(initial) : null;
+          if (ghost?.matchup_id === matchupId && (!row || loaded === row.vod_source_id)) return;
+          const matchup = initial ?? (await cachedGet(`/matchups/${matchupId}`, {}, { signal: controller.signal }));
           if (controller.signal.aborted) return;
-          setEmbed(`v:${matchup.video.id}`, matchup.timestampSeconds, {
-            streamerName: matchup.video.creator.name,
-            streamerAvatar: matchup.video.creator.avatarUrl ?? "",
-            vodTitle: matchup.video.title,
-            date: matchup.video.publishedAt ?? "",
+          if (matchup.redirectedFrom !== undefined) window.history.replaceState(window.history.state, "", `/matchups/${matchup.id}`);
+          const result = ghostResult(matchup);
+          if (!result) throw new Error("This matchup has no playable source");
+          setEmbed(result.vod_source_id, result.frame_time_seconds, {
+            streamerId: result.streamer_id,
+            streamerName: result.streamer_display_name,
+            streamerAvatar: result.streamer_avatar,
+            vodTitle: result.vod_title,
+            date: matchup.recordedAt ?? "",
           });
           setActiveGhost({
-            matchup_id: matchup.id,
-            detection_id: matchup.detection.id,
-            username: matchup.detection.username,
-            rank: matchup.detection.rank,
-            frame_time_seconds: matchup.timestampSeconds,
+            matchup_id: result.matchup_id,
+            detection_id: String(result.matchup_id),
+            username: result.username,
+            rank: result.rank,
+            frame_time_seconds: result.frame_time_seconds,
           });
           return;
         }

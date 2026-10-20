@@ -12,7 +12,7 @@ const PAGE = 50;
 async function fetchMatchups(ids: number[], signal: AbortSignal) {
   return Promise.all(ids.map(async (id) => {
     try {
-      return [id, ghostResult((await cachedGet(`/matchups/${id}`, {}, { signal })).matchup)] as const;
+      return [id, ghostResult(await cachedGet(`/matchups/${id}`, {}, { signal }))] as const;
     } catch {
       return [id, null] as const;
     }
@@ -20,7 +20,7 @@ async function fetchMatchups(ids: number[], signal: AbortSignal) {
 }
 
 /**
- * Saved matchups as full result cards. The favorites route returns bare clips, so each
+ * Saved matchups as full result cards. The favorites route returns bare Matchup ids, so each
  * is resolved through the public matchup route (cached per ID). Rows removed while the
  * list is open stay until it is left, so an accidental unsave is one tap to undo.
  */

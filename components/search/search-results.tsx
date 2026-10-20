@@ -200,12 +200,7 @@ export function SearchResults({
             <VirtualizedResultList
               items={filteredStreamers}
               totalCount={filteredStreamers.length}
-              getItemKey={(s) =>
-                s.streamer_id ??
-                s.streamer_login ??
-                s.streamer_display_name ??
-                "unknown"
-              }
+              getItemKey={(s) => s.streamer_id}
               renderItem={renderStreamer}
               onLoadMore={loadMoreCreators}
               isLoadingMore={creatorsLoading}

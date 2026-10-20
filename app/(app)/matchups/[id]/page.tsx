@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { GhostLoader } from "@/components/ghost-loader";
 import { getMatchup } from "@/lib/api-server";
 import { buildMatchupMetadata } from "@/lib/metadata";
@@ -25,5 +25,6 @@ export default async function MatchupPage({ params }: Props) {
     return <GhostLoader matchupId={id} />;
   }
   if (!detail) notFound();
-  return <GhostLoader matchupId={id} initialMatchup={detail.matchup} />;
+  if (detail.redirectedFrom !== undefined) permanentRedirect(`/matchups/${detail.id}`);
+  return <GhostLoader matchupId={id} initialMatchup={detail} />;
 }

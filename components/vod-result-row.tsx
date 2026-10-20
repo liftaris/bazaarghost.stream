@@ -34,12 +34,13 @@ export const VodResultRow = memo(function VodResultRow({
   const { setEmbed } = useEmbedActions();
   const isActive = useEmbedState().videoId === vod.vod_source_id;
 
-  const warm = () => prefetch(`/videos/${vod.vod_id}/playback`);
+  const warm = () => prefetch(`/recordings/${vod.vod_id}/playback`);
 
   // Optimistic update only; the Link performs the (single) navigation.
   const handlePlay = (e: MouseEvent) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     setEmbed(vod.vod_source_id, 0, {
+      streamerId: vod.streamer_id,
       streamerName: vod.streamer_display_name,
       streamerAvatar: vod.streamer_avatar,
       vodTitle: vod.title,
@@ -62,7 +63,7 @@ export const VodResultRow = memo(function VodResultRow({
         {/* Streamer avatar */}
         <Avatar className="size-9 shrink-0">
           <AvatarImage
-            src={vod.streamer_avatar}
+            src={vod.streamer_avatar || undefined}
             alt={vod.streamer_display_name}
           />
           <AvatarFallback className="bg-primary text-primary-foreground text-xs">
@@ -73,17 +74,18 @@ export const VodResultRow = memo(function VodResultRow({
         {/* Main content */}
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
           <div className="flex items-center gap-1.5 truncate text-sm">
-            <button
-              onClick={() => {
-                onNavigateToStreamer(
-                  vod.streamer_id,
-                  vod.streamer_display_name
-                );
-              }}
-              className="relative z-10 shrink-0 font-medium text-primary hover:underline"
-            >
-              {vod.streamer_display_name}
-            </button>
+            {vod.streamer_id ? (
+              <button
+                onClick={() => {
+                  onNavigateToStreamer(vod.streamer_id!, vod.streamer_display_name);
+                }}
+                className="relative z-10 shrink-0 font-medium text-primary hover:underline"
+              >
+                {vod.streamer_display_name}
+              </button>
+            ) : (
+              <span className="shrink-0 font-medium text-primary">{vod.streamer_display_name}</span>
+            )}
             <span className="shrink-0 text-muted-foreground">&mdash;</span>
             <Link
               href={`/videos/${vod.vod_id}`}

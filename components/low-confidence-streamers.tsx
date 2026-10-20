@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Page, CreatorQuality } from "@/lib/api-contract";
+import type { Page, StreamerQuality } from "@/lib/api-contract";
 import { apiGet } from "@/lib/api-client";
 
 interface LowConfidenceStreamer {
@@ -20,7 +20,7 @@ export function LowConfidenceStreamers() {
         const items: LowConfidenceStreamer[] = [];
         let cursor: string | null = null;
         do {
-          const page: Page<CreatorQuality> = await apiGet("/creators/quality", { cursor });
+          const page: Page<StreamerQuality> = await apiGet("/streamers/quality", { cursor });
           items.push(...page.items.map(row=>({login:row.login,display_name:row.displayName,avg_confidence:row.averageConfidence})));
           cursor=page.nextCursor;
         } while(cursor);
