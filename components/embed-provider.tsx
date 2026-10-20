@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { usePlayback } from "@/hooks/use-playback";
 import { cachedGet } from "@/lib/api-cache";
 import type { Playback, RecordingSource, Source } from "@/lib/api-contract";
+import { withListParams } from "@/lib/search-filters";
 import { mapSessionTime, recordingPath, recordingSources, rememberPlatform, sourcePin } from "@/lib/sources";
 import {
   createPlayerAdapter,
@@ -510,7 +511,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     if (!ghost) return;
     setGhostOverride(ghost);
     const url = ghost.matchup_id ? `/matchups/${ghost.matchup_id}` : null;
-    if (url && window.location.pathname !== url && !inSessionMode()) router.push(url, { scroll: false });
+    if (url && window.location.pathname !== url && !inSessionMode()) router.push(withListParams(url), { scroll: false });
     seek(ghost.frame_time_seconds);
   }, [router, seek, timeStore]);
 

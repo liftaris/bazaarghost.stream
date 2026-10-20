@@ -3,12 +3,10 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { deriveSearchMode, deriveSelection, MODE_PATHS } from "../lib/route-utils";
-import { parseDay, parsePlatformList } from "@/lib/search-filters";
+import { LIST_PARAMS, parseDay, parsePlatformList } from "@/lib/search-filters";
 import { useWorkspaceActive } from "@/components/workspace-context";
 import type { SearchMode, Selection } from "../types";
 
-/** Params every list shares; a selection URL carries them so reload and back restore both panes. */
-const LIST_PARAMS = ["q", "platform", "xplatform", "from", "to", "streamer", "channel"] as const;
 /** Params that survive a mode switch, per target mode (the text query is per mode). */
 const MODE_PARAMS: Record<SearchMode, readonly string[]> = {
   ghosts: ["platform", "xplatform", "from", "to", "streamer"],

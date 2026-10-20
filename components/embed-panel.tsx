@@ -41,6 +41,7 @@ import { PlayerSlot } from "@/components/player/player-slot";
 import { BookmarkButton } from "@/components/social/bookmark-button";
 import { Kbd } from "@/components/ui/kbd";
 import { PLAYER_SHORTCUTS, type PlayerShortcutAction } from "@/lib/player-shortcuts";
+import { withListParams } from "@/lib/search-filters";
 import { sourcePin } from "@/lib/sources";
 import type { SearchMode } from "@/components/search/types";
 import { cn } from "@/lib/utils";
@@ -154,7 +155,7 @@ export function EmbedPanel({ mode, children }: { mode: SearchMode; children?: Re
     const url = buildGhostUrl(currentGhost);
     const here = window.location.pathname;
     if (url && here !== url && here.startsWith("/matchups/")) {
-      window.history.replaceState(window.history.state, "", url);
+      window.history.replaceState(window.history.state, "", withListParams(url));
     }
   }, [currentGhost, ghostIsOptimistic, buildGhostUrl]);
 
@@ -366,7 +367,7 @@ export function EmbedPanel({ mode, children }: { mode: SearchMode; children?: Re
       </>}
 
       {children && (
-        <div className={cn("flex min-h-0 flex-1 flex-col border-border max-md:h-[36svh]", showChrome && "border-t")}>
+        <div className={cn("flex min-h-0 flex-1 flex-col border-border max-md:h-[30svh]", showChrome && "border-t")}>
           {children}
         </div>
       )}

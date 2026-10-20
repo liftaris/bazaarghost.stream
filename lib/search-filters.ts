@@ -79,3 +79,17 @@ export function readUrlPlatformFilter(): PlatformFilter {
   const include = parsePlatformList(params.get("platform"));
   return { include, exclude: parsePlatformList(params.get("xplatform")).filter((id) => !include.includes(id)) };
 }
+
+/** Params every list shares; a selection URL carries them so reload and back restore both panes. */
+export const LIST_PARAMS = ["q", "platform", "xplatform", "from", "to", "streamer", "channel"] as const;
+
+/** `path` plus the list params of the live URL. */
+export function withListParams(path: string): string {
+  const live = new URLSearchParams(window.location.search);
+  const out = new URLSearchParams();
+  for (const key of LIST_PARAMS) {
+    const value = live.get(key);
+    if (value) out.set(key, value);
+  }
+  return out.size ? `${path}?${out}` : path;
+}

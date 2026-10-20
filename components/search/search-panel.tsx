@@ -33,7 +33,7 @@ export default function SearchPanel() {
   const router = useRouter();
   const url = useSearchUrl();
   const { mode, selection, filters, setParams, selectionHref, switchMode } = url;
-  const { playback } = useEmbedState();
+  const { playback, isVisible, videoId } = useEmbedState();
   const playingSessionId = playback?.recording.sessionId ?? null;
   const startSession = useSessionPlayer();
 
@@ -148,7 +148,8 @@ export default function SearchPanel() {
     </>
   );
 
-  const detailSessionId = selectedSessionId ?? (mode === "recordings" ? playingSessionId : null);
+  // A Session's ghosts only make sense beside its player, so they appear with it
+  const detailSessionId = mode === "recordings" && isVisible && videoId ? selectedSessionId ?? playingSessionId : null;
   const detail =
     mode === "streamers" && selectedStreamerId ? (
       <StreamerRecordings
