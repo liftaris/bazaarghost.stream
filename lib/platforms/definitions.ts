@@ -109,7 +109,7 @@ export const bilibili: PlatformDefinition = {
   capabilities: bilibiliCaps,
   formatTimestamp: secs,
   watchUrl: (ref, t) => {
-    const base = ref.watchUrl || `https://www.bilibili.com/video/${ref.sourceId}`;
+    const base = ref.watchUrl || `https://www.bilibili.com/video/${ref.sourceId.split(":")[0]}`;
     return t === undefined ? base : withParam(base, "t", secs(t));
   },
   parseUrl(input) {

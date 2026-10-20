@@ -106,6 +106,7 @@ export function EmbedPanel() {
     activeGhost: currentGhost,
     ghostIsOptimistic,
     bazaarChapters,
+    capabilities,
   } = useEmbedState();
   const { hideEmbed, seek, setActiveGhost } = useEmbedActions();
   const duration = useEmbedTime((s) => s.duration);
@@ -220,7 +221,7 @@ export function EmbedPanel() {
   const showChrome = isVisible && !!videoId;
   const when = meta?.date ? relativeDate(meta.date) : null;
   const rank = currentGhost?.rank?.toLowerCase();
-  const twitchOnly = !playback || playback.player.platform === "twitch";
+  const showTimeline = !capabilities || capabilities.timeEvents;
 
   // Nothing selected: a still empty state, not loading placeholders. Desktop only;
   // on mobile the results take the whole screen.
@@ -356,7 +357,7 @@ export function EmbedPanel() {
       </div>
 
       {/* Timeline — fixed-height slot so late data doesn't shift layout */}
-      {twitchOnly && (
+      {showTimeline && (
         <div className="h-[52px] border-t border-border px-3 py-3">
           {isReady && duration > 0 ? (
             <EmbedTimeline

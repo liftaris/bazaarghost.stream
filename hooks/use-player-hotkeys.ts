@@ -34,15 +34,15 @@ export function usePlayerHotkeys() {
       if (target?.closest(OVERLAY) || document.querySelector(OVERLAY)) return;
       const interactive = !!target?.closest(INTERACTIVE);
 
-      const platform = state.playback?.player.platform;
-      const canSeek = platform === "twitch" || platform === "youtube";
+      const caps = state.capabilities;
+      const canSeek = !!caps?.seek;
       const seekBy = (delta: number) => {
         if (!canSeek) return;
         const max = duration > 0 ? duration : Infinity;
         actions.seek(Math.min(max, Math.max(0, currentTime + delta)));
       };
       const gotoGhost = (dir: "prev" | "next") => {
-        if (platform !== "twitch" && platform !== "youtube") return;
+        if (!canSeek) return;
         // Step from the active ghost like the panel's buttons; fall back to the playhead.
         const idx = state.activeGhost
           ? state.ghosts.findIndex((x) => x.detection_id === state.activeGhost!.detection_id)
@@ -95,10 +95,12 @@ export function usePlayerHotkeys() {
           break;
         case "m":
         case "M":
+          if (!caps?.mute) return;
           actions.toggleMute();
           break;
         case "f":
         case "F": {
+          if (caps && !caps.fullscreen) return;
           const host = document.getElementById(actions.containerId)?.parentElement;
           if (document.fullscreenElement) void document.exitFullscreen();
           else void host?.requestFullscreen?.();

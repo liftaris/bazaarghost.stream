@@ -15,7 +15,13 @@ import { useRouter } from "next/navigation";
 import { PlayerHost, SLOT_EVENT } from "@/components/player/player-host";
 import { usePlayback } from "@/hooks/use-playback";
 import type { Playback } from "@/lib/api-contract";
-import "@/lib/platforms/players/twitch";
+import {
+  createPlayerAdapter,
+  getPlatform,
+  type PlatformCapabilities,
+  type PlayerAdapter,
+  type PlayerSnapshot,
+} from "@/lib/platforms";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -46,7 +52,7 @@ interface EmbedActions {
   /** Load a VOD (or seek if already loaded). Pass meta for the info bar. */
   setEmbed: (videoId: string, timestamp: number, meta?: EmbedMeta) => void;
   hideEmbed: () => void;
-  /** Stable container ID for the Twitch player div. */
+  /** Stable container ID the platform adapters mount into. */
   containerId: string;
   /** Register the PlayerSlot element the persistent host should cover. */
   registerSlot: (el: HTMLElement | null) => void;
@@ -78,6 +84,8 @@ interface EmbedSlowState extends EmbedState {
   /** True while activeGhost is an optimistic (user-initiated) override. */
   ghostIsOptimistic: boolean;
   bazaarChapters: number[] | null;
+  /** Capabilities of the current video's platform; null until playback loads. */
+  capabilities: PlatformCapabilities | null;
 }
 
 /** Fast-changing player state (polled every 500ms while playing). */
@@ -140,46 +148,10 @@ export function useEmbed(): EmbedContextValue {
 }
 
 // ---------------------------------------------------------------------------
-// Twitch script loader (singleton)
-// ---------------------------------------------------------------------------
-
-let scriptPromise: Promise<void> | null = null;
-
-function loadTwitchScript(): Promise<void> {
-  if (scriptPromise) return scriptPromise;
-
-  scriptPromise = new Promise<void>((resolve, reject) => {
-    if (typeof window === "undefined") return reject();
-    if (window.Twitch?.Player) return resolve();
-
-    const existing = document.querySelector(
-      'script[src*="player.twitch.tv/js/embed/v1.js"]'
-    );
-    if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () =>
-        reject(new Error("Failed to load Twitch script"))
-      );
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://player.twitch.tv/js/embed/v1.js";
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () =>
-      reject(new Error("Failed to load Twitch player script"));
-    document.head.appendChild(script);
-  });
-
-  return scriptPromise;
-}
-
-// ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
 
-const CONTAINER_ID = "bazaarghost-twitch-embed";
+const CONTAINER_ID = "bazaarghost-player";
 const POLL_INTERVAL_MS = 500;
 
 export function EmbedProvider({ children }: { children: ReactNode }) {
@@ -211,18 +183,16 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   // VOD data (fetched from vod_embed_info)
   const bazaarChapters = playback.data?.chapters ?? null;
 
-  const playerRef = useRef<any>(null);
-  const playerPlatformRef = useRef<string | null>(null);
+  const adapterRef = useRef<PlayerAdapter | null>(null);
+  const adapterOffRef = useRef<(() => void)[]>([]);
   const loadedVideoRef = useRef<string | null>(null);
+  const loadedSourceRef = useRef<string | null>(null);
   const videoIdRef = useRef<string | null>(null);
-  const readyRef = useRef(false);
-  const pendingSeekRef = useRef<number | null>(null);
-  const youtubeReadyRef = useRef(false);
+  const pendingStartRef = useRef<number | null>(null);
   const seekTargetRef = useRef<number | null>(null);
   const slotRef = useRef<HTMLElement | null>(null);
   const router = useRouter();
   const [pageVisible, setPageVisible] = useState(true);
-  const [reloadNonce, setReloadNonce] = useState(0);
 
   const registerSlot = useCallback((el: HTMLElement | null) => {
     slotRef.current = el;
@@ -236,62 +206,37 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("visibilitychange", update);
   }, []);
 
-  const youtubeCommand = useCallback((func: string, args: unknown[] = []) => {
-    const frame = document.getElementById(CONTAINER_ID)?.querySelector("iframe");
-    frame?.contentWindow?.postMessage(
-      JSON.stringify({ event: "command", func, args }),
-      "https://www.youtube.com"
-    );
-  }, []);
-
-  /** Read the Twitch player into state (called on events and while polling). */
-  const syncFromPlayer = useCallback(() => {
-    const p = playerRef.current;
-    if (!p || playerPlatformRef.current !== "twitch") return;
-    try {
-      const polledTime = p.getCurrentTime() ?? 0;
+  /** Fold what the adapter reports into the time store. */
+  const applySnapshot = useCallback((snap: PlayerSnapshot) => {
+    if (snap.time !== undefined) {
       // While a seek is in flight keep the optimistic value until it lands
       if (seekTargetRef.current !== null) {
-        if (Math.abs(polledTime - seekTargetRef.current) < 2) {
+        if (Math.abs(snap.time - seekTargetRef.current) < 2) {
           seekTargetRef.current = null;
-          setCurrentTime(polledTime);
+          setCurrentTime(snap.time);
         }
       } else {
-        setCurrentTime(polledTime);
+        setCurrentTime(snap.time);
       }
-      const d = p.getDuration() ?? 0;
-      if (d > 0) setDuration(d);
-      setIsPaused(p.isPaused() ?? true);
-      setIsMuted(p.getMuted() ?? false);
-    } catch {
-      // Player may not be ready yet
     }
+    if (snap.duration !== undefined && snap.duration > 0) setDuration(snap.duration);
+    if (snap.paused !== undefined) setIsPaused(snap.paused);
+    if (snap.muted !== undefined) setIsMuted(snap.muted);
+  }, [setCurrentTime, setDuration, setIsPaused, setIsMuted]);
+
+  const syncFromPlayer = useCallback(() => {
+    const snap = adapterRef.current?.snapshot();
+    if (snap) applySnapshot(snap);
+  }, [applySnapshot]);
+
+  const disposeAdapter = useCallback(() => {
+    adapterOffRef.current.forEach((off) => off());
+    adapterOffRef.current = [];
+    adapterRef.current?.destroy();
+    adapterRef.current = null;
+    loadedVideoRef.current = null;
+    loadedSourceRef.current = null;
   }, []);
-
-  // ---- Poll only while playing and visible ----
-  useEffect(() => {
-    if (!isReady || isPaused || !pageVisible || !playerRef.current) return;
-    syncFromPlayer();
-    const id = setInterval(syncFromPlayer, POLL_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [isReady, isPaused, pageVisible, syncFromPlayer]);
-
-  useEffect(() => {
-    if (!playback.data) return;
-    const video=playback.data.video;
-    setDuration(video.durationSeconds);
-    setState(previous=>({...previous,meta:{streamerName:video.creator.name,streamerAvatar:video.creator.avatarUrl??"",vodTitle:video.title,date:video.publishedAt??""}}));
-  },[playback.data]);
-
-  const pause = useCallback(() => {
-    try {
-      if (playerPlatformRef.current === "twitch") playerRef.current?.pause();
-      else if (playerPlatformRef.current === "youtube") youtubeCommand("pauseVideo");
-    } catch {
-      // ignore
-    }
-    setIsPaused(true);
-  }, [youtubeCommand]);
 
   const data = playback.data;
   const dataVideoId = data?.video.id ?? null;
@@ -300,186 +245,98 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   const embedUrl = data?.player.embedUrl ?? null;
   const available = data?.player.available ?? true;
   const videoTitle = data?.video.title ?? "";
-  const bilibiliHidden = platform === "bilibili" && !isVisible;
+  const capabilities = useMemo(() => (platform ? getPlatform(platform).capabilities : null), [platform]);
+  const timeEvents = capabilities?.timeEvents ?? false;
+  // Platforms that cannot pause are unmounted while the player is closed
+  const unmountWhileHidden = !isVisible && capabilities?.pause === false;
 
-  // ---- Create / update the player. Twitch: created once, setVideo on change ----
+  // ---- Poll only while playing and visible, for platforms that report time ----
+  useEffect(() => {
+    if (!isReady || isPaused || !pageVisible || !timeEvents || !adapterRef.current) return;
+    syncFromPlayer();
+    const id = setInterval(syncFromPlayer, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [isReady, isPaused, pageVisible, timeEvents, syncFromPlayer]);
+
+  useEffect(() => {
+    if (!playback.data) return;
+    const video=playback.data.video;
+    setDuration(video.durationSeconds);
+    setState(previous=>({...previous,meta:{streamerName:video.creator.name,streamerAvatar:video.creator.avatarUrl??"",vodTitle:video.title,date:video.publishedAt??""}}));
+  },[playback.data, setDuration]);
+
+  const pause = useCallback(() => {
+    adapterRef.current?.pause();
+    setIsPaused(true);
+  }, [setIsPaused]);
+
+  // ---- Create / swap the player through its adapter ----
   useEffect(() => {
     setError(null);
-    if (!state.videoId || dataVideoId === null) return;
+    if (!state.videoId || dataVideoId === null || platform === null || sourceId === null) return;
     if (dataVideoId !== Number(state.videoId.slice(2))) return;
     const container = document.getElementById(CONTAINER_ID);
     if (!container) return;
+    const def = getPlatform(platform);
+    let adapter = adapterRef.current;
     if (!available) {
       pause();
-      if (playerPlatformRef.current !== "twitch") {
-        container.replaceChildren();
-        playerRef.current = null;
-        playerPlatformRef.current = null;
-        loadedVideoRef.current = null;
-        readyRef.current = false;
+      if (adapter && !adapter.capabilities.swap) {
+        disposeAdapter();
         setIsReady(false);
       }
       setError("This video is no longer available on its original platform.");
       return;
     }
-    if (platform !== "twitch") {
-      if (!embedUrl) return;
-      const old = container.querySelector("iframe");
-      if (old) old.remove();
-      playerRef.current = null;
-      playerPlatformRef.current = platform;
-      loadedVideoRef.current = null;
-      readyRef.current = false;
-      youtubeReadyRef.current = false;
-      if (bilibiliHidden) {
-        setIsReady(false);
-        return;
-      }
-      const start = Math.floor(pendingSeekRef.current ?? 0);
-      pendingSeekRef.current = null;
-      const frame = document.createElement("iframe");
-      const url = new URL(embedUrl);
-      url.searchParams.set(platform === "youtube" ? "start" : "t", String(start));
-      if (platform === "youtube") {
-        url.searchParams.set("enablejsapi", "1");
-        url.searchParams.set("origin", window.location.origin);
-      }
-      frame.src = url.href;
-      frame.title = videoTitle;
-      frame.allow = "autoplay; fullscreen; picture-in-picture";
-      frame.allowFullscreen = true;
-      frame.style.width = "100%";
-      frame.style.height = "100%";
-      frame.style.border = "0";
-      let onMessage: ((e: MessageEvent) => void) | null = null;
-      if (platform === "youtube") {
-        frame.addEventListener("load", () =>
-          frame.contentWindow?.postMessage(
-            JSON.stringify({ event: "listening", id: 1, channel: "widget" }),
-            "https://www.youtube.com"
-          )
-        );
-        onMessage = (e) => {
-          if (e.source !== frame.contentWindow || typeof e.data !== "string") return;
-          let msg: any;
-          try { msg = JSON.parse(e.data); } catch { return; }
-          if (msg.event === "onReady" || msg.event === "initialDelivery") {
-            if (!youtubeReadyRef.current) {
-              youtubeReadyRef.current = true;
-              readyRef.current = true;
-              if (pendingSeekRef.current !== null) {
-                youtubeCommand("seekTo", [pendingSeekRef.current, true]);
-                pendingSeekRef.current = null;
-              }
-            }
-          } else if (msg.event === "infoDelivery" && typeof msg.info?.playerState === "number") {
-            setIsPaused(msg.info.playerState !== 1);
-          }
-        };
-        window.addEventListener("message", onMessage);
-      }
-      container.appendChild(frame);
-      loadedVideoRef.current = state.videoId;
-      setIsReady(true);
-      return () => {
-        if (onMessage) window.removeEventListener("message", onMessage);
-        frame.remove();
-      };
-    }
-
-    // Twitch
-    if (
-      playerRef.current &&
-      playerPlatformRef.current === "twitch" &&
-      container.querySelector("iframe")
-    ) {
-      if (loadedVideoRef.current === state.videoId) return;
-      loadedVideoRef.current = state.videoId;
-      const start = pendingSeekRef.current ?? 0;
-      pendingSeekRef.current = null;
-      seekTargetRef.current = start;
-      setCurrentTime(start);
-      try {
-        playerRef.current.setVideo(sourceId, start);
-        playerRef.current.play();
-      } catch {
-        // ignore
-      }
+    if (unmountWhileHidden) {
+      disposeAdapter();
+      setIsReady(false);
       return;
     }
 
-    let cancelled = false;
-    playerRef.current = null;
-    playerPlatformRef.current = "twitch";
-    loadedVideoRef.current = state.videoId;
-    readyRef.current = false;
-    setIsReady(false);
-    // Hold the requested start (not 0) until the new player reports it, so the
-    // active ghost doesn't drop out while the player boots.
-    seekTargetRef.current = pendingSeekRef.current;
-    setCurrentTime(pendingSeekRef.current ?? 0);
-    setIsPaused(true);
+    const source = `${sourceId}|${embedUrl ?? ""}`;
+    const take = () => {
+      const start = pendingStartRef.current ?? 0;
+      pendingStartRef.current = null;
+      return { sourceId, embedUrl, title: videoTitle, start };
+    };
 
-    const init = async () => {
-      try {
-        await loadTwitchScript();
-        if (cancelled) return;
-        container.replaceChildren();
-        const start = Math.floor(pendingSeekRef.current ?? 0);
-        pendingSeekRef.current = null;
-        const hours = Math.floor(start / 3600);
-        const minutes = Math.floor((start % 3600) / 60);
-        const seconds = start % 60;
-        const player = new window.Twitch!.Player(CONTAINER_ID, {
-          video: sourceId,
-          width: "100%",
-          height: "100%",
-          autoplay: true,
-          time: `${hours}h${minutes}m${seconds}s`,
-          parent: [window.location.hostname],
-        });
-        playerRef.current = player;
-        player.addEventListener("ready", () => {
-          readyRef.current = true;
-          setIsReady(true);
-          if (pendingSeekRef.current !== null) {
-            player.seek(pendingSeekRef.current);
-            pendingSeekRef.current = null;
-          }
-        });
-        player.addEventListener("playing", () => {
-          setIsPaused(false);
-          syncFromPlayer();
-        });
-        player.addEventListener("pause", () => {
-          setIsPaused(true);
-          syncFromPlayer();
-        });
-        player.addEventListener("ended", () => setIsPaused(true));
-        player.addEventListener("seek", () => syncFromPlayer());
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to initialize player"
-        );
+    if (adapter && adapter.platform === def.id) {
+      if (adapter.swap && adapter.capabilities.swap) {
+        if (loadedVideoRef.current === state.videoId) return;
+        loadedVideoRef.current = state.videoId;
+        loadedSourceRef.current = source;
+        const src = take();
+        seekTargetRef.current = src.start;
+        setCurrentTime(src.start);
+        adapter.swap(src);
+        return;
       }
-    };
+      if (loadedVideoRef.current === state.videoId && loadedSourceRef.current === source) return;
+    }
 
-    void init();
-    return () => {
-      cancelled = true;
-    };
-  }, [state.videoId, dataVideoId, platform, sourceId, embedUrl, available, videoTitle, bilibiliHidden, reloadNonce, pause, syncFromPlayer, youtubeCommand]);
+    if (adapter) disposeAdapter();
+    // Hold the requested start (not 0) until the player reports it, so the
+    // active ghost doesn't drop out while the player boots.
+    seekTargetRef.current = pendingStartRef.current;
+    setCurrentTime(pendingStartRef.current ?? 0);
+    setIsPaused(true);
+    setIsReady(false);
+    adapter = createPlayerAdapter(platform);
+    adapterRef.current = adapter;
+    loadedVideoRef.current = state.videoId;
+    loadedSourceRef.current = source;
+    adapterOffRef.current = [
+      adapter.on("ready", () => setIsReady(true)),
+      adapter.on("state", applySnapshot),
+      adapter.on("time", applySnapshot),
+      adapter.on("error", setError),
+    ];
+    adapter.mount(container, take());
+  }, [state.videoId, dataVideoId, platform, sourceId, embedUrl, available, videoTitle, unmountWhileHidden, pause, applySnapshot, disposeAdapter, setCurrentTime, setIsPaused]);
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (playerRef.current) {
-        const container = document.getElementById(CONTAINER_ID);
-        if (container) container.innerHTML = "";
-        playerRef.current = null;
-      }
-    };
-  }, []);
+  useEffect(() => disposeAdapter, [disposeAdapter]);
 
   // ---- Active ghost: optimistic override or time-derived ----
   const sortedGhosts = useMemo(
@@ -532,20 +389,10 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   const seek = useCallback((seconds: number) => {
     seekTargetRef.current = seconds; // suppress poll until player catches up
     setCurrentTime(seconds); // optimistic update
-    const loaded = loadedVideoRef.current === videoIdRef.current;
-    const p = playerRef.current;
-    if (loaded && readyRef.current && playerPlatformRef.current === "twitch" && p) {
-      p.seek(seconds);
-    } else if (loaded && playerPlatformRef.current === "youtube" && youtubeReadyRef.current) {
-      youtubeCommand("seekTo", [seconds, true]);
-    } else if (loaded && playerPlatformRef.current === "bilibili") {
-      // Bilibili has no seek API: reload, only ever on explicit user seeks
-      pendingSeekRef.current = seconds;
-      setReloadNonce((n) => n + 1);
-    } else {
-      pendingSeekRef.current = seconds;
-    }
-  }, [youtubeCommand]);
+    const adapter = adapterRef.current;
+    if (adapter && loadedVideoRef.current === videoIdRef.current) adapter.seek(seconds);
+    else pendingStartRef.current = seconds;
+  }, [setCurrentTime]);
 
   const setEmbed = useCallback(
     (videoId: string, timestamp: number, meta?: EmbedMeta) => {
@@ -563,13 +410,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
       }
       setIsVisible(true);
       seek(timestamp);
-      if (!changed) {
-        try {
-          if (playerPlatformRef.current === "twitch" && readyRef.current) playerRef.current?.play();
-        } catch {
-          // ignore
-        }
-      }
+      if (!changed) adapterRef.current?.play();
     },
     [seek]
   );
@@ -580,30 +421,22 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   }, [pause]);
 
   const play = useCallback(() => {
-    playerRef.current?.play();
+    adapterRef.current?.play();
   }, []);
 
   const togglePlay = useCallback(() => {
-    const p = playerRef.current;
-    if (!p) return;
-    try {
-      if (p.isPaused()) p.play();
-      else p.pause();
-    } catch {
-      // ignore
-    }
-  }, []);
+    const adapter = adapterRef.current;
+    if (!adapter) return;
+    const paused = adapter.snapshot()?.paused ?? timeStore.get().isPaused;
+    if (paused) adapter.play();
+    else adapter.pause();
+  }, [timeStore]);
 
   const toggleMute = useCallback(() => {
-    const p = playerRef.current;
-    if (!p) return;
-    try {
-      p.setMuted(!p.getMuted());
-      setIsMuted(p.getMuted());
-    } catch {
-      // ignore
-    }
-  }, []);
+    const adapter = adapterRef.current;
+    if (!adapter?.capabilities.mute) return;
+    adapter.setMuted(!(adapter.snapshot()?.muted ?? timeStore.get().isMuted));
+  }, [timeStore]);
 
   const actions = useMemo<EmbedActions>(
     () => ({ setEmbed, hideEmbed, containerId: CONTAINER_ID, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost,
@@ -623,8 +456,9 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
       activeGhost,
       ghostIsOptimistic,
       bazaarChapters,
+      capabilities,
     }),
-    [state, isVisible, isReady, mergedError, playback.data, sortedGhosts, activeGhost, ghostIsOptimistic, bazaarChapters]
+    [state, isVisible, isReady, mergedError, playback.data, sortedGhosts, activeGhost, ghostIsOptimistic, bazaarChapters, capabilities]
   );
 
   return (
