@@ -54,6 +54,9 @@ export const RecordingResultRow = memo(function RecordingResultRow({
   const textRef = useRef<HTMLSpanElement>(null);
   const owner = session.streamer ?? session.channel;
   const highlighted = selected || active;
+  const hasDuration = session.durationSeconds != null;
+  const hasDate = !!session.startedAt;
+  const marks = session.platforms.map((platform) => ({ platform }));
 
   // Measured on enter/focus only, written straight to the DOM: no state, no re-render.
   const measure = () => {
@@ -118,23 +121,32 @@ export const RecordingResultRow = memo(function RecordingResultRow({
               </span>
             </button>
           </div>
-          <div className="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
-            {session.durationSeconds != null && <span>{formatDuration(session.durationSeconds)}</span>}
-            {session.durationSeconds != null && session.startedAt && <span aria-hidden>·</span>}
-            {session.startedAt && <span className="truncate">{formatDate(session.startedAt)}</span>}
+          <div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+            {hasDuration && <span className="hidden @[200px]:inline">{formatDuration(session.durationSeconds!)}</span>}
+            {hasDate && (
+              <span className={cn("hidden @[260px]:inline", hasDuration && "before:mr-1.5 before:content-['·']")}>
+                {formatDate(session.startedAt!)}
+              </span>
+            )}
             {session.matchupCount > 0 && (
-              <>
-                <span aria-hidden>·</span>
-                <span className="flex items-center gap-0.5" title={`${session.matchupCount} ghosts`}>
-                  <Ghost aria-hidden className="size-3" />
-                  <span className="sr-only">Ghosts: </span>
-                  {session.matchupCount}
-                </span>
-              </>
+              <span
+                className={cn(
+                  "flex items-center gap-0.5",
+                  hasDuration
+                    ? "@[200px]:before:mr-1 @[200px]:before:content-['·']"
+                    : hasDate && "@[260px]:before:mr-1 @[260px]:before:content-['·']"
+                )}
+                title={`${session.matchupCount} ghosts`}
+              >
+                <Ghost aria-hidden className="size-3" />
+                <span className="sr-only">Ghosts: </span>
+                {session.matchupCount}
+              </span>
             )}
           </div>
         </div>
-        <SourceStack sources={session.platforms.map((platform) => ({ platform }))} />
+        <SourceStack sources={marks} className="hidden @[280px]:flex" />
+        <SourceStack sources={marks.slice(0, 1)} className="hidden @[200px]:flex @[280px]:hidden" />
       </div>
     </div>
   );
