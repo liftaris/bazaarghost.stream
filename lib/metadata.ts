@@ -19,8 +19,7 @@ export function buildMatchupMetadata(detail: MatchupDetail): Metadata {
       url,
       siteName: "BazaarGhost",
       type: "website",
-      images: [{ url: "/logo.png", width: 512, height: 512, alt: "BazaarGhost" }],
     },
-    twitter: { card: "summary", title, description, images: ["/logo.png"] },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
