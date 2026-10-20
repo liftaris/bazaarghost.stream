@@ -6,9 +6,12 @@ import type { Creator, Matchup, MatchupDetail, Page, Playback, TimelineMarker, V
 export const getMatchup = cache(
   async (id: number): Promise<MatchupDetail | null> => {
     if (!Number.isSafeInteger(id) || id < 1) return null;
-    const response = await backendFetch(
-      new Request(`https://bazaarghost.stream/api/v1/matchups/${id}`)
-    );
+    const fetchOnce = () => backendFetch(new Request(`https://bazaarghost.stream/api/v1/matchups/${id}`));
+    let response = await fetchOnce();
+    if (response.status === 429 || response.status >= 500) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      response = await fetchOnce();
+    }
     if (response.status === 404) return null;
     if (!response.ok) throw new Error("Could not load matchup");
     return response.json();

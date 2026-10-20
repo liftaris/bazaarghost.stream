@@ -453,7 +453,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   });
   const goToGhost = useCallback((target: "prev" | "next" | EmbedGhost) => {
     const { ghosts, activeGhost: active, capabilities: caps, videoId } = nav.current;
-    if (!caps?.seek) return;
+    if (!caps?.navigate) return;
     let ghost: EmbedGhost | null;
     if (typeof target === "string") {
       // Step from the active ghost; fall back to the playhead when there is none

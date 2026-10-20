@@ -59,6 +59,9 @@ export class TwitchPlayer extends BasePlayer {
   private player: TwitchSdkPlayer | null = null;
   private ready = false;
   private pendingSeek: number | null = null;
+  private swapTarget: number | null = null;
+  private wantPlay = false;
+  private playRetry: ReturnType<typeof setInterval> | null = null;
   private current: PlayerSource | null = null;
 
   constructor(capabilities: PlatformCapabilities) {
@@ -95,10 +98,27 @@ export class TwitchPlayer extends BasePlayer {
           this.pendingSeek = null;
         }
       });
-      player.addEventListener("playing", () => this.emit("state", this.snapshot() ?? { paused: false }));
+      const landSwap = () => {
+        // setVideo's timestamp is ignored once the new video loads: land on the target after it starts
+        if (this.swapTarget === null) return;
+        const target = this.swapTarget;
+        this.swapTarget = null;
+        try {
+          if (Math.abs((player.getCurrentTime() ?? 0) - target) > 2) player.seek(target);
+        } catch { /* ignore */ }
+      };
+      player.addEventListener("playing", () => {
+        landSwap();
+        this.emit("state", this.snapshot() ?? { paused: false });
+      });
       player.addEventListener("pause", () => this.emit("state", this.snapshot() ?? { paused: true }));
-      player.addEventListener("ended", () => this.emit("state", { paused: true }));
-      player.addEventListener("seek", () => this.emit("time", this.snapshot() ?? {}));
+      player.addEventListener("ended", () => {
+        landSwap();
+        this.emit("state", { paused: true });
+      });
+      player.addEventListener("seek", () => {
+        this.emit("time", this.snapshot() ?? {});
+      });
     } catch (err) {
       this.emit("error", err instanceof Error ? err.message : "Failed to initialize player");
     }
@@ -108,6 +128,9 @@ export class TwitchPlayer extends BasePlayer {
     this.current = src;
     if (!this.player) return;
     try {
+      this.wantPlay = true;
+      this.swapTarget = src.start;
+      this.pendingSeek = null;
       this.player.setVideo(src.sourceId, src.start);
       this.player.play();
     } catch {
@@ -119,6 +142,7 @@ export class TwitchPlayer extends BasePlayer {
     if (!this.player) {
       if (this.current) this.current = { ...this.current, start: t };
     } else if (this.ready) {
+      this.swapTarget = null;
       this.player.seek(t);
     } else {
       this.pendingSeek = t;
@@ -126,10 +150,33 @@ export class TwitchPlayer extends BasePlayer {
   }
 
   play() {
-    try { if (this.ready) this.player?.play(); } catch { /* ignore */ }
+    this.wantPlay = true;
+    this.pushPlay();
+  }
+
+  /** A play() issued around a seek can be swallowed; keep nudging until the player runs. */
+  private pushPlay() {
+    if (this.playRetry) clearInterval(this.playRetry);
+    let tries = 0;
+    const attempt = () => {
+      const p = this.player;
+      try {
+        if (!p || !this.wantPlay || (this.ready && !p.isPaused() && tries > 0) || tries++ > 10) return this.stopRetry();
+        if (this.ready) p.play();
+      } catch { this.stopRetry(); }
+    };
+    attempt();
+    this.playRetry = setInterval(attempt, 500);
+  }
+
+  private stopRetry() {
+    if (this.playRetry) clearInterval(this.playRetry);
+    this.playRetry = null;
   }
 
   pause() {
+    this.wantPlay = false;
+    this.stopRetry();
     try { this.player?.pause(); } catch { /* ignore */ }
   }
 
@@ -156,6 +203,7 @@ export class TwitchPlayer extends BasePlayer {
   }
 
   destroy() {
+    this.stopRetry();
     this.player = null;
     super.destroy();
   }

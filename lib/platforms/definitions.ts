@@ -5,7 +5,7 @@ import { YouTubePlayer } from "./players/youtube";
 import type { PlatformCapabilities, PlatformDefinition, PlatformRefKind, WatchRef } from "./types";
 
 const NONE: PlatformCapabilities = {
-  seek: false, timeEvents: false, pause: true, mute: false, fullscreen: true, swap: false,
+  seek: false, navigate: false, timeEvents: false, pause: true, mute: false, fullscreen: true, swap: false,
   clips: false, createClip: false, clipParentRange: false,
 };
 
@@ -33,7 +33,7 @@ const secs = (t: number) => String(Math.max(0, Math.floor(t)));
 const TWITCH_RESERVED = new Set(["videos", "directory", "downloads", "jobs", "settings", "p", "login", "search"]);
 
 const twitchCaps: PlatformCapabilities = {
-  seek: true, timeEvents: true, pause: true, mute: true, fullscreen: true, swap: true,
+  seek: true, navigate: true, timeEvents: true, pause: true, mute: true, fullscreen: true, swap: true,
   clips: true, createClip: true, clipParentRange: true,
 };
 
@@ -61,7 +61,7 @@ export const twitch: PlatformDefinition = {
 };
 
 const youtubeCaps: PlatformCapabilities = {
-  seek: true, timeEvents: false, pause: true, mute: true, fullscreen: true, swap: false,
+  seek: true, navigate: true, timeEvents: true, pause: true, mute: true, fullscreen: true, swap: false,
   clips: true, createClip: false, clipParentRange: false,
 };
 
@@ -98,7 +98,7 @@ export const youtube: PlatformDefinition = {
 };
 
 const bilibiliCaps: PlatformCapabilities = {
-  seek: false, timeEvents: false, pause: false, mute: false, fullscreen: true, swap: false,
+  seek: false, navigate: true, timeEvents: false, pause: false, mute: false, fullscreen: true, swap: false,
   clips: false, createClip: false, clipParentRange: false,
 };
 

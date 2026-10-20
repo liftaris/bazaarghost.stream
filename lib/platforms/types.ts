@@ -6,6 +6,8 @@ export type PlatformRefKind = "recording" | "clip" | "channel";
 export interface PlatformCapabilities {
   /** Seek an already-loaded source without reloading the player. */
   seek: boolean;
+  /** Jump to a position by any means (live seek or reloading the player); enables prev/next navigation. */
+  navigate: boolean;
   /** Reports time/pause/duration so the timeline and active matchup can follow playback. */
   timeEvents: boolean;
   pause: boolean;
