@@ -52,6 +52,7 @@ export function GhostLoader({
           matchup_id: result.matchup_id,
           detection_id: String(result.matchup_id),
           username: result.username,
+          nameState: result.nameState,
           rank: result.rank,
           frame_time_seconds: result.frame_time_seconds,
         });

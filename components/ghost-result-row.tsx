@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { prefetch } from "@/lib/api-cache";
 import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
 import type { GhostResult } from "@/lib/result-models";
+import { opponentLabel } from "@/lib/opponent-name";
 export type { GhostResult } from "@/lib/result-models";
 
 const KNOWN_RANKS = new Set(["bronze", "silver", "gold", "diamond", "legend"]);
@@ -58,6 +59,7 @@ export const GhostResultRow = memo(function GhostResultRow({
       matchup_id: ghost.matchup_id,
       detection_id: String(ghost.matchup_id),
       username: ghost.username,
+      nameState: ghost.nameState,
       rank: ghost.rank,
       frame_time_seconds: ghost.frame_time_seconds,
     });
@@ -127,7 +129,7 @@ export const GhostResultRow = memo(function GhostResultRow({
               aria-current={isActive ? "true" : undefined}
               className="shrink-0 font-medium text-foreground outline-none after:absolute after:inset-0"
             >
-              {ghost.username}
+              {opponentLabel(ghost)}
             </Link>
           </div>
         </div>

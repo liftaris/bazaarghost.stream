@@ -1,9 +1,10 @@
 import type { Matchup, RecordingSource, Streamer } from "./api-contract";
 import type { SourceStackItem } from "@/components/source-stack";
+import { opponentNameState, type OpponentName } from "./opponent-name";
 
 /** Presentation fields of one Matchup row; playback uses its default Source. */
-export interface GhostResult {
-  matchup_id: number; username: string; rank: string | null;
+export interface GhostResult extends OpponentName {
+  matchup_id: number; rank: string | null;
   frame_time_seconds: number; actual_timestamp: string;
   vod_id: number; vod_source_id: string; vod_title: string;
   /** Null when the Channel has no Streamer; the row then names the Channel. */
@@ -44,7 +45,7 @@ export function ghostResult(value: Matchup, chosen?: RecordingSource | null): Gh
   const source = chosen ?? defaultSource(value);
   if (!source) return null;
   const owner = matchupOwner(value);
-  return { matchup_id: value.id, username: value.opponent.username, rank: value.opponent.rank,
+  return { matchup_id: value.id, username: value.opponent.username, nameState: opponentNameState(value.opponent), rank: value.opponent.rank,
     frame_time_seconds: source.at, actual_timestamp: value.recordedAt ?? value.indexedAt,
     vod_id: source.recording.id, vod_source_id: `v:${source.recording.id}`, vod_title: source.recording.title,
     streamer_id: owner.id, streamer_display_name: owner.name, streamer_avatar: owner.avatar,

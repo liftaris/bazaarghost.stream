@@ -20,6 +20,7 @@ import { usePlayback } from "@/hooks/use-playback";
 import { cachedGet } from "@/lib/api-cache";
 import type { Playback, RecordingSource, Source } from "@/lib/api-contract";
 import { withListParams } from "@/lib/search-filters";
+import { opponentNameState, type OpponentName } from "@/lib/opponent-name";
 import { mapSessionTime, recordingPath, recordingSources, rememberPlatform, sourcePin } from "@/lib/sources";
 import {
   createPlayerAdapter,
@@ -33,10 +34,9 @@ import {
 // Types
 // ---------------------------------------------------------------------------
 
-export interface EmbedGhost {
+export interface EmbedGhost extends OpponentName {
   matchup_id?: number;
   detection_id: string;
-  username: string;
   rank: string | null;
   frame_time_seconds: number;
 }
@@ -199,7 +199,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
 
   // Ghost markers
   const playback = usePlayback(state.videoId);
-  const ghosts = useMemo(() => playback.markers.map(marker => ({matchup_id:marker.id,detection_id:String(marker.id),username:marker.username,rank:marker.rank,frame_time_seconds:marker.timestampSeconds})),[playback.markers]);
+  const ghosts = useMemo(() => playback.markers.map(marker => ({matchup_id:marker.id,detection_id:String(marker.id),username:marker.username,nameState:opponentNameState(marker),rank:marker.rank,frame_time_seconds:marker.timestampSeconds})),[playback.markers]);
 
   // Optimistic ghost override — when non-null, takes precedence over time-derived.
   // Cleared once the polled currentTime catches up to the ghost's timestamp.

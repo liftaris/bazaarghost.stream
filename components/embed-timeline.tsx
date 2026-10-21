@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEmbedTime, type EmbedGhost } from "@/components/embed-provider";
 import { cn } from "@/lib/utils";
+import { opponentLabel } from "@/lib/opponent-name";
 
 const KNOWN_RANKS = new Set(["bronze", "silver", "gold", "diamond", "legend"]);
 /** Pointer within this many px of a tick counts as hovering it. */
@@ -52,7 +53,7 @@ const Tick = memo(function Tick({
           ref={(el) => register(index, el)}
           type="button"
           tabIndex={isTabStop ? 0 : -1}
-          aria-label={ghost.username}
+          aria-label={opponentLabel(ghost)}
           aria-current={isCurrent ? "true" : undefined}
           onClick={() => onSeek(ghost)}
           onFocus={() => onFocusTick(index)}
@@ -74,7 +75,7 @@ const Tick = memo(function Tick({
         {rank && KNOWN_RANKS.has(rank) && (
           <Image src={`/${rank}.webp`} alt="" width={16} height={16} unoptimized />
         )}
-        {ghost.username}
+        {opponentLabel(ghost)}
       </TooltipContent>
     </Tooltip>
   );

@@ -84,7 +84,7 @@ export async function findMatchupId(videoId: number, username: string, occurrenc
     const result: Page<TimelineMarker> | null = await publicGet(`/recordings/${videoId}/timeline`, { cursor, limit: 100 });
     if (!result) return null;
     for (const marker of result.items) {
-      if (marker.username.toLowerCase() === wanted && ++seen === occurrence) return marker.id;
+      if (marker.username?.toLowerCase() === wanted && ++seen === occurrence) return marker.id;
     }
     cursor = result.nextCursor;
     if (!cursor) return null;

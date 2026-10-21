@@ -53,7 +53,7 @@ export function useSavedMatchups({ enabled, query }: { enabled: boolean; query: 
     return items.filter(
       (card) =>
         !needle ||
-        card.username.toLowerCase().includes(needle) ||
+        card.username?.toLowerCase().includes(needle) ||
         card.streamer_display_name.toLowerCase().includes(needle),
     );
   }, [items, query]);

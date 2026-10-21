@@ -101,7 +101,7 @@ export function SearchResults({
           totalCount={ghosts.items.length}
           getItemKey={(g) => g.matchup_id}
           getItemDate={(g) => g.actual_timestamp}
-          getItemMatchField={(g) => g.username}
+          getItemMatchField={(g) => g.username ?? ""}
           searchQuery={queryParam}
           renderItem={renderGhost}
           onLoadMore={ghosts.loadMore}

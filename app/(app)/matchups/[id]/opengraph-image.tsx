@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { getMatchup } from "@/lib/api-server";
 import { matchupOwner } from "@/lib/result-models";
+import { opponentLabel } from "@/lib/opponent-name";
 import averiaBold from "../../../../public/Averia_Libre/AveriaLibre-Bold.ttf?inline";
 import logo from "../../../../public/og/logo.png?inline";
 import bronze from "../../../../public/og/bronze.png?inline";
@@ -71,7 +72,8 @@ export default async function Image({ params }: Props) {
   }
 
   const creator = matchupOwner(matchup);
-  const { username, rank } = matchup.opponent;
+  const { rank } = matchup.opponent;
+  const opponent = opponentLabel(matchup.opponent);
   const badge = rank ? RANK_BADGES[rank.toLowerCase()] : undefined;
   const long = (text: string) => (text.length > 18 ? 64 : 84);
   return new ImageResponse(
@@ -92,7 +94,7 @@ export default async function Image({ params }: Props) {
             <div style={{ width: 220, height: 220, display: "flex", alignItems: "center", justifyContent: "center" }}>
               {badge ? <img src={badge} width={200} height={200} alt={rank ?? ""} /> : null}
             </div>
-            <div style={{ fontSize: long(username), textAlign: "center", display: "flex" }}>{username}</div>
+            <div style={{ fontSize: long(opponent), textAlign: "center", display: "flex" }}>{opponent}</div>
           </div>
         </div>
         <div style={{ display: "flex", height: 10, background: ORANGE, borderRadius: 5 }} />

@@ -9,6 +9,7 @@ import { cachedGet } from "@/lib/api-cache";
 import type { MatchupResult, Session } from "@/lib/api-contract";
 import { mapSessionTime, recordingSources } from "@/lib/sources";
 import { cn } from "@/lib/utils";
+import { opponentLabel, opponentNameState } from "@/lib/opponent-name";
 import { useApiPage } from "./hooks/use-api-page";
 
 const KNOWN_RANKS = new Set(["bronze", "silver", "gold", "diamond", "legend"]);
@@ -60,7 +61,7 @@ const GhostRow = memo(function GhostRow({ match, at, active, onSeek }: {
       ) : (
         <span aria-hidden className="size-6 shrink-0" />
       )}
-      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{match.opponent.username}</span>
+      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{opponentLabel(match.opponent)}</span>
       {at !== null && <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">{clock(at)}</span>}
     </button>
   );
@@ -97,7 +98,7 @@ export function SessionGhosts({ sessionId }: { sessionId: string }) {
           at={times.get(m.id) ?? null}
           active={activeId === m.id}
           onSeek={(match, at) =>
-            goToGhost({ matchup_id: match.id, detection_id: String(match.id), username: match.opponent.username, rank: match.opponent.rank, frame_time_seconds: at })
+            goToGhost({ matchup_id: match.id, detection_id: String(match.id), username: match.opponent.username, nameState: opponentNameState(match.opponent), rank: match.opponent.rank, frame_time_seconds: at })
           }
         />
       )}

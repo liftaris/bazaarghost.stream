@@ -46,6 +46,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { PLAYER_SHORTCUTS, type PlayerShortcutAction } from "@/lib/player-shortcuts";
 import { withListParams } from "@/lib/search-filters";
 import { sourcePin } from "@/lib/sources";
+import { opponentLabel } from "@/lib/opponent-name";
 import type { SearchMode } from "@/components/search/types";
 import { cn } from "@/lib/utils";
 
@@ -251,7 +252,7 @@ export function EmbedPanel({ mode, children }: { mode: SearchMode; children?: Re
                   className="shrink-0"
                 />
               )}
-              <span className="truncate">{currentGhost.username}</span>
+              <span className="truncate">{opponentLabel(currentGhost)}</span>
               {ghostIndex >= 0 && (
                 <span className="shrink-0 font-mono text-xs font-normal tabular-nums text-muted-foreground">
                   {ghostIndex + 1}/{sortedGhosts.length}
@@ -276,7 +277,11 @@ export function EmbedPanel({ mode, children }: { mode: SearchMode; children?: Re
           <IconButton
             label="Search ghost"
             className="hidden sm:inline-flex"
-            onClick={() => router.push(`/search?q=${encodeURIComponent(currentGhost.username)}`, { scroll: false })}
+            disabled={!currentGhost.username || currentGhost.nameState === "masked"}
+            onClick={() => {
+              if (currentGhost.username && currentGhost.nameState !== "masked")
+                router.push(`/search?q=${encodeURIComponent(currentGhost.username)}`, { scroll: false });
+            }}
           >
             <Search />
           </IconButton>
