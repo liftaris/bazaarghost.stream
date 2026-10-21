@@ -119,6 +119,10 @@ export interface FieldEvidence {
   model?: string;
   promptVersion?: string;
   samples?: Array<{ atMs: number; screenshotUrl: string | null }>;
+  /** Processor-observed continuity segment, not a Session or server-verified visual run. */
+  runSegmentId?: string;
+  /** Original persisted direct proof; atMs/image above remain that original observation. */
+  inheritedFrom?: { detectionId: string; runSegmentId: string; atMs: number };
 }
 export interface Encounter {
   /** Encounter confidence is separate from username confidence; unknown for legacy observations. */
