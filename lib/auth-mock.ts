@@ -113,8 +113,8 @@ export async function mockSocial(request: Request): Promise<Response | null> {
     const cards = await Promise.all(newestFirst.slice(start, start + limit).map(async (id) => {
       const response = await backendFetch(new Request(`${origin}/api/v1/matchups/${id}`));
       if (!response.ok) return null;
-      const { id: matchupId, opponent, streamer, session, recordedAt, indexedAt, sources } = (await response.json()) as MatchupDetail;
-      return { id: matchupId, opponent, streamer, session, recordedAt, indexedAt, sources, relevance: { score: 0, exact: false } } satisfies MatchupResult;
+      const { id: matchupId, opponent, encounter, fieldEvidence, streamer, session, recordedAt, indexedAt, sources } = (await response.json()) as MatchupDetail;
+      return { id: matchupId, opponent, encounter, fieldEvidence, streamer, session, recordedAt, indexedAt, sources, relevance: { score: 0, exact: false } } satisfies MatchupResult;
     }));
     const end = start + limit;
     const page: Page<MatchupResult> = {
