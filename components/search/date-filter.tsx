@@ -4,13 +4,25 @@ import { useState } from "react";
 import { CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { dateToDay, dayToDate } from "@/lib/search-filters";
 import { cn } from "@/lib/utils";
 
 /** One optional calendar day (the label is the placeholder; clearable), as `YYYY-MM-DD`. */
-function DatePicker({ label, value, onChange, disabled }: {
-  label: string; value: string | null; onChange: (day: string | null) => void; disabled?: (date: Date) => boolean;
+function DatePicker({
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: string | null;
+  onChange: (day: string | null) => void;
+  disabled?: (date: Date) => boolean;
 }) {
   const [open, setOpen] = useState(false);
   const date = value ? dayToDate(value) : undefined;
@@ -23,7 +35,11 @@ function DatePicker({ label, value, onChange, disabled }: {
             type="button"
             variant="outline"
             aria-label={text ? `${label}: ${text}` : label}
-            className={cn("h-10 w-full justify-start gap-2 border-border bg-card px-3 font-normal @[40rem]:w-36", value && "pr-9", !value && "text-muted-foreground")}
+            className={cn(
+              "h-8 w-full justify-start gap-1.5 border-border bg-card px-2 font-normal",
+              value && "pr-8",
+              !value && "text-muted-foreground"
+            )}
           >
             <CalendarIcon className="size-3.5 shrink-0" />
             <span className="truncate text-sm">{text ?? label}</span>
@@ -35,7 +51,10 @@ function DatePicker({ label, value, onChange, disabled }: {
             selected={date}
             defaultMonth={date}
             disabled={disabled}
-            onSelect={(next) => { onChange(next ? dateToDay(next) : null); setOpen(false); }}
+            onSelect={(next) => {
+              onChange(next ? dateToDay(next) : null);
+              setOpen(false);
+            }}
           />
         </PopoverContent>
       </Popover>
@@ -56,13 +75,29 @@ function DatePicker({ label, value, onChange, disabled }: {
 }
 
 /** From / To day filters; the range cannot be inverted. */
-export function DateFilter({ from, to, onChange }: {
-  from: string | null; to: string | null; onChange: (range: { from: string | null; to: string | null }) => void;
+export function DateFilter({
+  from,
+  to,
+  onChange,
+}: {
+  from: string | null;
+  to: string | null;
+  onChange: (range: { from: string | null; to: string | null }) => void;
 }) {
   return (
-    <div className="flex min-w-0 gap-2">
-      <DatePicker label="From" value={from} onChange={(day) => onChange({ from: day, to })} disabled={to ? (d) => d > dayToDate(to) : undefined} />
-      <DatePicker label="To" value={to} onChange={(day) => onChange({ from, to: day })} disabled={from ? (d) => d < dayToDate(from) : undefined} />
+    <div className="flex min-w-0 basis-full gap-2 @sm/filters:flex-1 @sm/filters:basis-auto">
+      <DatePicker
+        label="From"
+        value={from}
+        onChange={(day) => onChange({ from: day, to })}
+        disabled={to ? (d) => d > dayToDate(to) : undefined}
+      />
+      <DatePicker
+        label="To"
+        value={to}
+        onChange={(day) => onChange({ from, to: day })}
+        disabled={from ? (d) => d < dayToDate(from) : undefined}
+      />
     </div>
   );
 }

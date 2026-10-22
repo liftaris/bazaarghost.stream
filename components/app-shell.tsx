@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, type ReactNode } from "react";
+import { Suspense, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { WorkspaceContext } from "@/components/workspace-context";
 import { EmbedProvider } from "@/components/embed-provider";
@@ -10,7 +10,13 @@ import SearchPanel from "@/components/search";
 import { cn } from "@/lib/utils";
 
 /** Routes that render their own content instead of the search/player workspace. */
-const CONTENT_ROUTES = ["/login", "/account", "/how-it-works", "/contact", "/donate"];
+const CONTENT_ROUTES = [
+  "/login",
+  "/account",
+  "/how-it-works",
+  "/contact",
+  "/donate",
+];
 
 /**
  * Single root shell: one Navbar, one EmbedProvider (which owns the persistent
@@ -18,6 +24,7 @@ const CONTENT_ROUTES = ["/login", "/account", "/how-it-works", "/contact", "/don
  * routes so results and the player survive client navigation.
  */
 export function AppShell({ children }: { children: ReactNode }) {
+  const [searchHost, setSearchHost] = useState<HTMLDivElement | null>(null);
   const pathname = usePathname();
   const workspace = !CONTENT_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
@@ -32,14 +39,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           workspace ? "h-svh overflow-hidden" : "min-h-svh"
         )}
       >
-        <Navbar />
+        <Navbar searchRef={setSearchHost} workspace={workspace} />
         {children}
         <main
-          className={cn("min-h-0 flex-1 flex-col", workspace ? "flex" : "hidden")}
+          className={cn(
+            "min-h-0 flex-1 flex-col",
+            workspace ? "flex" : "hidden"
+          )}
         >
           <WorkspaceContext.Provider value={workspace}>
             <Suspense>
-              <SearchPanel />
+              <SearchPanel navHost={searchHost} />
             </Suspense>
           </WorkspaceContext.Provider>
         </main>

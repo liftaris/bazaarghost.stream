@@ -101,16 +101,16 @@ export const GhostResultRow = memo(function GhostResultRow({
                 onClick={() => {
                   onNavigateToStreamer(ghost.streamer_id!, ghost.streamer_display_name);
                 }}
-                className="relative z-10 hidden min-w-0 shrink truncate font-medium text-primary hover:underline @[200px]:block"
+                className="relative z-10 hidden min-w-0 shrink truncate font-medium text-primary hover:underline @[320px]:block"
               >
                 {ghost.streamer_display_name}
               </button>
             ) : (
-              <span className="hidden min-w-0 shrink truncate font-medium text-primary @[200px]:block">
+              <span className="hidden min-w-0 shrink truncate font-medium text-primary @[320px]:block">
                 {ghost.streamer_display_name}
               </span>
             )}
-            <span className="hidden shrink-0 text-muted-foreground @[200px]:block">
+            <span className="hidden shrink-0 text-muted-foreground @[320px]:block">
               vs
             </span>
             {ghost.rank && KNOWN_RANKS.has(ghost.rank.toLowerCase()) && (
@@ -129,7 +129,7 @@ export const GhostResultRow = memo(function GhostResultRow({
               prefetch={false}
               onClick={handlePlay}
               aria-current={isActive ? "true" : undefined}
-              className="shrink-0 font-medium text-foreground outline-none after:absolute after:inset-0"
+              className="min-w-0 shrink truncate font-medium text-foreground outline-none after:absolute after:inset-0"
             >
               {opponentLabel(ghost)}
             </Link>
