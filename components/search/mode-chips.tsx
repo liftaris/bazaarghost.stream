@@ -20,7 +20,7 @@ export function ModeChips({
   return (
     <ToggleGroup
       type="single"
-      variant="outline"
+      variant="default"
       size="sm"
       spacing={1}
       aria-label="Search for"
@@ -38,7 +38,7 @@ export function ModeChips({
               key={value}
               value={value}
               aria-label={label}
-              className="size-9 min-w-9 p-0 aria-checked:bg-accent aria-checked:text-foreground"
+              className="size-9 min-w-9 bg-transparent p-0 text-muted-foreground shadow-none hover:bg-transparent hover:text-foreground aria-checked:text-[color-mix(in_srgb,var(--primary)_75%,var(--foreground))] data-[state=on]:bg-transparent data-[state=on]:text-[color-mix(in_srgb,var(--primary)_75%,var(--foreground))]"
             >
               <Icon aria-hidden className="size-4" />
             </ToggleGroupItem>

@@ -43,7 +43,7 @@ export function SearchHeader({
       <div
         role="search"
         aria-label="Workspace search"
-        className="col-span-3 row-start-2 flex min-w-0 items-center gap-2 @3xl/nav:col-span-1 @3xl/nav:col-start-3 @3xl/nav:row-start-1"
+        className="col-span-3 row-start-2 flex min-w-0 items-center gap-2 @xl/nav:col-span-1 @xl/nav:col-start-3 @xl/nav:row-start-1"
       >
         {mode === "ghosts" && channelName !== null && (
           <Badge variant="outline" className="h-9 min-w-0 shrink gap-1 px-2">
@@ -63,6 +63,11 @@ export function SearchHeader({
             {...picker}
             triggerClassName="h-9 w-auto max-w-40 shrink-0 px-2"
           />
+        )}
+        {mode === "ghosts" && (
+          <span className="shrink-0 text-xs font-medium text-muted-foreground">
+            vs
+          </span>
         )}
         <SearchInput
           value={inputValue}

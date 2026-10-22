@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { ChevronDown, ChevronUp, Ghost } from "lucide-react";
+import { type ReactNode } from "react";
+import { Ghost } from "lucide-react";
 import {
   useEmbedActions,
   useEmbedState,
@@ -10,7 +10,6 @@ import {
 import { PlayerSlot } from "@/components/player/player-slot";
 import { PlayerControls } from "@/components/player/player-controls";
 import { EmbedTimeline } from "@/components/embed-timeline";
-import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyHeader,
@@ -28,7 +27,15 @@ import { useResizableSplit } from "@/hooks/use-resizable-split";
 import { cn } from "@/lib/utils";
 
 /** Persistent video chrome above a retained nested companion; closing video frees its full context area. */
-export function EmbedPanel({ children }: { children?: ReactNode }) {
+export function EmbedPanel({
+  children,
+  mobileNavigation,
+  mobileTab = "details",
+}: {
+  children?: ReactNode;
+  mobileNavigation?: ReactNode;
+  mobileTab?: string;
+}) {
   const {
     isVisible,
     videoId,
@@ -41,7 +48,6 @@ export function EmbedPanel({ children }: { children?: ReactNode }) {
   } = useEmbedState();
   const { goToGhost } = useEmbedActions();
   const duration = useEmbedTime((s) => s.duration);
-  const [compactOpen, setCompactOpen] = useState(false);
   const showVideo = (isVisible && !!videoId) || reserved;
   const split = useResizableSplit(
     "video-context",
@@ -50,41 +56,34 @@ export function EmbedPanel({ children }: { children?: ReactNode }) {
     "context",
     showVideo && !!children
   );
-  const [previousVideo, setPreviousVideo] = useState(showVideo);
-  if (previousVideo !== showVideo) {
-    setPreviousVideo(showVideo);
-    if (!showVideo) setCompactOpen(true);
-  }
   if (!showVideo && !children)
     return (
-      <Empty className="max-md:hidden md:m-2">
-        <EmptyHeader>
-          <EmptyMedia>
-            <Ghost aria-hidden className="size-10 text-muted-foreground" />
-          </EmptyMedia>
-          <EmptyTitle>Find a matchup to watch</EmptyTitle>
-          <EmptyDescription>
-            Your search stays here while you explore its session.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <>
+        {mobileNavigation}
+        <Empty className="max-md:hidden md:m-2">
+          <EmptyHeader>
+            <EmptyMedia>
+              <Ghost aria-hidden className="size-10 text-muted-foreground" />
+            </EmptyMedia>
+            <EmptyTitle>Find a matchup to watch</EmptyTitle>
+            <EmptyDescription>
+              Your search stays here while you explore its session.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </>
     );
   return (
-    <div
-      className={cn(
-        "@container flex w-full min-w-0 flex-col overflow-hidden bg-card md:min-h-0 md:flex-1",
-        !showVideo && "max-md:h-[60svh]",
-        !showVideo && !compactOpen && "max-md:h-auto"
-      )}
-    >
+    <div className="@container flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-card">
       <ResizablePanelGroup
         id="video-context"
+        data-mobile-tab={mobileTab}
         orientation="vertical"
         groupRef={split.groupRef}
         disabled={split.compact}
         onLayoutChange={split.onLayoutChange}
         onLayoutChanged={split.onLayoutChanged}
-        className="min-h-0 flex-1 max-md:h-auto! max-md:overflow-visible! max-md:[&>[data-panel]]:flex-none! max-md:[&>[data-panel]]:max-h-none!"
+        className="min-h-0 flex-1 max-md:h-auto! max-md:[&>[data-panel]]:max-h-none! max-md:[&>#video]:flex-none! max-md:[&>#context]:min-h-48! max-md:[&>#context]:flex-1! max-md:data-[mobile-tab=results]:[&>#context]:hidden!"
       >
         {showVideo && (
           <>
@@ -99,7 +98,7 @@ export function EmbedPanel({ children }: { children?: ReactNode }) {
                 split.leadingCollapsed && "invisible"
               )}
             >
-              <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black max-md:aspect-video max-md:flex-none">
+              <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black max-md:aspect-video max-md:max-h-[40svh] max-md:flex-none">
                 <PlayerSlot className="h-full w-full" />
               </div>
               <div className="shrink-0">
@@ -134,6 +133,7 @@ export function EmbedPanel({ children }: { children?: ReactNode }) {
             )}
           </>
         )}
+        {mobileNavigation}
         {children && (
           <ResizablePanel
             id="context"
@@ -142,33 +142,10 @@ export function EmbedPanel({ children }: { children?: ReactNode }) {
             inert={split.trailingCollapsed}
             className={cn(
               "flex min-h-0 w-full flex-col",
-              split.trailingCollapsed && "invisible",
-              showVideo && "max-md:h-[30svh]",
-              !compactOpen && "max-md:h-auto"
+              split.trailingCollapsed && "invisible"
             )}
           >
-            <Button
-              variant="ghost"
-              size="sm"
-              className="shrink-0 md:hidden"
-              aria-expanded={compactOpen}
-              onClick={() => setCompactOpen((v) => !v)}
-            >
-              Session context{" "}
-              {compactOpen ? (
-                <ChevronUp data-icon="inline-end" />
-              ) : (
-                <ChevronDown data-icon="inline-end" />
-              )}
-            </Button>
-            <div
-              className={cn(
-                "flex min-h-0 flex-1 flex-col",
-                !compactOpen && "max-md:hidden"
-              )}
-            >
-              {children}
-            </div>
+            {children}
           </ResizablePanel>
         )}
       </ResizablePanelGroup>

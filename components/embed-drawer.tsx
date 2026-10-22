@@ -11,9 +11,20 @@ import { cn } from "@/lib/utils";
  * follows the slot, so the iframe is never destroyed on open/close or when
  * crossing the breakpoint.
  */
-export function EmbedDrawer({ children, collapsed = false }: { children: ReactNode; collapsed?: boolean }) {
+export function EmbedDrawer({
+  children,
+  collapsed = false,
+}: {
+  children: ReactNode;
+  collapsed?: boolean;
+}) {
   return (
-    <div className={cn("shrink-0 bg-card max-md:border-b max-md:border-border md:order-3 md:flex md:min-h-0 md:min-w-0 md:flex-1 md:flex-col md:overflow-hidden md:bg-background", collapsed && "md:invisible")}>
+    <div
+      className={cn(
+        "flex min-h-0 min-w-0 flex-1 flex-col bg-card md:order-3 md:overflow-hidden md:bg-background",
+        collapsed && "md:invisible"
+      )}
+    >
       {children}
     </div>
   );

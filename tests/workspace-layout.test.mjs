@@ -8,6 +8,105 @@ import {
   sourceModules,
 } from "./helpers/source-harness.mjs";
 
+test("the versus label belongs only to ghost search", () => {
+  const load = sourceModules({
+    "react/jsx-runtime": jsxRuntime,
+    "lucide-react": {},
+    "@/components/ui/badge": {},
+    "./mode-chips": { ModeChips: "ModeChips" },
+    "./search-input": { SearchInput: "SearchInput" },
+    "./streamer-picker": { StreamerPicker: "StreamerPicker" },
+    "./constants": { modeOptions: [] },
+  });
+  const { SearchHeader } = load("@/components/search/search-header");
+  for (const mode of ["ghosts", "streamers", "recordings", "saved"]) {
+    const nodes = elements(
+      SearchHeader({ mode, picker: {}, channelName: null })
+    );
+    assert.equal(
+      nodes.some(
+        (node) => node.type === "span" && node.props.children === "vs"
+      ),
+      mode === "ghosts"
+    );
+  }
+});
+
+test("mobile workspace tabs retain both panes and preserve desktop regions", () => {
+  const h = hooks();
+  let compact = true;
+  const load = sourceModules({
+    react: h.react,
+    "react/jsx-runtime": jsxRuntime,
+    "@/components/embed-drawer": { EmbedDrawer: "EmbedDrawer" },
+    "@/components/embed-panel": { EmbedPanel: "EmbedPanel" },
+    "@/components/ui/resizable": {
+      ResizablePanelGroup: "ResizablePanelGroup",
+      ResizablePanel: "ResizablePanel",
+      ResizableHandle: "ResizableHandle",
+    },
+    "@/components/ui/tabs": {
+      Tabs: "Tabs",
+      TabsList: "TabsList",
+      TabsTrigger: "TabsTrigger",
+      TabsContent: "TabsContent",
+    },
+    "@/hooks/use-resizable-split": { useResizableSplit: () => ({ compact }) },
+    "@/lib/utils": { cn: (...values) => values.filter(Boolean).join(" ") },
+  });
+  const { SearchLayout } = load("@/components/search/desktop-layout");
+  const render = (detail = "retained details") =>
+    h.render(() => SearchLayout({ searchResults: "retained results", detail }));
+  let tree = render();
+  assert.equal(tree.props.value, "results");
+  let nodes = elements(tree);
+  let embed = nodes.find((node) => node.type === "EmbedPanel");
+  const triggers = elements(embed.props.mobileNavigation).filter(
+    (node) => node.type === "TabsTrigger"
+  );
+  assert.deepEqual(
+    triggers.map((node) => node.props.children),
+    ["Search Results", "Details"]
+  );
+  assert.equal(triggers[1].props.disabled, false);
+  tree.props.onValueChange("details");
+  tree = render();
+  nodes = elements(tree);
+  assert.equal(tree.props.value, "details");
+  assert.equal(
+    nodes.find((node) => node.type === "EmbedPanel").props.mobileTab,
+    "details"
+  );
+  const panes = nodes.filter((node) => node.type === "TabsContent");
+  assert.equal(panes.length, 2);
+  assert(panes.every((node) => node.props.forceMount));
+  assert(
+    panes.every((node) => !Object.hasOwn(node.props, "aria-labelledby")),
+    "Radix must generate the mobile tab relationships"
+  );
+  compact = false;
+  nodes = elements(render());
+  assert(
+    nodes
+      .filter((node) => node.type === "TabsContent")
+      .every((node) => node.props.role === "region")
+  );
+  compact = true;
+  tree = render(null);
+  assert.equal(
+    tree.props.value,
+    "results",
+    "clearing detail leaves a usable tab selected"
+  );
+  embed = elements(tree).find((node) => node.type === "EmbedPanel");
+  assert.equal(
+    elements(embed.props.mobileNavigation).find(
+      (node) => node.props.value === "details"
+    ).props.disabled,
+    true
+  );
+});
+
 test("resizable groups persist only deliberate desktop changes, using the requested layout", () => {
   const h = hooks();
   let compact = false;
