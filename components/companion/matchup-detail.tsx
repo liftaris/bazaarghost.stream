@@ -3,10 +3,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy, Search } from "lucide-react";
-import type { Matchup } from "@/lib/api-contract";
+import type { Hero, Matchup } from "@/lib/api-contract";
 import { canSearchOpponent } from "@/lib/opponent-name";
 import { Button } from "@/components/ui/button";
 import { BookmarkButton } from "@/components/social/bookmark-button";
+
+const HERO_LABELS: Record<Hero, string> = {
+  vanessa: "Vanessa",
+  pygmalien: "Pygmalien",
+  dooley: "Dooley",
+  mak: "Mak",
+  jules: "Jules",
+  stelle: "Stelle",
+  karnok: "Karnok",
+  the_dragons: "The Dragons",
+};
 
 /** Selected canonical metadata and deliberate related searches, without evidence-image downloads. */
 export function MatchupDetail({ match }: { match: Matchup }) {
@@ -23,6 +34,18 @@ export function MatchupDetail({ match }: { match: Matchup }) {
       data-matchup-detail={match.id}
     >
       <dl className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
+        <div>
+          <dt className="text-muted-foreground">Ghost hero</dt>
+          <dd className="mt-0.5 font-medium">
+            {encounter.ghostHero ? HERO_LABELS[encounter.ghostHero] : "Unknown"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Streamer hero</dt>
+          <dd className="mt-0.5 font-medium">
+            {encounter.streamerHero ? HERO_LABELS[encounter.streamerHero] : "Unknown"}
+          </dd>
+        </div>
         <div>
           <dt className="text-muted-foreground">In-game day</dt>
           <dd className="mt-0.5 font-medium">{encounter.igd ?? "Unknown"}</dd>
