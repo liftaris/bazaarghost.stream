@@ -21,6 +21,7 @@ import { useMatchupPlayer } from "./hooks/use-matchup-player";
 import { useSelectedMatchup } from "./hooks/use-selected-matchup";
 import { MatchupList } from "./matchup-list";
 import { MatchupDetail } from "./matchup-detail";
+import { SessionStats } from "./session-stats";
 import { opponentLabel } from "@/lib/opponent-name";
 
 /** One retained streamer/session/day hierarchy, useful with sparse metadata and without video. */
@@ -50,7 +51,7 @@ export function SessionCompanion() {
 
   const header = (
     <>
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-3 py-3 @sm:px-4">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-3 py-2 @sm:px-4">
         <div className="flex items-start gap-2">
           <h2
             id="companion-heading"
@@ -103,17 +104,21 @@ export function SessionCompanion() {
           )}
           {session?.streamerMode && <span>Hidden names observed</span>}
         </p>
-        {currentPlayback && (
-          <p className="text-xs text-muted-foreground">
-            {partial
-              ? "This source is partially processed. More matchups may appear."
-              : currentPlayback.processing.status === "completed" ||
-                  currentPlayback.processing.status === "complete"
-                ? "Eligible sections of this source processed."
-                : `Source processing: ${currentPlayback.processing.status}.`}{" "}
-            Days describe observed matchups, not complete runs.
-          </p>
-        )}
+        <SessionStats
+          matches={data.matches}
+          incomplete={data.loading || !!data.error || !!partial}
+        />
+        <p className="text-xs text-muted-foreground">
+          {partial
+            ? "Source partly processed. "
+            : currentPlayback &&
+                !["completed", "complete"].includes(
+                  currentPlayback.processing.status
+                )
+              ? `Source processing: ${currentPlayback.processing.status}. `
+              : ""}
+          Observed run segments, not verified complete runs.
+        </p>
         {sessionsOpen && (
           <nav
             aria-label="Streamer sessions"
@@ -134,9 +139,12 @@ export function SessionCompanion() {
                   void start(s.id, null, NO_PLATFORM_FILTER).then(
                     (result) => {
                       if (!result?.isCurrent()) return;
-                      router.push(withListParams(`/recordings/${result.sessionId}`), {
-                        scroll: false,
-                      });
+                      router.push(
+                        withListParams(`/recordings/${result.sessionId}`),
+                        {
+                          scroll: false,
+                        }
+                      );
                       setSessionsOpen(false);
                     },
                     (error) =>

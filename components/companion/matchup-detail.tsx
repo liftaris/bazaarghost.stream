@@ -2,22 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Search } from "lucide-react";
-import type { Hero, Matchup } from "@/lib/api-contract";
-import { canSearchOpponent } from "@/lib/opponent-name";
+import { Check, Copy, Ghost, Search } from "lucide-react";
+import Image from "next/image";
+import type { Matchup } from "@/lib/api-contract";
+import { canSearchOpponent, opponentLabel } from "@/lib/opponent-name";
+import { heroLabel, RANKS } from "@/lib/session-summary";
 import { Button } from "@/components/ui/button";
 import { BookmarkButton } from "@/components/social/bookmark-button";
-
-const HERO_LABELS: Record<Hero, string> = {
-  vanessa: "Vanessa",
-  pygmalien: "Pygmalien",
-  dooley: "Dooley",
-  mak: "Mak",
-  jules: "Jules",
-  stelle: "Stelle",
-  karnok: "Karnok",
-  the_dragons: "The Dragons",
-};
 
 /** Selected canonical metadata and deliberate related searches, without evidence-image downloads. */
 export function MatchupDetail({ match }: { match: Matchup }) {
@@ -26,52 +17,73 @@ export function MatchupDetail({ match }: { match: Matchup }) {
     "idle"
   );
   const { opponent, encounter } = match;
+  const rank = opponent.rank?.trim().toLowerCase();
   const fragment =
     opponent.nameState === "partial" || opponent.nameState === "obstructed";
   return (
-    <div
-      className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-3 pb-4 pt-1 @sm:px-4"
+    <section
+      aria-label="Selected player"
+      className="mx-3 mb-3 flex flex-col gap-3 rounded-md border border-border bg-background p-3 @sm:mx-4"
       data-matchup-detail={match.id}
     >
+      <div className="flex min-w-0 items-center gap-3 border-b border-border pb-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted">
+          <Ghost aria-hidden className="size-5 text-muted-foreground" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h4 className="truncate text-sm font-medium">
+            {opponentLabel(opponent)}
+          </h4>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {heroLabel(encounter.ghostHero)}
+          </p>
+        </div>
+        {rank && RANKS.some((value) => value === rank) && (
+          <Image
+            src={`/${rank}.webp`}
+            alt={rank}
+            width={28}
+            height={28}
+            unoptimized
+            className="size-7 shrink-0 object-contain"
+          />
+        )}
+      </div>
       <dl className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
         <div>
           <dt className="text-muted-foreground">Ghost hero</dt>
           <dd className="mt-0.5 font-medium">
-            {encounter.ghostHero ? HERO_LABELS[encounter.ghostHero] : "Unknown"}
+            {heroLabel(encounter.ghostHero)}
           </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Streamer hero</dt>
           <dd className="mt-0.5 font-medium">
-            {encounter.streamerHero ? HERO_LABELS[encounter.streamerHero] : "Unknown"}
+            {heroLabel(encounter.streamerHero)}
           </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">In-game day</dt>
-          <dd className="mt-0.5 font-medium">{encounter.igd ?? "Unknown"}</dd>
+          <dd className="mt-0.5 font-medium">{encounter.igd ?? "-"}</dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Rank</dt>
           <dd className="mt-0.5 font-medium capitalize">
-            {opponent.rank ?? "Unknown"}
+            {opponent.rank ?? "-"}
           </dd>
         </div>
-        {encounter.winsRemaining !== null && (
-          <div>
-            <dt className="text-muted-foreground">Wins remaining</dt>
-            <dd className="mt-0.5 font-medium tabular-nums">
-              {encounter.winsRemaining}
-            </dd>
-          </div>
-        )}
-        {encounter.lethal !== null && (
-          <div>
-            <dt className="text-muted-foreground">Lethal</dt>
-            <dd className="mt-0.5 font-medium">
-              {encounter.lethal ? "Yes" : "No"}
-            </dd>
-          </div>
-        )}
+        <div>
+          <dt className="text-muted-foreground">Wins remaining</dt>
+          <dd className="mt-0.5 font-medium tabular-nums">
+            {encounter.winsRemaining ?? "-"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Lethal</dt>
+          <dd className="mt-0.5 font-medium">
+            {encounter.lethal == null ? "-" : encounter.lethal ? "Yes" : "No"}
+          </dd>
+        </div>
       </dl>
       {fragment && (
         <p className="max-w-prose text-xs text-muted-foreground">
@@ -144,6 +156,6 @@ export function MatchupDetail({ match }: { match: Matchup }) {
           Could not copy the link. Try again.
         </p>
       )}
-    </div>
+    </section>
   );
 }

@@ -169,6 +169,7 @@ test("review 1: delayed Session picker cannot navigate or complete after a newer
     },
     "./matchup-list": {},
     "./matchup-detail": {},
+    "./session-stats": { SessionStats: "SessionStats" },
   });
   const { SessionCompanion } = c.load(
     "@/components/companion/session-companion"
