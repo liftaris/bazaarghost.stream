@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 /**
  * Embed region. Below `md` it is the player stack pinned above the results
@@ -10,9 +11,9 @@ import type { ReactNode } from "react";
  * follows the slot, so the iframe is never destroyed on open/close or when
  * crossing the breakpoint.
  */
-export function EmbedDrawer({ children }: { children: ReactNode }) {
+export function EmbedDrawer({ children, collapsed = false }: { children: ReactNode; collapsed?: boolean }) {
   return (
-    <div className="shrink-0 bg-card max-md:order-first max-md:border-b max-md:border-border md:flex md:min-h-0 md:min-w-0 md:flex-1 md:flex-col md:overflow-y-auto md:bg-background">
+    <div className={cn("shrink-0 bg-card max-md:border-b max-md:border-border md:order-3 md:flex md:min-h-0 md:min-w-0 md:flex-1 md:flex-col md:overflow-hidden md:bg-background", collapsed && "md:invisible")}>
       {children}
     </div>
   );

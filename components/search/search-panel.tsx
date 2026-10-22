@@ -22,7 +22,7 @@ import { useSavedMatchups } from "./hooks/use-saved-matchups";
 import { SearchHeader } from "./search-header";
 import { SearchResults } from "./search-results";
 import { SearchLayout } from "./desktop-layout";
-import { SessionGhosts } from "./session-ghosts";
+import { SessionCompanion } from "@/components/companion/session-companion";
 import { StreamerRecordings } from "./streamer-recordings";
 
 /**
@@ -33,7 +33,7 @@ export default function SearchPanel() {
   const router = useRouter();
   const url = useSearchUrl();
   const { mode, selection, filters, setParams, selectionHref, switchMode } = url;
-  const { playback, isVisible, videoId, reserved } = useEmbedState();
+  const { playback, contextSessionId, selectedGhost, selectedMatchup } = useEmbedState();
   const playingSessionId = playback?.recording.sessionId ?? null;
   const startSession = useSessionPlayer();
 
@@ -66,14 +66,14 @@ export default function SearchPanel() {
   // A clicked Streamer's panel opens in the same frame; the URL catches up with the navigation
   const [pendingStreamer, setPendingStreamer] = useState<StreamerCard | null>(null);
   if (pendingStreamer && selection?.kind === "streamer") setPendingStreamer(null);
-  const selectedStreamerId = mode !== "streamers" ? null : selection?.kind === "streamer" ? selection.id : pendingStreamer ? String(pendingStreamer.id) : null;
-  const selectedSessionId = mode === "recordings" && selection?.kind === "recording" ? selection.id : null;
+  const selectedStreamerId = selection?.kind === "streamer" ? selection.id : pendingStreamer ? String(pendingStreamer.id) : null;
+  const selectedSessionId = selection?.kind === "recording" ? selection.id : null;
 
   const warmSession = useCallback((session: SessionCard) => {
     prefetch(`/sessions/${session.id}`);
     prefetch(`/recordings/${session.defaultRecording.id}/playback`);
-    if (mode === "recordings") prefetch("/search", { sessionId: session.id, sort: "time", limit: 50 });
-  }, [mode]);
+    prefetch("/search", { sessionId: session.id, sort: "time", limit: 500 });
+  }, []);
 
   const warmStreamer = useCallback((streamer: StreamerCard) => {
     prefetch(`/streamers/${streamer.id}`);
@@ -97,7 +97,7 @@ export default function SearchPanel() {
     void startSession(session.id, null, platformFilter).catch(() => undefined);
   }, [router, selectionHref, selectedStreamerId, startSession, platformFilter]);
 
-  const goToStreamer = useCallback((id: string) => router.push(`/streamers/${encodeURIComponent(id)}`, { scroll: false }), [router]);
+  const goToStreamer = useCallback((id: string) => router.push(selectionHref(`/streamers/${encodeURIComponent(id)}`), { scroll: false }), [router, selectionHref]);
   const ghostHref = useCallback((id: number) => selectionHref(`/matchups/${id}`), [selectionHref]);
 
   const active = mode === "ghosts" ? ghostList : mode === "streamers" ? streamerList : mode === "recordings" ? recordingList : null;
@@ -152,10 +152,8 @@ export default function SearchPanel() {
     </>
   );
 
-  // A Session's ghosts only make sense beside its player, so they appear with it
-  const detailSessionId = mode === "recordings" && ((isVisible && videoId) || reserved) ? selectedSessionId ?? playingSessionId : null;
   const detail =
-    mode === "streamers" && selectedStreamerId ? (
+    selectedStreamerId && !url.recordingParam ? (
       <StreamerRecordings
         key={selectedStreamerId}
         streamerId={selectedStreamerId}
@@ -165,10 +163,9 @@ export default function SearchPanel() {
         onPlay={playStreamerRecording}
         onPrefetch={warmSession}
       />
-    ) : detailSessionId ? (
-      <SessionGhosts key={detailSessionId} sessionId={detailSessionId} />
+    ) : contextSessionId || selectedGhost || selectedMatchup ? (
+      <SessionCompanion />
     ) : null;
 
   return <SearchLayout mode={mode} searchHeader={searchHeader} searchResults={searchResults} detail={detail} />;
 }
-

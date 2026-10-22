@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useEmbedTime, type EmbedGhost } from "@/components/embed-provider";
 import { cn } from "@/lib/utils";
 import { opponentLabel } from "@/lib/opponent-name";
+import { clock } from "@/lib/session-navigation";
 
 const KNOWN_RANKS = new Set(["bronze", "silver", "gold", "diamond", "legend"]);
 /** Pointer within this many px of a tick counts as hovering it. */
@@ -53,9 +54,9 @@ const Tick = memo(function Tick({
           ref={(el) => register(index, el)}
           type="button"
           tabIndex={isTabStop ? 0 : -1}
-          aria-label={opponentLabel(ghost)}
+          aria-label={`${opponentLabel(ghost)}, ${clock(ghost.frame_time_seconds)}`}
           aria-current={isCurrent ? "true" : undefined}
-          onClick={() => onSeek(ghost)}
+          onClick={(e) => { e.stopPropagation(); onSeek(ghost); }}
           onFocus={() => onFocusTick(index)}
           onBlur={onBlurTick}
           className="group/tick pointer-events-none absolute top-0 h-full w-6 -translate-x-1/2 outline-none"
@@ -76,6 +77,7 @@ const Tick = memo(function Tick({
           <Image src={`/${rank}.webp`} alt="" width={16} height={16} unoptimized />
         )}
         {opponentLabel(ghost)}
+        <span className="tabular-nums">{clock(ghost.frame_time_seconds)}</span>
       </TooltipContent>
     </Tooltip>
   );
@@ -113,6 +115,7 @@ export function EmbedTimeline({
   const ticks = useRef<(HTMLButtonElement | null)[]>([]);
   const frame = useRef(0);
   const pointerX = useRef<number | null>(null);
+  const dragging = useRef(false);
   const [hover, setHover] = useState<number | null>(null);
   const [focus, setFocus] = useState<number | null>(null);
 
@@ -174,11 +177,15 @@ export function EmbedTimeline({
     schedule();
   };
 
-  const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const commitPointer = (e: PointerEvent<HTMLDivElement>) => {
     const root = rootRef.current;
-    if (!root || times.length === 0 || (e.target as HTMLElement).closest("button") && e.detail === 0) return;
+    if (!root || times.length === 0 || !dragging.current) return;
+    dragging.current = false;
     const rect = root.getBoundingClientRect();
     onSeekGhost(ghosts[nearestIndex(times, ((e.clientX - rect.left) / rect.width) * duration)]);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    pointerX.current = null;
+    schedule();
   };
 
   const register = useCallback((i: number, el: HTMLButtonElement | null) => {
@@ -209,12 +216,13 @@ export function EmbedTimeline({
       role="group"
       aria-label="Ghosts"
       onPointerMove={onPointerMove}
-      onPointerDown={onPointerMove}
-      onPointerLeave={onPointerLeave}
-      onPointerCancel={onPointerLeave}
-      onClick={onClick}
+      onPointerDown={(e) => { if (e.button !== 0) return; dragging.current = true; e.currentTarget.setPointerCapture(e.pointerId); onPointerMove(e); }}
+      onPointerUp={commitPointer}
+      onPointerLeave={() => { if (!dragging.current) onPointerLeave(); }}
+      onPointerCancel={() => { dragging.current = false; onPointerLeave(); }}
+      onLostPointerCapture={() => { dragging.current = false; onPointerLeave(); }}
       onKeyDown={onKeyDown}
-      className="group/timeline relative h-7 w-full cursor-pointer touch-manipulation"
+      className="group/timeline relative h-7 w-full cursor-pointer touch-none"
     >
       {/* Static layer: track + chapters (only changes with the VOD) */}
       <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-muted transition-[height] duration-150 group-hover/timeline:h-3 motion-reduce:transition-none">

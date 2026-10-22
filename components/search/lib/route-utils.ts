@@ -1,4 +1,5 @@
 import type { SearchMode, Selection } from "../types";
+import { listMode } from "@/lib/workspace-url";
 
 /**
  * Reserved top-level names that must NOT be matched by the dynamic `[streamer]`
@@ -32,11 +33,8 @@ export const MODE_PATHS: Record<Exclude<SearchMode, "saved">, string> = {
  * The mode a pathname belongs to: `/streamers[/:id]`, `/recordings[/:id]`, `/saved`;
  * everything else (`/search`, `/matchups/:id`, `/`) is Ghosts.
  */
-export function deriveSearchMode(pathname: string): SearchMode {
-  if (/^\/streamers(\/|$)/.test(pathname)) return "streamers";
-  if (/^\/recordings(\/|$)/.test(pathname)) return "recordings";
-  if (/^\/saved(\/|$)/.test(pathname)) return "saved";
-  return "ghosts";
+export function deriveSearchMode(pathname: string, list: string | null = null): SearchMode {
+  return listMode(pathname, list);
 }
 
 /** The Matchup, Streamer or Session a pathname selects, if any. */

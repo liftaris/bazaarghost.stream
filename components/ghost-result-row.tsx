@@ -36,8 +36,8 @@ export const GhostResultRow = memo(function GhostResultRow({
   href = `/matchups/${ghost.matchup_id}`,
   onNavigateToStreamer,
 }: GhostResultRowProps) {
-  const { setEmbed, setActiveGhost } = useEmbedActions();
-  const isActive = useEmbedState().activeGhost?.matchup_id === ghost.matchup_id;
+  const { setEmbed, setActiveGhost, setSources, setMatchupContext } = useEmbedActions();
+  const isActive = useEmbedState().selectedGhost?.matchup_id === ghost.matchup_id;
 
   const warm = () => {
     prefetch(`/matchups/${ghost.matchup_id}`);
@@ -47,6 +47,7 @@ export const GhostResultRow = memo(function GhostResultRow({
   // Optimistic update only; the Link performs the (single) navigation.
   const handlePlay = (e: MouseEvent) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    setSources(ghost.matchup.sources, ghost.matchup.session?.id ?? null);
     setEmbed(ghost.vod_source_id, ghost.frame_time_seconds, {
       streamerId: ghost.streamer_id,
       streamerName: ghost.streamer_display_name,
@@ -63,6 +64,7 @@ export const GhostResultRow = memo(function GhostResultRow({
       rank: ghost.rank,
       frame_time_seconds: ghost.frame_time_seconds,
     });
+    setMatchupContext(ghost.matchup);
   };
 
   return (

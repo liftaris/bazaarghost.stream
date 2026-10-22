@@ -13,15 +13,16 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { findNextGhost, findPrevGhost } from "@/lib/ghost-nav";
 import { PlayerHost, SLOT_EVENT } from "@/components/player/player-host";
 import { toast } from "sonner";
 import { usePlayback } from "@/hooks/use-playback";
 import { cachedGet } from "@/lib/api-cache";
-import type { Playback, RecordingSource, Source } from "@/lib/api-contract";
+import type { Matchup, Playback, RecordingSource, Session, Source } from "@/lib/api-contract";
+import { adjacentIndex, matchupTime } from "@/lib/session-navigation";
+import { createPlaybackIntent } from "@/lib/playback-intent";
 import { withListParams } from "@/lib/search-filters";
 import { opponentNameState, type OpponentName } from "@/lib/opponent-name";
-import { mapSessionTime, recordingPath, recordingSources, rememberPlatform, sourcePin } from "@/lib/sources";
+import { mapSessionTime, pickSource, preferredPlatform, recordingPath, recordingSources, rememberPlatform, sourcePin } from "@/lib/sources";
 import {
   createPlayerAdapter,
   getPlatform,
@@ -56,6 +57,9 @@ interface EmbedState {
 }
 
 interface EmbedActions {
+  /** Fence async Session/source requests against newer explicit playback intent. */
+  beginPlaybackIntent: () => number;
+  getPlaybackIntent: () => number;
   /** Load a VOD (or seek if already loaded). Pass meta for the info bar. */
   setEmbed: (videoId: string, timestamp: number, meta?: EmbedMeta) => void;
   hideEmbed: () => void;
@@ -74,9 +78,13 @@ interface EmbedActions {
   togglePlay: () => void;
   toggleMute: () => void;
   seek: (seconds: number) => void;
-  /** Optimistically set the active ghost (e.g. on result row click, arrow nav). */
+  /** Pin a user-selected matchup, separately from the passive playhead. */
   setActiveGhost: (ghost: EmbedGhost | null) => void;
-  /** Step to the prev/next ghost (from the active ghost, else the playhead) or jump to a given one: optimistic active ghost + URL push + seek. */
+  /** Hydrate canonical context without seeking or changing the pinned ID. */
+  setMatchupContext: (matchup: Matchup) => void;
+  /** Register ordered canonical session navigation, independently of source markers. */
+  setSessionNavigation: (session: Session, matches: Matchup[]) => void;
+  /** Step from the pinned selection, or commit a timeline marker, with one seek and resource navigation. */
   goToGhost: (target: "prev" | "next" | EmbedGhost) => void;
   /** Read the latest playback time without subscribing to ticks. */
   getTime: () => { currentTime: number; duration: number };
@@ -99,6 +107,11 @@ interface EmbedSlowState extends EmbedState {
    * feedback before the player seek lands.
    */
   activeGhost: EmbedGhost | null;
+  /** Explicit user selection, unaffected by passive playback or source switching. */
+  selectedGhost: EmbedGhost | null;
+  selectedMatchup: Matchup | null;
+  contextSessionId: string | null;
+  navigationIds: number[] | null;
   /** True while activeGhost is an optimistic (user-initiated) override. */
   ghostIsOptimistic: boolean;
   bazaarChapters: number[] | null;
@@ -170,8 +183,6 @@ export function useEmbed(): EmbedContextValue {
 // ---------------------------------------------------------------------------
 
 const CONTAINER_ID = "bazaarghost-player";
-/** In the Recordings and Streamers modes a ghost is a seek, not a navigation to its Matchup. */
-const inSessionMode = () => /^\/(recordings|streamers)(\/|$)/.test(window.location.pathname);
 const POLL_INTERVAL_MS = 500;
 
 export function EmbedProvider({ children }: { children: ReactNode }) {
@@ -184,6 +195,12 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   const [reserved, setReserved] = useState(false);
   const [sources, setSourceList] = useState<RecordingSource[]>([]);
   const sessionIdRef = useRef<string | null>(null);
+  const [contextSessionId, setContextSessionId] = useState<string | null>(null);
+  const [selectedGhost, setSelectedGhost] = useState<EmbedGhost | null>(null);
+  const [selectedMatchup, setSelectedMatchup] = useState<Matchup | null>(null);
+  const [navigationIds, setNavigationIds] = useState<number[] | null>(null);
+  const [playbackIntent] = useState(createPlaybackIntent);
+  const sessionNavigation = useRef<{ session: Session; matches: Matchup[] } | null>(null);
   const failedSourcesRef = useRef(new Set<number>());
   const [isReady, setIsReady] = useState(false);
   // Adapter errors belong to the video/source that raised them and lapse with it
@@ -411,16 +428,29 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
    */
   const setActiveGhost = useCallback((ghost: EmbedGhost | null) => {
     setGhostOverride(ghost);
+    setSelectedGhost(ghost);
+    setSelectedMatchup((old) => old?.id === ghost?.matchup_id ? old : null);
+  }, []);
+
+  const setMatchupContext = useCallback((matchup: Matchup) => {
+    setSelectedMatchup(matchup);
+    setContextSessionId(matchup.session?.id ?? null);
+  }, []);
+  const setSessionNavigation = useCallback((session: Session, matches: Matchup[]) => {
+    if (session.id !== sessionIdRef.current) return;
+    sessionNavigation.current = { session, matches };
+    setNavigationIds(matches.map((m) => m.id));
   }, []);
 
   // ---- Public API ----
   const seek = useCallback((seconds: number) => {
+    playbackIntent.begin();
     seekTargetRef.current = seconds; // suppress poll until player catches up
     setCurrentTime(seconds); // optimistic update
     const adapter = adapterRef.current;
     if (adapter && loadedVideoRef.current === videoIdRef.current) adapter.seek(seconds);
     else pendingStartRef.current = seconds;
-  }, [setCurrentTime]);
+  }, [setCurrentTime, playbackIntent]);
 
   const setEmbed = useCallback(
     (videoId: string, timestamp: number, meta?: EmbedMeta) => {
@@ -445,29 +475,40 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   );
 
   const setSources = useCallback((list: Source[], sessionId: string | null) => {
+    if (sessionIdRef.current !== sessionId) {
+      sessionNavigation.current = null;
+      setNavigationIds(null);
+    }
     sessionIdRef.current = sessionId;
+    setContextSessionId(sessionId);
     failedSourcesRef.current.clear();
     setSourceList(recordingSources(list));
   }, []);
 
   const moveToSource = useCallback(async (target: RecordingSource) => {
+    const intent = playbackIntent.begin();
     const currentId = Number(videoIdRef.current?.slice(2));
+    const sessionId = sessionIdRef.current;
+    const current = () => playbackIntent.isCurrent(intent) && sessionIdRef.current === sessionId && Number(videoIdRef.current?.slice(2)) === currentId;
     let at = target.at;
-    if (sessionIdRef.current && currentId !== target.recording.id) {
+    if (sessionId && currentId !== target.recording.id) {
       try {
-        const session = await cachedGet(`/sessions/${sessionIdRef.current}`);
+        const session = await cachedGet(`/sessions/${sessionId}`);
+        if (!current()) return;
         at = mapSessionTime(session, currentId, target.recording.id, timeStore.get().currentTime) ?? at;
       } catch {
         // Mapping unavailable: the Source's own moment is the fallback
       }
     }
+    // The fallback is asynchronous too: a failed old mapping cannot resurrect its source.
+    if (!current()) return;
     setEmbed(`v:${target.recording.id}`, at);
     const url = new URL(window.location.href);
     if (url.searchParams.has("source")) {
       url.searchParams.set("source", sourcePin(target.recording.id));
       window.history.replaceState(window.history.state, "", url);
     }
-  }, [setEmbed, timeStore]);
+  }, [setEmbed, timeStore, playbackIntent]);
 
   const switchSource = useCallback((target: RecordingSource) => {
     failedSourcesRef.current.clear();
@@ -476,10 +517,11 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   }, [moveToSource]);
 
   const hideEmbed = useCallback(() => {
+    playbackIntent.begin();
     pause();
     setIsVisible(false);
     setReserved(false);
-  }, [pause]);
+  }, [pause, playbackIntent]);
 
   const play = useCallback(() => {
     adapterRef.current?.play();
@@ -500,32 +542,56 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   }, [timeStore]);
 
   // Latest view of what goToGhost needs, so the action itself stays referentially stable
-  const nav = useRef({ ghosts: sortedGhosts, activeGhost, capabilities });
+  const nav = useRef({ ghosts: sortedGhosts, selectedGhost, capabilities });
   useLayoutEffect(() => {
-    nav.current = { ghosts: sortedGhosts, activeGhost, capabilities };
+    nav.current = { ghosts: sortedGhosts, selectedGhost, capabilities };
   });
   const goToGhost = useCallback((target: "prev" | "next" | EmbedGhost) => {
-    const { ghosts, activeGhost: active, capabilities: caps } = nav.current;
+    const { ghosts, selectedGhost: active, capabilities: caps } = nav.current;
     if (!caps?.navigate) return;
     let ghost: EmbedGhost | null;
+    let canonical: Matchup | undefined;
     if (typeof target === "string") {
-      // Step from the active ghost; fall back to the playhead when there is none
-      const index = active ? ghosts.findIndex((g) => g.detection_id === active.detection_id) : -1;
-      ghost = index >= 0
-        ? ghosts[target === "next" ? index + 1 : index - 1] ?? null
-        : (target === "next" ? findNextGhost : findPrevGhost)(ghosts, timeStore.get().currentTime);
-    } else ghost = target;
+      const sessionNav = sessionNavigation.current;
+      if (sessionNav) {
+        canonical = sessionNav.matches[adjacentIndex(sessionNav.matches.map((m) => m.id), active?.matchup_id ?? null, target)];
+        if (!canonical) return;
+        ghost = { matchup_id: canonical.id, detection_id: String(canonical.id), username: canonical.opponent.username, nameState: canonical.opponent.nameState, rank: canonical.opponent.rank, frame_time_seconds: 0 };
+      } else {
+        const index = adjacentIndex(ghosts.map((g) => g.matchup_id ?? 0), active?.matchup_id ?? null, target);
+        ghost = ghosts[index] ?? null;
+      }
+    } else {
+      canonical = sessionNavigation.current?.matches.find((m) => m.id === target.matchup_id);
+      ghost = ghosts.find((g) => g.matchup_id === target.matchup_id) ?? target;
+    }
     if (!ghost) return;
-    setGhostOverride(ghost);
+    const selectedId = ghost.matchup_id;
+    canonical ??= sessionNavigation.current?.matches.find((m) => m.id === selectedId);
+    let destination = videoIdRef.current;
+    if (canonical) {
+      const currentId = Number(destination?.slice(2));
+      const at = sessionNavigation.current ? matchupTime(canonical, currentId, sessionNavigation.current.session) : null;
+      const source = pickSource(canonical, at !== null ? sourcePin(currentId) : null, preferredPlatform());
+      if (!source) return;
+      destination = `v:${at !== null ? currentId : source.recording.id}`;
+      ghost = { ...ghost, frame_time_seconds: at ?? source.at };
+      setSources(canonical.sources, canonical.session?.id ?? null);
+    }
+    if (!destination) return;
+    setEmbed(destination, ghost.frame_time_seconds);
+    setActiveGhost(ghost);
+    if (canonical) setMatchupContext(canonical);
+    setIsVisible(true);
+    setReserved(false);
     const url = ghost.matchup_id ? `/matchups/${ghost.matchup_id}` : null;
-    if (url && window.location.pathname !== url && !inSessionMode()) router.push(withListParams(url), { scroll: false });
-    seek(ghost.frame_time_seconds);
-  }, [router, seek, timeStore]);
+    if (url) router.push(withListParams(url), { scroll: false });
+  }, [router, setEmbed, setSources, setActiveGhost, setMatchupContext]);
 
   const actions = useMemo<EmbedActions>(
-    () => ({ setEmbed, hideEmbed, reservePlayer: setReserved, setSources, switchSource, containerId: CONTAINER_ID, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, goToGhost,
+    () => ({ beginPlaybackIntent: playbackIntent.begin, getPlaybackIntent: playbackIntent.getVersion, setEmbed, hideEmbed, reservePlayer: setReserved, setSources, switchSource, containerId: CONTAINER_ID, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, setMatchupContext, setSessionNavigation, goToGhost,
       getTime: () => timeStore.get() }),
-    [setEmbed, hideEmbed, setSources, switchSource, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, goToGhost, timeStore]
+    [setEmbed, hideEmbed, setSources, switchSource, registerSlot, play, pause, togglePlay, toggleMute, seek, setActiveGhost, setMatchupContext, setSessionNavigation, goToGhost, timeStore, playbackIntent]
   );
   const mergedError = error ?? playback.error;
   const ghostIsOptimistic = ghostOverride !== null;
@@ -552,11 +618,15 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
       sources,
       ghosts: sortedGhosts,
       activeGhost,
+      selectedGhost,
+      selectedMatchup,
+      contextSessionId,
+      navigationIds,
       ghostIsOptimistic,
       bazaarChapters,
       capabilities,
     }),
-    [state, playbackMeta, sources, isVisible, reserved, isReady, mergedError, playback.data, sortedGhosts, activeGhost, ghostIsOptimistic, bazaarChapters, capabilities]
+    [state, playbackMeta, sources, isVisible, reserved, isReady, mergedError, playback.data, sortedGhosts, activeGhost, selectedGhost, selectedMatchup, contextSessionId, navigationIds, ghostIsOptimistic, bazaarChapters, capabilities]
   );
 
   return (
@@ -570,8 +640,8 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
         show={isVisible && !!state.videoId}
         error={mergedError}
         onExpand={() => {
-          const url = activeGhost?.matchup_id && !inSessionMode() ? `/matchups/${activeGhost.matchup_id}` : recordingPath(playback.data?.recording.sessionId ?? null, dataVideoId ?? 0);
-          if (url) router.push(url, { scroll: false });
+          const url = selectedGhost?.matchup_id ? `/matchups/${selectedGhost.matchup_id}` : recordingPath(contextSessionId, dataVideoId ?? 0);
+          if (url) router.push(withListParams(url), { scroll: false });
         }}
         onClose={hideEmbed}
       />

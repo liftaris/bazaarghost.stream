@@ -69,6 +69,9 @@ export interface Recording {
   available: boolean;
   channel: Channel;
   sessionId: string | null;
+  /** Masking observed in this Recording at least once; never automatically cleared.
+   * Its Session can separately exclude it from discovery even when this is false. */
+  streamerMode: boolean;
   /** Visible Matchups with a Detection in this Recording; null where the route does not count them. */
   matchupCount: number | null;
 }
@@ -136,6 +139,7 @@ export interface Encounter {
 }
 /** The best-supported name, rank and in-game day of a Matchup (MAT-04). */
 export interface Opponent {
+  /** Observed OCR text, possibly a fragment; nameState describes its quality, not verified identity. */
   username: string | null;
   rank: string | null;
   igd: number | null;
@@ -165,6 +169,7 @@ export interface Evidence {
   id: string;
   recordingId: number;
   at: number;
+  /** Observed OCR text, including obstructed fragments. */
   username: string | null;
   confidence: number | null;
   nameState: NameState;
@@ -190,6 +195,8 @@ export interface StreamerCard extends Streamer {
 /** A Session's Recordings with their time mappings; `session_time = recording_time + offsetSeconds`. */
 export interface Session {
   id: string;
+  /** Masking observed in an associated Recording/Session; sticky across moves and undo. */
+  streamerMode: boolean;
   title: string | null;
   streamer: StreamerRef | null;
   recordings: Array<{
@@ -202,6 +209,7 @@ export interface Session {
 /** Lean Session list item. `channel` is the Channel that published the default Recording (the fallback label when there is no Streamer). */
 export interface SessionCard {
   id: string;
+  streamerMode: boolean;
   title: string | null;
   streamer: StreamerRef | null;
   channel: Channel;
@@ -216,6 +224,7 @@ export interface SessionCard {
 export interface TimelineMarker {
   id: number;
   timestampSeconds: number;
+  /** Observed OCR text, possibly obstructed; not necessarily a complete identity. */
   username: string | null;
   nameState: NameState;
   rank: string | null;

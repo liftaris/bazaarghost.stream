@@ -86,7 +86,7 @@ export function usePlayerHotkeys() {
       }
       case "s":
       case "S": {
-        const id = state.activeGhost?.matchup_id;
+        const id = state.selectedGhost?.matchup_id;
         if (!id || !bookmarks.enabled) return;
         if (!bookmarks.signedIn) {
           router.push(`/login?next=${encodeURIComponent(pathname + (query ? `?${query}` : ""))}`);

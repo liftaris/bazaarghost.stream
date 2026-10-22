@@ -1,5 +1,6 @@
 import type { Matchup, RecordingSource, Session, Source } from "./api-contract";
 import { NO_PLATFORM_FILTER, platformAllowed, type PlatformFilter } from "./search-filters";
+export { mapSessionTime } from "./session-navigation";
 
 const PREFERENCE_KEY = "bazaarghost:source-platform";
 
@@ -66,18 +67,6 @@ export function sessionSources(session: Session): RecordingSource[] {
         }]
       : [],
   );
-}
-
-/** Where the same moment sits in another Recording of the Session, or null when it is not covered. */
-export function mapSessionTime(session: Session, fromId: number, toId: number, time: number): number | null {
-  const find = (id: number) => session.recordings.find((r) => r.recording.id === id)?.segments;
-  const from = find(fromId)?.find((s) => time >= s.recStart && (s.recEnd === null || time < s.recEnd));
-  if (!from) return null;
-  const sessionTime = time + from.offsetSeconds;
-  const to = find(toId)?.find(
-    (s) => sessionTime >= s.recStart + s.offsetSeconds && (s.recEnd === null || sessionTime < s.recEnd + s.offsetSeconds),
-  );
-  return to ? sessionTime - to.offsetSeconds : null;
 }
 
 /** Canonical URL of a Recording: its Session, pinned to that Recording. */

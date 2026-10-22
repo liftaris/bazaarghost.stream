@@ -15,6 +15,7 @@ export default defineConfig([
     ".cloudflare/**",
     ".wrangler/**",
     ".agents/**",
+    ".ignore/**", // local prototypes and verification artifacts are not shipped source
     "dist/**",
     "out/**",
     "next-env.d.ts",

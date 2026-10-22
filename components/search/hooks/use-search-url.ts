@@ -36,7 +36,7 @@ export function useSearchUrl() {
   const { pathname, search } = workspaceActive ? { pathname: livePathname, search: liveSearch } : lastWorkspace;
   const params = useMemo(() => new URLSearchParams(search), [search]);
 
-  const mode: SearchMode = deriveSearchMode(pathname);
+  const mode: SearchMode = deriveSearchMode(pathname, params.get("list"));
   const selection: Selection | null = useMemo(() => deriveSelection(pathname), [pathname]);
   const queryParam = params.get("q") ?? "";
   const includeKey = params.get("platform");
@@ -81,6 +81,7 @@ export function useSearchUrl() {
   const listQuery = useMemo(() => {
     const out = new URLSearchParams();
     for (const key of LIST_PARAMS) {
+      if (key === "list") continue; // selection-route metadata must not reset the left scroll identity
       const value = params.get(key);
       if (value) out.set(key, value);
     }
@@ -90,10 +91,11 @@ export function useSearchUrl() {
   /** A selection URL: the path plus the current list params (and any extras). */
   const selectionHref = useCallback((path: string, extra: Record<string, string> = {}) => {
     const out = new URLSearchParams(listQuery);
+    out.set("list", mode);
     for (const [key, value] of Object.entries(extra)) out.set(key, value);
     const qs = out.toString();
     return `${path}${qs ? `?${qs}` : ""}`;
-  }, [listQuery]);
+  }, [listQuery, mode]);
 
   /** Switch mode with client navigation, keeping only the filters the target mode has. */
   const switchMode = useCallback((target: Exclude<SearchMode, "saved">) => {

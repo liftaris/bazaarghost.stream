@@ -1,4 +1,6 @@
 import { isKnownPlatform } from "./platforms";
+import { resourceHref } from "./workspace-url";
+export { LIST_PARAMS } from "./workspace-url";
 
 /** Platform filter: `include` narrows to those platforms, `exclude` drops them; both empty means any. */
 export interface PlatformFilter {
@@ -81,15 +83,8 @@ export function readUrlPlatformFilter(): PlatformFilter {
 }
 
 /** Params every list shares; a selection URL carries them so reload and back restore both panes. */
-export const LIST_PARAMS = ["q", "platform", "xplatform", "from", "to", "streamer", "channel"] as const;
 
 /** `path` plus the list params of the live URL. */
 export function withListParams(path: string): string {
-  const live = new URLSearchParams(window.location.search);
-  const out = new URLSearchParams();
-  for (const key of LIST_PARAMS) {
-    const value = live.get(key);
-    if (value) out.set(key, value);
-  }
-  return out.size ? `${path}?${out}` : path;
+  return resourceHref(path, window.location.pathname, window.location.search);
 }

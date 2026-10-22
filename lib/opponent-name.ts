@@ -14,3 +14,8 @@ export function opponentLabel(opponent: OpponentName): string {
 export function opponentNameState(opponent: OpponentName): string | undefined {
   return opponent.nameState;
 }
+
+/** Only complete/legacy observed names can support an identity-related search. */
+export function canSearchOpponent(opponent: OpponentName): boolean {
+  return !!opponent.username && (!opponent.nameState || opponent.nameState === "complete" || opponent.nameState === "legacy");
+}

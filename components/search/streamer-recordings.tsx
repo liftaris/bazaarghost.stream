@@ -14,12 +14,12 @@ import { useStreamer } from "./hooks/use-streamer-options";
 
 
 /** Avatar, name and the Streamer's Channels, each linking out to its page on its platform. */
-function StreamerHeader({ streamerId, card }: { streamerId: string; card: StreamerCard | null }) {
+export function StreamerHeader({ streamerId, card }: { streamerId: string; card: StreamerCard | null }) {
   const { streamer } = useStreamer(streamerId);
   const shown = streamer ?? card;
   if (!shown) return <Skeleton className="m-2 h-9" />;
   return (
-    <div className="flex items-center gap-3 border-b border-border px-3 py-2">
+    <div className="mx-auto flex w-full max-w-5xl items-center gap-3 border-b border-border px-3 py-2">
       <Avatar className="size-9 shrink-0">
         <AvatarImage src={shown.avatarUrl ?? undefined} alt="" />
         <AvatarFallback className="bg-primary text-xs text-primary-foreground">{shown.displayName[0]?.toUpperCase()}</AvatarFallback>
