@@ -26,17 +26,10 @@ export function SearchLayout({
   const mobileNavigation = (
     <TabsList
       aria-label="Workspace panels"
-      variant="line"
-      className="h-11! w-full shrink-0 border-b border-border px-3 py-0 md:hidden"
+      className="mx-3 my-2 h-11! w-auto shrink-0 md:hidden"
     >
-      <TabsTrigger value="results" className="h-11 after:bottom-0">
-        Search Results
-      </TabsTrigger>
-      <TabsTrigger
-        value="details"
-        className="h-11 after:bottom-0"
-        disabled={!detail}
-      >
+      <TabsTrigger value="results">Search Results</TabsTrigger>
+      <TabsTrigger value="details" disabled={!detail}>
         Details
       </TabsTrigger>
     </TabsList>
@@ -55,7 +48,7 @@ export function SearchLayout({
         disabled={split.compact}
         onLayoutChange={split.onLayoutChange}
         onLayoutChanged={split.onLayoutChanged}
-        className="min-h-0 flex-1 bg-background max-md:flex-col! max-md:overflow-y-auto! max-md:[&>[data-panel]]:w-full! max-md:[&>[data-panel]]:max-h-none! max-md:[&>#results]:order-3 max-md:[&>#results]:flex-[1_0_14rem]! max-md:[&>#workspace]:order-1 max-md:[&>#workspace]:flex-none! max-md:data-[mobile-tab=details]:[&>#results]:hidden! max-md:data-[mobile-tab=details]:[&>#workspace]:flex-[1_0_auto]!"
+        className="min-h-0 flex-1 bg-background max-md:flex-col! max-md:[&>[data-panel]]:w-full! max-md:[&>[data-panel]]:max-h-none! max-md:[&>#results]:order-3 max-md:[&>#results]:flex-1! max-md:[&>#workspace]:order-1 max-md:[&>#workspace]:flex-none! max-md:data-[mobile-tab=details]:[&>#results]:hidden! max-md:data-[mobile-tab=details]:[&>#workspace]:flex-1!"
       >
         <ResizablePanel
           id="results"

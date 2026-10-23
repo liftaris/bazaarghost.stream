@@ -2,89 +2,69 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Ghost, Search } from "lucide-react";
+import { Check, Copy, Search } from "lucide-react";
 import Image from "next/image";
-import type { Matchup } from "@/lib/api-contract";
+import type { Matchup, Session } from "@/lib/api-contract";
 import { canSearchOpponent, opponentLabel } from "@/lib/opponent-name";
-import { heroLabel, RANKS } from "@/lib/session-summary";
+import { RANKS } from "@/lib/session-summary";
+import { clock, matchupTime } from "@/lib/session-navigation";
 import { Button } from "@/components/ui/button";
 import { BookmarkButton } from "@/components/social/bookmark-button";
 
 /** Selected canonical metadata and deliberate related searches, without evidence-image downloads. */
-export function MatchupDetail({ match }: { match: Matchup }) {
+export function MatchupDetail({
+  match,
+  runNumber = null,
+  recordingId = null,
+  session = null,
+}: {
+  match: Matchup;
+  runNumber?: number | null;
+  recordingId?: number | null;
+  session?: Session | null;
+}) {
   const router = useRouter();
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
     "idle"
   );
   const { opponent, encounter } = match;
   const rank = opponent.rank?.trim().toLowerCase();
+  const source = match.sources?.find(
+    (source) => source.kind === "recording" && source.available
+  );
+  const at =
+    (recordingId == null ? null : matchupTime(match, recordingId, session)) ??
+    (source?.kind === "recording" ? source.at : null);
   const fragment =
     opponent.nameState === "partial" || opponent.nameState === "obstructed";
   return (
     <section
       aria-label="Selected player"
-      className="mx-3 mb-3 flex flex-col gap-3 rounded-md border border-border bg-background p-3 @sm:mx-4"
+      className="flex flex-col gap-2 rounded-md border border-primary bg-background p-3"
       data-matchup-detail={match.id}
     >
-      <div className="flex min-w-0 items-center gap-3 border-b border-border pb-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted">
-          <Ghost aria-hidden className="size-5 text-muted-foreground" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h4 className="truncate text-sm font-medium">
-            {opponentLabel(opponent)}
-          </h4>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {heroLabel(encounter.ghostHero)}
-          </p>
-        </div>
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <h4 className="min-w-0 break-words text-lg font-semibold">
+          {opponentLabel(opponent)}
+        </h4>
         {rank && RANKS.some((value) => value === rank) && (
           <Image
             src={`/${rank}.webp`}
             alt={rank}
-            width={28}
-            height={28}
+            width={20}
+            height={20}
             unoptimized
-            className="size-7 shrink-0 object-contain"
+            className="size-5 shrink-0 object-contain"
           />
         )}
+        <span className="text-sm capitalize text-muted-foreground">
+          {opponent.rank ?? "-"}
+        </span>
       </div>
-      <dl className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
-        <div>
-          <dt className="text-muted-foreground">Ghost hero</dt>
-          <dd className="mt-0.5 font-medium">
-            {heroLabel(encounter.ghostHero)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Streamer hero</dt>
-          <dd className="mt-0.5 font-medium">
-            {heroLabel(encounter.streamerHero)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">In-game day</dt>
-          <dd className="mt-0.5 font-medium">{encounter.igd ?? "-"}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Rank</dt>
-          <dd className="mt-0.5 font-medium capitalize">
-            {opponent.rank ?? "-"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Wins remaining</dt>
-          <dd className="mt-0.5 font-medium tabular-nums">
-            {encounter.winsRemaining ?? "-"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Lethal</dt>
-          <dd className="mt-0.5 font-medium">
-            {encounter.lethal == null ? "-" : encounter.lethal ? "Yes" : "No"}
-          </dd>
-        </div>
-      </dl>
+      <p className="text-xs text-muted-foreground">
+        Run {runNumber ?? "-"} · Day {encounter.igd ?? "-"} · at{" "}
+        {at == null ? "-" : clock(at)}
+      </p>
       {fragment && (
         <p className="max-w-prose text-xs text-muted-foreground">
           Observed text is incomplete or obstructed, not a verified opponent
@@ -126,7 +106,7 @@ export function MatchupDetail({ match }: { match: Matchup }) {
           {copyStatus === "copied" ? "Copied" : "Matchup link"}
         </Button>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           disabled={!canSearchOpponent(opponent)}
           onClick={() =>
@@ -135,19 +115,23 @@ export function MatchupDetail({ match }: { match: Matchup }) {
             })
           }
         >
-          <Search data-icon="inline-start" /> More with this name
+          <Search data-icon="inline-start" /> Search {opponentLabel(opponent)}
         </Button>
         {match.streamer && (
           <Button
             variant="ghost"
             size="sm"
+            disabled={!canSearchOpponent(opponent)}
             onClick={() =>
-              router.push(`/search?streamer=${match.streamer!.id}`, {
-                scroll: false,
-              })
+              router.push(
+                `/search?streamer=${match.streamer!.id}&q=${encodeURIComponent(opponent.username!)}`,
+                {
+                  scroll: false,
+                }
+              )
             }
           >
-            Matchups from {match.streamer.displayName}
+            Also vs {match.streamer.displayName}
           </Button>
         )}
       </div>

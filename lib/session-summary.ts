@@ -35,6 +35,22 @@ export function summarizeSession(matches: Matchup[]) {
     }))
     .filter(({ count }) => count > 0)
     .sort((a, b) => b.count - a.count);
+  const scores = observedRuns(unique).map((run) => {
+    const latest = run.matches.findLast(
+      (match) => match.encounter.winsRemaining != null
+    );
+    const remaining = latest?.encounter.winsRemaining;
+    if (!latest || remaining == null) return { wins: null, losses: null };
+    const wins = 10 - remaining;
+    const day = latest.encounter.igd;
+    return { wins, losses: day != null && day >= wins ? day - wins : null };
+  });
+  const wins = scores.flatMap((score) =>
+    score.wins == null ? [] : [score.wins]
+  );
+  const losses = scores.flatMap((score) =>
+    score.losses == null ? [] : [score.losses]
+  );
   return {
     count: unique.length,
     ranks,
@@ -43,9 +59,10 @@ export function summarizeSession(matches: Matchup[]) {
       unique.length - ranks.reduce((sum, entry) => sum + entry.count, 0),
     unknownHeroes:
       unique.length - heroes.reduce((sum, entry) => sum + entry.count, 0),
-    // Neither winsRemaining nor lethal states who won a fight. The public API has no outcome field.
-    wins: null,
-    losses: null,
+    wins: wins.length ? wins.reduce((sum, value) => sum + value, 0) : null,
+    losses: losses.length
+      ? losses.reduce((sum, value) => sum + value, 0)
+      : null,
   };
 }
 
@@ -56,34 +73,39 @@ export interface ObservedRun {
   matches: Matchup[];
 }
 
-/** Only explicit processor continuity segments group runs. Days and hero changes are not boundaries. */
 export function observedRuns(matches: Matchup[]): ObservedRun[] {
   const runs: ObservedRun[] = [];
   const seen = new Set<number>();
-  const numbers = new Map<string, number>();
-  let previousSegment: string | null | undefined;
+  let previousRecording: number | null = null;
+  let previousDay: number | null = null;
   for (const match of matches) {
     if (seen.has(match.id)) continue;
     seen.add(match.id);
     const proof =
       match.fieldEvidence?.encounter ??
       match.encounter.fieldEvidence?.encounter;
-    const segment =
-      proof?.runSegmentId && Number.isFinite(proof.recordingId)
-        ? `${proof.recordingId}:${proof.runSegmentId}`
-        : null;
-    if (segment && !numbers.has(segment))
-      numbers.set(segment, numbers.size + 1);
-    if (!runs.length || segment !== previousSegment) {
+    const source = match.sources?.find((source) => source.kind === "recording");
+    const recording =
+      proof?.recordingId ??
+      (source?.kind === "recording" ? source.recording.id : null);
+    const day = match.encounter.igd;
+    if (
+      !runs.length ||
+      recording !== previousRecording ||
+      (day != null &&
+        (day === 1 || (previousDay != null && day <= previousDay)))
+    ) {
       runs.push({
         key: `run:${match.id}`,
-        number: segment ? numbers.get(segment)! : null,
+        number: runs.length + 1,
         hero: null,
         matches: [],
       });
+      previousDay = null;
     }
     runs[runs.length - 1].matches.push(match);
-    previousSegment = segment;
+    previousRecording = recording;
+    if (day != null) previousDay = day;
   }
   for (const run of runs) {
     const heroes = new Set(

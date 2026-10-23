@@ -83,7 +83,7 @@ export function EmbedPanel({
         disabled={split.compact}
         onLayoutChange={split.onLayoutChange}
         onLayoutChanged={split.onLayoutChanged}
-        className="min-h-0 flex-1 max-md:h-auto! max-md:[&>[data-panel]]:max-h-none! max-md:[&>#video]:flex-none! max-md:[&>#context]:min-h-48! max-md:[&>#context]:flex-1! max-md:data-[mobile-tab=results]:[&>#context]:hidden!"
+        className="min-h-0 flex-1 max-md:[&>[data-panel]]:max-h-none! max-md:[&>#video]:flex-none! max-md:[&>#context]:min-h-0! max-md:[&>#context]:flex-1! max-md:data-[mobile-tab=results]:[&>#context]:hidden!"
       >
         {showVideo && (
           <>

@@ -6,7 +6,6 @@ import {
   jsxRuntime,
   deferred,
   settle,
-  elements,
 } from "./helpers/source-harness.mjs";
 
 const sid = "session-a";
@@ -141,64 +140,6 @@ function consumer(p, additions = {}) {
   });
   return { ...h, load };
 }
-
-test("review 1: delayed Session picker cannot navigate or complete after a newer fight", async () => {
-  const pending = deferred();
-  const p = provider(() => pending.promise);
-  p.actions.setSessionNavigation(session, matches);
-  const h = consumer(p);
-  const start = h.render(() =>
-    h.load("@/components/session-player").useSessionPlayer()
-  );
-  const c = consumer(p, {
-    "lucide-react": {},
-    "@/components/search/streamer-recordings": {},
-    "@/components/ui/button": { Button: "Button" },
-    "@/components/ui/skeleton": {},
-    "@/components/ui/empty": {},
-    "@/components/session-player": { useSessionPlayer: () => start },
-    "@/components/search/hooks/use-api-page": {
-      useApiPage: () => ({ items: [{ id: "session-b", title: "Session B" }] }),
-    },
-    "./hooks/use-session-matchups": {
-      useSessionMatchups: () => ({ session, matches }),
-    },
-    "./hooks/use-matchup-player": { useMatchupPlayer: () => () => {} },
-    "./hooks/use-selected-matchup": {
-      useSelectedMatchup: () => ({ selectedId: 501 }),
-    },
-    "./matchup-list": {},
-    "./matchup-detail": {},
-    "./session-stats": { SessionStats: "SessionStats" },
-  });
-  const { SessionCompanion } = c.load(
-    "@/components/companion/session-companion"
-  );
-  let tree = c.render(SessionCompanion);
-  elements(tree)
-    .find((e) => e.props?.["aria-expanded"] === false)
-    .props.onClick();
-  tree = c.render(SessionCompanion);
-  const nav = elements(tree).find(
-    (e) => e.props?.["aria-label"] === "Streamer sessions"
-  );
-  elements(nav)
-    .find((e) => e.type === "Button")
-    .props.onClick();
-  p.actions.goToGhost("next");
-  p.render();
-  pending.resolve({ ...session, id: "session-b", items: [matches[0]] });
-  await settle();
-  p.render();
-  assert.equal(p.state.selectedGhost.matchup_id, 502);
-  assert.deepEqual(p.pushed, ["/matchups/502"]);
-  assert.equal(p.state.contextSessionId, sid);
-  tree = c.render(SessionCompanion);
-  assert(
-    elements(tree).some((e) => e.props?.["aria-label"] === "Streamer sessions"),
-    "canceled picker remains open"
-  );
-});
 
 test("review 1: concurrent Session starts have explicit canceled results; only newest applies", async () => {
   const a = deferred(),

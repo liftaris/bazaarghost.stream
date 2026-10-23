@@ -1,24 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { ChevronDown, Play, Radio } from "lucide-react";
-import type { Matchup, Session } from "@/lib/api-contract";
-import { clock, matchupTime } from "@/lib/session-navigation";
 import {
-  heroLabel,
-  observedRuns,
-  type ObservedRun,
-} from "@/lib/session-summary";
-import { opponentLabel } from "@/lib/opponent-name";
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
+import { ChevronDown } from "lucide-react";
+import type { Matchup, Session } from "@/lib/api-contract";
+import { heroLabel, observedRuns } from "@/lib/session-summary";
 import { cn } from "@/lib/utils";
 import { MatchupDetail } from "./matchup-detail";
+import { MatchupTile } from "./matchup-tile";
 
-type RunEntry =
-  | { kind: "run"; key: string; run: ObservedRun; expanded: boolean }
-  | { kind: "matchup"; key: string; matchup: Matchup };
-
-/** Measured run-segment rows and selected player boxes, with honest unknown boundaries. */
+/** Chronological run rows of square fights, with measured wrapping and one selected player box. */
 export function MatchupList({
   matches,
   selectedId,
@@ -64,45 +62,46 @@ export function MatchupList({
       previous[run.key] ? previous : { ...previous, [run.key]: true }
     );
   }, [selectedId, runs]);
-  const entries = useMemo(() => {
-    const entries: RunEntry[] = [];
-    for (const run of runs) {
-      const expanded =
-        openRuns[run.key] ??
-        run.matches.some((match) => match.id === selectedId);
-      entries.push({ kind: "run", key: run.key, run, expanded });
-      if (expanded)
-        for (const matchup of run.matches)
-          entries.push({
-            kind: "matchup",
-            key: `matchup:${matchup.id}`,
-            matchup,
-          });
-    }
-    return entries;
-  }, [runs, openRuns, selectedId]);
+  const [focusedRun, setFocusedRun] = useState<string | null>(null);
+  const rangeExtractor = useCallback(
+    (range: Parameters<typeof defaultRangeExtractor>[0]) => {
+      const indices = new Set(defaultRangeExtractor(range));
+      const focused = runs.findIndex((run) => run.key === focusedRun);
+      // Retain the focused run and its neighbours so Tab can reach the next run even off screen.
+      if (focused >= 0)
+        for (
+          let i = Math.max(0, focused - 1);
+          i <= Math.min(runs.length - 1, focused + 1);
+          i++
+        )
+          indices.add(i);
+      return [...indices].sort((a, b) => a - b);
+    },
+    [runs, focusedRun]
+  );
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack's measured list is intentionally not compiler-memoized
   const virtual = useVirtualizer({
-    count: entries.length,
+    count: runs.length,
     getScrollElement: () => scrollRef.current,
-    getItemKey: (i) => entries[i].key,
+    getItemKey: (i) => runs[i].key,
     scrollMargin: margin,
-    estimateSize: (i) => (entries[i].kind === "run" ? 64 : 72),
+    estimateSize: () => 144,
     overscan: 4,
+    rangeExtractor,
     useAnimationFrameWithResizeObserver: true,
   });
   const previousSelection = useRef(selectedId);
   useEffect(() => {
     if (previousSelection.current === selectedId) return;
-    const i = entries.findIndex(
-      (e) => e.kind === "matchup" && e.matchup.id === selectedId
+    const i = runs.findIndex((run) =>
+      run.matches.some((match) => match.id === selectedId)
     );
     if (i >= 0) {
       previousSelection.current = selectedId;
-      virtual.scrollToIndex(i, { align: "start" });
+      virtual.scrollToIndex(i, { align: "auto" });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- explicit selection only; initial rendering leaves the summary at the top
-  }, [selectedId, entries, margin]);
+  }, [selectedId, runs, margin]);
   /* eslint-disable jsx-a11y/no-noninteractive-tabindex -- keyboard-scrollable region, including an all-disabled source list */
   return (
     <div
@@ -119,126 +118,82 @@ export function MatchupList({
         style={{ height: virtual.getTotalSize() }}
       >
         {virtual.getVirtualItems().map((row) => {
-          const entry = entries[row.index];
-          if (entry.kind === "run")
-            return (
-              <div
-                key={entry.key}
-                data-index={row.index}
-                ref={virtual.measureElement}
-                className="absolute left-0 top-0 w-full border-y border-border bg-muted/40"
-                style={{ transform: `translateY(${row.start - margin}px)` }}
-              >
-                <h3 className="mx-auto w-full max-w-5xl">
-                  <button
-                    type="button"
-                    aria-expanded={entry.expanded}
-                    onClick={() =>
-                      setOpenRuns((previous) => ({
-                        ...previous,
-                        [entry.key]: !entry.expanded,
-                      }))
-                    }
-                    className="flex min-h-16 w-full items-center gap-3 px-3 py-2 text-left text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring @sm:px-4"
-                  >
-                    <ChevronDown
-                      aria-hidden
-                      className={cn(
-                        "size-4 shrink-0 transition-transform motion-reduce:transition-none",
-                        !entry.expanded && "-rotate-90"
-                      )}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-baseline gap-x-2 text-sm font-medium">
-                        <span>Run {entry.run.number ?? "-"}</span>
-                        <span className="text-muted-foreground">
-                          {heroLabel(entry.run.hero)}
-                        </span>
-                      </span>
-                      <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                        {entry.run.number === null
-                          ? "Run boundaries: -"
-                          : "Observed segment"}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {entry.run.matches.length}{" "}
-                      {entry.run.matches.length === 1 ? "matchup" : "matchups"}
-                    </span>
-                  </button>
-                </h3>
-              </div>
-            );
-          const match = entry.matchup;
-          const selected = match.id === selectedId;
-          const mapped =
-            recordingId === null
-              ? null
-              : matchupTime(match, recordingId, session);
-          const own = match.sources.find(
-            (s) => s.kind === "recording" && s.available
-          );
-          const at = mapped ?? (own?.kind === "recording" ? own.at : null);
-          const playable = match.sources.some(
-            (s) => s.kind === "recording" && s.available
-          );
+          const run = runs[row.index];
+          const expanded = openRuns[run.key] ?? true;
+          const selected = run.matches.find((match) => match.id === selectedId);
           return (
             <div
-              key={entry.key}
+              key={run.key}
               data-index={row.index}
               ref={virtual.measureElement}
-              className={cn(
-                "absolute left-0 top-0 w-full border-b border-border",
-                selected && "bg-primary/5"
-              )}
+              className="absolute left-0 top-0 grid w-full grid-cols-1 gap-2 px-3 py-2 @lg:grid-cols-[6rem_minmax(0,1fr)] @sm:px-4"
               style={{ transform: `translateY(${row.start - margin}px)` }}
+              onFocusCapture={() => setFocusedRun(run.key)}
+              onBlurCapture={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget))
+                  setFocusedRun(null);
+              }}
+              data-run={run.key}
             >
-              <button
-                type="button"
-                aria-current={selected ? "true" : undefined}
-                aria-expanded={selected}
-                aria-label={`${opponentLabel(match.opponent)}, ${match.encounter.igd === null ? "day unknown" : `day ${match.encounter.igd}`}${at === null ? "" : `, ${clock(at)}`}`}
-                disabled={!playable}
-                onClick={() => onSelect(match)}
-                className="mx-auto flex min-h-14 w-full max-w-5xl items-center gap-3 px-3 py-3 text-left outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50 @sm:px-4"
-              >
-                <Play
-                  aria-hidden
-                  className={cn(
-                    "size-3.5 shrink-0",
-                    selected
-                      ? "fill-current text-foreground"
-                      : "text-muted-foreground"
-                  )}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">
-                    {opponentLabel(match.opponent)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Day {match.encounter.igd ?? "-"} ·{" "}
-                    {heroLabel(match.encounter.ghostHero)} ·{" "}
-                    <span className="capitalize">
-                      {match.opponent.rank ?? "-"}
-                    </span>
-                  </span>
-                </span>
-                {activeId === match.id && (
-                  <Radio
-                    aria-label="At playhead"
-                    className="size-3.5 shrink-0 text-muted-foreground"
+              <h3 className="w-full">
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  aria-controls={`run-matchups-${run.matches[0].id}`}
+                  onClick={() =>
+                    setOpenRuns((previous) => ({
+                      ...previous,
+                      [run.key]: !expanded,
+                    }))
+                  }
+                  className="flex min-h-11 w-full items-start gap-1 rounded-md py-1 text-left text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                >
+                  <ChevronDown
+                    aria-hidden
+                    className={cn(
+                      "size-4 shrink-0 transition-transform motion-reduce:transition-none",
+                      !expanded && "-rotate-90"
+                    )}
                   />
-                )}
-                <span className="shrink-0 text-right text-xs tabular-nums text-muted-foreground">
-                  {at === null ? "-" : clock(at)}
-                  {mapped === null && own && (
-                    <span className="block text-[10px]">
-                      {own.platform} source
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-baseline gap-x-2 text-sm font-medium @lg:flex-col">
+                      <span>Run {run.number ?? "-"}</span>
+                      <span className="text-muted-foreground">
+                        {heroLabel(run.hero)}
+                      </span>
                     </span>
-                  )}
-                </span>
-              </button>
-              {selected && <MatchupDetail match={match} />}
+                  </span>
+                </button>
+              </h3>
+              <div
+                id={`run-matchups-${run.matches[0].id}`}
+                hidden={!expanded}
+                className="min-w-0"
+              >
+                <div className="flex w-full flex-wrap gap-1.5">
+                  {run.matches.map((match) => (
+                    <MatchupTile
+                      key={match.id}
+                      match={match}
+                      selected={match.id === selectedId}
+                      active={match.id === activeId}
+                      recordingId={recordingId}
+                      session={session}
+                      onSelect={onSelect}
+                    />
+                  ))}
+                </div>
+                {selected && (
+                  <div id={`matchup-player-${selected.id}`} className="mt-2">
+                    <MatchupDetail
+                      match={selected}
+                      runNumber={run.number}
+                      recordingId={recordingId}
+                      session={session}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}

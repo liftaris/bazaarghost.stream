@@ -12,7 +12,7 @@ BazaarGhost helps viewers find Bazaar matchups and watch their surrounding play 
 
 ## Evidence and boundaries
 
-Use stable Matchup IDs, actual source/session time mappings, nullable names, supported ranks/days, literal wins remaining/lethal fields and source processing coverage. Partial names are observed text, not verified identities. Missing days stay unknown. Observed sequences are not complete runs; no inferred outcomes or battle lengths. Nameplate evidence images are not public UI assets.
+Use stable Matchup IDs, actual source/session time mappings, nullable names and supported ranks/days. Runs group a continuous increasing sequence of matchup days within one VOD; a new day 1 starts a new run. Missing days stay unknown. Wins are 10 minus extracted wins remaining; losses are day minus wins. Session totals use each run's latest available score, not the sum of cumulative scores from every matchup. Partial names are observed text, not verified identities. Nameplate evidence images are not public UI assets.
 
 ## Visual commitments
 
