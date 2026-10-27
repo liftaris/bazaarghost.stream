@@ -131,6 +131,9 @@ test("resizable groups persist only deliberate desktop changes, using the reques
   const layouts = [];
   split.groupRef.current = { setLayout: (layout) => layouts.push(layout) };
   h.flushEffects();
+  split.onLayoutChange({ results: 28, workspace: 72 });
+  split = render();
+  h.flushEffects();
   assert.deepEqual(layouts, [{ results: 28.000000000000004, workspace: 72 }]);
   split.onLayoutChanged(
     { results: 40, workspace: 60 },
@@ -199,7 +202,7 @@ test("single source mark describes the playing recording, not an unmapped select
   );
 });
 
-test("vertical split restores when video and context arrive after initial render", () => {
+test("vertical split waits for registered panels before restoring and restores after reopening", () => {
   const h = hooks();
   const applied = [];
   const load = sourceModules({
@@ -219,12 +222,40 @@ test("vertical split restores when video and context arrive after initial render
     useResizableSplit("video-context", 0.58, "video", "context", false)
   );
   h.flushEffects();
-  split.groupRef.current = { setLayout: (layout) => applied.push(layout) };
+  let registered = { video: 100 };
+  split.groupRef.current = { setLayout: (layout) => {
+    assert.deepEqual(Object.keys(layout).sort(), Object.keys(registered).sort());
+    applied.push(layout);
+  } };
+  split.onLayoutChange(registered);
+  split = h.render(() =>
+    useResizableSplit("video-context", 0.58, "video", "context", true)
+  );
+  h.flushEffects();
+  assert.deepEqual(applied, []);
+  registered = { video: 58, context: 42 };
+  split.onLayoutChange(registered);
   split = h.render(() =>
     useResizableSplit("video-context", 0.58, "video", "context", true)
   );
   h.flushEffects();
   assert.deepEqual(applied, [{ video: 65, context: 35 }]);
+  registered = { context: 100 };
+  split.onLayoutChange(registered);
+  split = h.render(() =>
+    useResizableSplit("video-context", 0.58, "video", "context", false)
+  );
+  h.flushEffects();
+  split = h.render(() =>
+    useResizableSplit("video-context", 0.58, "video", "context", true)
+  );
+  h.flushEffects();
+  assert.equal(applied.length, 1);
+  registered = { video: 58, context: 42 };
+  split.onLayoutChange(registered);
+  h.render(() => useResizableSplit("video-context", 0.58, "video", "context", true));
+  h.flushEffects();
+  assert.deepEqual(applied, [{ video: 65, context: 35 }, { video: 65, context: 35 }]);
 });
 
 test("player split-copy action keeps canonical sharing separate from source pins", async () => {

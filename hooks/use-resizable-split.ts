@@ -27,12 +27,14 @@ export function useResizableSplit(
   const { change, commit } = split;
   const groupRef = useRef<GroupImperativeHandle | null>(null);
   const compact = useIsMobile();
+  const [panelsReady, setPanelsReady] = useState(false);
   const [collapsed, setCollapsed] = useState({
     leading: false,
     trailing: false,
   });
   const onLayoutChange = useCallback(
     (layout: Layout) => {
+      setPanelsReady(Object.hasOwn(layout, leading) && Object.hasOwn(layout, trailing));
       const next = {
         leading: layout[leading] === 0,
         trailing: layout[trailing] === 0,
@@ -46,12 +48,12 @@ export function useResizableSplit(
     [leading, trailing]
   );
   useEffect(() => {
-    if (!compact && active)
+    if (!compact && active && panelsReady)
       groupRef.current?.setLayout({
         [leading]: split.ratio * 100,
         [trailing]: (1 - split.ratio) * 100,
       });
-  }, [compact, active, split.ratio, leading, trailing]);
+  }, [compact, active, panelsReady, split.ratio, leading, trailing]);
   const onLayoutChanged = useCallback(
     (_layout: Layout, meta: LayoutChangedMeta) => {
       if (!meta.isUserInteraction || compact) return;
