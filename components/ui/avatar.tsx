@@ -47,6 +47,8 @@ function AvatarImage({
   // Use Next.js image optimization
   const { props: nextOptimizedProps } = getImageProps({
     src,
+    // Bilibili's avatar CDN rejects cross-site Referer headers.
+    referrerPolicy: "no-referrer",
     alt: alt || "",
     width: avatarSize,
     height: avatarSize,

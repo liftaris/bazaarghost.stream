@@ -11,6 +11,11 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
+        hostname: "*.hdslb.com",
+        pathname: "/bfs/face/**",
+      },
+      {
+        protocol: "https",
         hostname: "static-cdn.jtvnw.net",
         pathname: "/**",
       },
