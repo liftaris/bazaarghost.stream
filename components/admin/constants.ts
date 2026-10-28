@@ -14,6 +14,7 @@ import {
   Hourglass,
   ListChecks,
   LoaderCircle,
+  TimerOff,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -22,12 +23,9 @@ import type {
   ChunkStatus,
   IngestionJobStatus,
   InventoryState,
-  OpsAttention,
-  OpsAttentionKind,
   RecordingStatus,
+  RunStatus,
 } from "@/lib/operator-contract";
-import type { ActivityStatus } from "./lib/activity-filters";
-import { withInspect } from "./lib/inspect";
 
 /** JetBrains Mono, reserved for ids, timecodes, errors and payloads. */
 export const MONO = "font-[family-name:var(--font-jetbrains-mono)]";
@@ -47,8 +45,8 @@ export interface StatusStyle {
   fill: string;
 }
 
-/** Every status the console shows: chunks, recordings, ingestion jobs, catalog work and platform inventory. */
-export type Status = ChunkStatus | RecordingStatus | IngestionJobStatus | CatalogWorkState | InventoryState;
+/** Every status the console shows: chunks, runs, recordings, ingestion jobs, catalog work and platform inventory. */
+export type Status = ChunkStatus | RunStatus | RecordingStatus | IngestionJobStatus | CatalogWorkState | InventoryState;
 
 /**
  * The one status vocabulary across the console. Orange means work is active,
@@ -69,6 +67,7 @@ export const STATUS: Record<Status, StatusStyle> = {
   completed: { label: "Completed", icon: CircleCheck, text: "text-foreground", fill: "bg-foreground/75" },
   processed: { label: "Processed", icon: CircleCheck, text: "text-foreground", fill: "bg-foreground/75" },
   failed: { label: "Failed", icon: CircleX, text: FAILED_TEXT, fill: "bg-destructive" },
+  expired: { label: "Expired", icon: TimerOff, text: FAILED_TEXT, fill: "bg-destructive/70" },
   archived: { label: "Archived", icon: Archive, text: "text-muted-foreground", fill: "bg-muted-foreground/15" },
 };
 
@@ -77,39 +76,6 @@ export const CHUNK_PIPELINE: readonly ChunkStatus[] = ["pending", "queued", "pro
 
 /** Recording statuses in pipeline order, left to right. */
 export const RECORDING_PIPELINE: readonly RecordingStatus[] = ["pending", "processing", "partial", "completed", "failed"];
-
-/**
- * The recording filter that best answers "show me these chunks". The recordings
- * route filters by recording status only, so failed chunks map to `attention`.
- */
-export const CHUNK_STAGE_FILTER: Record<ChunkStatus, ActivityStatus | null> = {
-  pending: "pending",
-  queued: "processing",
-  processing: "processing",
-  completed: "completed",
-  failed: "attention",
-  archived: null,
-};
-
-type AttentionSample = OpsAttention["samples"][number];
-
-const chunkHref = (sample: AttentionSample) =>
-  sample.recordingId == null
-    ? `/admin/activity${withInspect("", { kind: "chunk", id: sample.id })}`
-    : `/admin/recordings/${sample.recordingId}${withInspect("", { kind: "chunk", id: sample.id })}`;
-
-/** Label and sample destination for each attention group the overview lists. */
-export const ATTENTION: Record<OpsAttentionKind, { label: string; href: (sample: AttentionSample) => string }> = {
-  exhausted_chunk: { label: "Chunks out of retries", href: chunkHref },
-  expired_lease: { label: "Expired leases", href: chunkHref },
-  stale_queued: { label: "Stale in queue", href: chunkHref },
-  dispatch_unconfirmed: {
-    label: "Dispatch unconfirmed",
-    href: (sample) => (sample.recordingId == null ? "/admin/ingestion" : `/admin/recordings/${sample.recordingId}`),
-  },
-  failing_ingestion: { label: "Failing ingestion jobs", href: () => "/admin/ingestion" },
-  catalog_failed: { label: "Catalog failures", href: (sample) => `/admin/streamers/${sample.id}` },
-};
 
 /** Console sections in nav order. */
 export const SECTIONS = [

@@ -3,7 +3,7 @@
 import { listPlatforms } from "@/lib/platforms/registry";
 import { STATUS } from "../constants";
 import { FilterSelect } from "../filter-select";
-import { ACTIVITY_STATUSES, type ActivityFilters } from "../lib/activity-filters";
+import { ACTIVITY_CHUNK_STATUSES, ACTIVITY_STATUSES, type ActivityFilters } from "../lib/activity-filters";
 import { SearchField } from "../search-field";
 
 const STATUS_OPTIONS = ACTIVITY_STATUSES.map((status) => ({
@@ -11,7 +11,12 @@ const STATUS_OPTIONS = ACTIVITY_STATUSES.map((status) => ({
   label: status === "attention" ? "Needs attention" : STATUS[status].label,
 }));
 
-/** Status, platform and text filters for the activity list; every change goes to the URL. */
+const CHUNK_STATUS_OPTIONS = ACTIVITY_CHUNK_STATUSES.map((status) => ({
+  value: status,
+  label: `${STATUS[status].label} chunks`,
+}));
+
+/** Recording status, chunk status, platform and text filters for the activity list; every change goes to the URL. */
 export function FilterBar({ filters, onChange }: { filters: ActivityFilters; onChange: (next: ActivityFilters) => void }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -21,6 +26,14 @@ export function FilterBar({ filters, onChange }: { filters: ActivityFilters; onC
         value={filters.status}
         options={STATUS_OPTIONS}
         onChange={(status) => onChange({ ...filters, status })}
+        className="w-44"
+      />
+      <FilterSelect
+        label="Chunk status"
+        anyLabel="Any chunks"
+        value={filters.chunkStatus}
+        options={CHUNK_STATUS_OPTIONS}
+        onChange={(chunkStatus) => onChange({ ...filters, chunkStatus })}
         className="w-44"
       />
       <FilterSelect

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { ApiError } from "@/lib/api-client";
 import { opsGet, toApiError, type OpsGetOptions } from "@/lib/operator-client";
 import type { OpsRoutes } from "@/lib/operator-contract";
@@ -21,8 +21,22 @@ interface Settled<T> {
   error: ApiError | null;
 }
 
+let generation = 0;
+const listeners = new Set<() => void>();
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
+};
+const readGeneration = () => generation;
+
+/** Refetch every mounted operator read, keeping its current data visible; call after a write. */
+export function invalidateOpsResources(): void {
+  generation += 1;
+  listeners.forEach((listener) => listener());
+}
+
 /**
- * Fetch one operator route, aborting superseded requests.
+ * Fetch one operator route, aborting superseded requests and refetching on {@link invalidateOpsResources}.
  * @param options Route id and query; `null` skips the request.
  * @returns {@link OpsResource}
  */
@@ -31,7 +45,8 @@ export function useOpsResource<P extends keyof OpsRoutes>(
   options: OpsGetOptions<P> | null,
 ): OpsResource<OpsRoutes[P]> {
   const key = options ? JSON.stringify([path, options]) : null;
-  const [attempt, setAttempt] = useState(0);
+  const [retries, setRetries] = useState(0);
+  const attempt = retries + useSyncExternalStore(subscribe, readGeneration, readGeneration);
   const [settled, setSettled] = useState<Settled<OpsRoutes[P]> | null>(null);
 
   useEffect(() => {
@@ -54,6 +69,6 @@ export function useOpsResource<P extends keyof OpsRoutes>(
     data: current?.data ?? null,
     error: current?.attempt === attempt ? current.error : null,
     loading: key !== null && current?.attempt !== attempt,
-    reload: () => setAttempt((n) => n + 1),
+    reload: () => setRetries((n) => n + 1),
   };
 }

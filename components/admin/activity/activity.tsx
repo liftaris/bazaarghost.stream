@@ -11,7 +11,7 @@ import { RecordingsTable } from "./recordings-table";
 /** Recordings by latest chunk activity, filterable from the URL and expandable to chunks. */
 export function Activity() {
   const page = useRecordingsPage();
-  const filtered = Boolean(page.filters.status || page.filters.platform || page.filters.q);
+  const filtered = Object.values(page.filters).some(Boolean);
 
   return (
     <div className="@container flex flex-col gap-4">

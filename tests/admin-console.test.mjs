@@ -14,6 +14,7 @@ const { detectionName, sourceUrlAt } = load("@/components/admin/lib/detection");
 const { regionBox, cropFrame, groupByFrame } = load("@/components/admin/lib/evidence");
 const { FIELD_ORDER, fieldsWithoutEvidence } = load("@/components/admin/lib/detection-fields");
 const { parseActivityFilters, activityHref } = load("@/components/admin/lib/activity-filters");
+const { ATTENTION, attentionSampleHref } = load("@/components/admin/lib/attention");
 const { formatTimecode, formatSeconds } = load("@/components/admin/lib/format");
 const inventory = load("@/components/admin/streamers/lib/inventory");
 const { channelUrl } = load("@/components/admin/streamers/lib/channels");
@@ -94,6 +95,28 @@ test("activity filters: unknown statuses and blanks are dropped", () => {
   assert.deepEqual(parseActivityFilters("status=archived&q="), {});
   assert.equal(activityHref({ status: "failed" }), "/admin/activity?status=failed");
   assert.equal(activityHref(), "/admin/activity");
+});
+
+test("activity filters: chunk status filters by any chunk in that status", () => {
+  assert.deepEqual(parseActivityFilters("chunkStatus=failed&status=partial"), { status: "partial", chunkStatus: "failed" });
+  assert.deepEqual(parseActivityFilters("chunkStatus=exploded"), {});
+  assert.equal(activityHref({ chunkStatus: "queued" }), "/admin/activity?chunkStatus=queued");
+});
+
+test("attention: chunk groups open recordings with chunks in the matching status", () => {
+  assert.equal(ATTENTION.exhausted_chunk.href, "/admin/activity?chunkStatus=failed");
+  assert.equal(ATTENTION.expired_lease.href, "/admin/activity?chunkStatus=processing");
+  assert.equal(ATTENTION.stale_queued.href, "/admin/activity?chunkStatus=queued");
+});
+
+test("attention: samples open the entity their target names", () => {
+  const chunk = { kind: "chunk", id: CHUNK };
+  assert.equal(attentionSampleHref({ target: chunk, recordingId: 4182 }), `/admin/recordings/4182?inspect=chunk%3A${CHUNK}`);
+  assert.equal(attentionSampleHref({ target: chunk, recordingId: null }), `/admin/activity?inspect=chunk%3A${CHUNK}`);
+  assert.equal(attentionSampleHref({ target: { kind: "recording", id: "4182" }, recordingId: null }), "/admin/recordings/4182");
+  assert.equal(attentionSampleHref({ target: { kind: "streamer", id: "7" }, recordingId: null }), "/admin/streamers/7");
+  assert.equal(attentionSampleHref({ target: { kind: "ingestion_job", id: "job_1" }, recordingId: null }), "/admin/ingestion");
+  assert.equal(attentionSampleHref({ target: { kind: "dispatch", id: "1" }, recordingId: null }), "/admin/ingestion");
 });
 
 test("timeline: chapters pair up, sort, and drop inverted ranges", () => {
@@ -313,4 +336,100 @@ test("streamer search and job filters drop blanks and unknown values", () => {
     status: "skipped",
   });
   assert.deepEqual(parseJobFilters("kind=clip&status=failed&platform="), {});
+});
+
+const reprocess = load("@/components/admin/lib/reprocess");
+const { runOrigin } = load("@/components/admin/lib/runs");
+const { ApiError } = load("@/lib/api-client");
+const { OpsMutationError } = load("@/lib/operator-client");
+
+const chunk = (index, status) => ({ id: `c${index}`, index, status });
+
+test("reprocess: a new run starts from the backend's defaults, which follow the latest run", () => {
+  const defaults = { inputs: { mode: "next", quality: "720p60", runtime_image: "ghcr.io/x@sha256:ab" }, allowedModes: ["next", "legacy"] };
+  assert.deepEqual(reprocess.startingInputs(defaults), { mode: "next", quality: "720p60" });
+  assert.equal(reprocess.runInputsLabel({ mode: "legacy", quality: "480p60" }), "Legacy · 480p · 60 fps");
+  assert.equal(reprocess.RUN_QUALITIES.length, 8);
+});
+
+test("reprocess: bulk defaults come from the earliest selected chunk in table order", () => {
+  const chunks = [chunk(0, "completed"), chunk(1, "failed"), chunk(2, "failed")];
+  assert.equal(reprocess.defaultsChunk(chunks, new Set(["c2", "c1"])), "c1");
+  assert.equal(reprocess.defaultsChunk(chunks, new Set()), null);
+});
+
+test("reprocess: only pending, completed and failed chunks can be selected", () => {
+  for (const status of ["queued", "processing", "archived"]) {
+    assert.equal(reprocess.canReprocess(status), false);
+    const untouched = new Set();
+    assert.equal(reprocess.toggleChunk(untouched, chunk(0, status)), untouched);
+  }
+  const ticked = reprocess.toggleChunk(new Set(), chunk(0, "failed"));
+  assert.deepEqual([...ticked], ["c0"]);
+  assert.deepEqual([...reprocess.toggleChunk(ticked, chunk(0, "failed"))], []);
+});
+
+test("reprocess: select all takes eligible chunks up to the request limit, then clears", () => {
+  const chunks = Array.from({ length: 60 }, (_, i) => chunk(i, i === 3 ? "processing" : "failed"));
+  const all = reprocess.toggleAll(new Set(), chunks);
+  assert.equal(all.size, reprocess.MAX_REPROCESS);
+  assert.equal(all.has("c3"), false);
+  assert.equal(reprocess.selectionCoverage(all, chunks), "all");
+  assert.equal(reprocess.selectionCoverage(new Set(["c0"]), chunks), "some");
+  assert.equal(reprocess.selectionCoverage(new Set(), chunks), "none");
+  assert.equal(reprocess.toggleAll(all, chunks).size, 0);
+  const full = new Set(all);
+  assert.equal(reprocess.toggleChunk(full, chunk(59, "failed")), full);
+});
+
+test("reprocess: results name chunks by index", () => {
+  const label = reprocess.chunkLabeller([{ id: "ab12cd34-x", index: 3 }]);
+  assert.equal(label("ab12cd34-x"), "Chunk 3");
+  assert.equal(label("ffffffff-0000"), "ffffffff");
+});
+
+test("reprocess: selection drops chunks that were queued or left the list", () => {
+  const selection = new Set(["c0", "c1", "gone"]);
+  const pruned = reprocess.pruneSelection(selection, [chunk(0, "queued"), chunk(1, "failed")]);
+  assert.deepEqual([...pruned], ["c1"]);
+  assert.equal(reprocess.pruneSelection(pruned, [chunk(1, "failed")]), pruned);
+});
+
+test("reprocess: results sum queued, skipped and failed recordings", () => {
+  const response = {
+    dispatched: true,
+    recordings: [
+      { recordingId: 1, chunkIds: ["a", "b"], runIds: ["r1", "r2"], payload: null, skipped: [{ chunkId: "c", reason: "Chunk is queued" }] },
+      { recordingId: 2, chunkIds: [], runIds: [], payload: null, skipped: [{ chunkId: "d", reason: "GitHub refused" }], error: "GitHub refused" },
+    ],
+  };
+  const summary = reprocess.summariseReprocess(response);
+  assert.deepEqual(summary, { queued: 2, skipped: 2, failed: 1 });
+  assert.equal(reprocess.describeReprocess(summary, false), "Queued 2 chunks, 2 skipped, 1 recording failed");
+  assert.equal(reprocess.describeReprocess({ queued: 1, skipped: 0, failed: 0 }, true), "1 chunk would queue");
+});
+
+test("reprocess: failures split into sign-in, refusals with results, and other errors", () => {
+  assert.deepEqual(reprocess.classifyReprocessFailure(new OpsMutationError(403, "Invalid CSRF token", null)), {
+    kind: "session",
+    message: "Invalid CSRF token",
+  });
+  assert.equal(reprocess.classifyReprocessFailure(new ApiError(401, "Sign in")).kind, "session");
+  const body = { dispatched: true, recordings: [], error: "No chunk was queued" };
+  const refused = reprocess.classifyReprocessFailure(new OpsMutationError(502, "No chunk was queued", body));
+  assert.equal(refused.kind, "refused");
+  assert.equal(refused.status, 502);
+  assert.equal(refused.response, body);
+  const conflict = reprocess.classifyReprocessFailure(new OpsMutationError(409, "Chunks cannot be reprocessed", null));
+  assert.equal(conflict.response, null);
+  assert.equal(reprocess.classifyReprocessFailure(new ApiError(503, "GitHub dispatch is not configured")).kind, "error");
+  assert.equal(reprocess.classifyReprocessFailure(new Error("offline")).error.status, 0);
+});
+
+test("runs: origin names the viewer, falls back to the operator id, and labels the rest", () => {
+  const viewer = { userId: "usr_1", name: "Kaio" };
+  assert.deepEqual(runOrigin({ origin: "operator", requestedBy: "usr_1" }, viewer), { label: "Operator · Kaio", userId: null });
+  assert.deepEqual(runOrigin({ origin: "operator", requestedBy: "usr_2" }, viewer), { label: "Operator", userId: "usr_2" });
+  assert.deepEqual(runOrigin({ origin: "automatic", requestedBy: null }, viewer), { label: "Automatic", userId: null });
+  assert.deepEqual(runOrigin({ origin: "manual", requestedBy: null }, null), { label: "Manual", userId: null });
 });
