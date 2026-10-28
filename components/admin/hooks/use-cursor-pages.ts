@@ -8,7 +8,7 @@ import type { OpsQueries, OpsRoutes } from "@/lib/operator-contract";
 
 /** A cursor-paged operator list: the rows loaded so far, the latest response, and paging controls. */
 export interface CursorPages<R, T> {
-  /** The latest response, for routes that return more than the page itself. */
+  /** The latest response, for routes that return more than the page; kept from earlier params until the new one lands. */
   latest: R | null;
   items: T[];
   loading: boolean;
@@ -68,7 +68,7 @@ export function useCursorPages<P extends keyof OpsQueries, T>(
         (error: unknown) => {
           if (controller.signal.aborted) return;
           setState((prev) => ({
-            ...(prev?.key === key ? prev : { key, latest: null, items: [], nextCursor: null }),
+            ...(prev?.key === key ? prev : { key, latest: prev?.latest ?? null, items: [], nextCursor: null }),
             error: toApiError(error),
             pending: null,
           }));
@@ -92,7 +92,7 @@ export function useCursorPages<P extends keyof OpsQueries, T>(
   };
 
   return {
-    latest: current?.latest ?? null,
+    latest: state?.latest ?? null,
     items: current?.items ?? [],
     loading: !current || current.pending === "first",
     loadingMore: current?.pending === "more",
