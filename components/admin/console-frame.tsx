@@ -39,7 +39,14 @@ export function ConsoleFrame({ children, className }: { children: ReactNode; cla
     >
       <div className="flex flex-1 flex-col @3xl/console:flex-row">
         <ConsoleNav />
-        <main className="flex min-w-0 flex-1 flex-col gap-6 px-4 py-6 @3xl/console:px-6">{children}</main>
+        <main
+          id="operator-console-content"
+          aria-label="Operator console"
+          tabIndex={-1}
+          className="flex min-w-0 flex-1 flex-col gap-6 px-4 py-6 @3xl/console:px-6"
+        >
+          {children}
+        </main>
         {wide && <InspectorColumn />}
       </div>
       {width !== null && !wide && <InspectorSheet />}
