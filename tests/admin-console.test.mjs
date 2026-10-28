@@ -15,6 +15,10 @@ const { regionBox, cropFrame, groupByFrame } = load("@/components/admin/lib/evid
 const { FIELD_ORDER, fieldsWithoutEvidence } = load("@/components/admin/lib/detection-fields");
 const { parseActivityFilters, activityHref } = load("@/components/admin/lib/activity-filters");
 const { formatTimecode, formatSeconds } = load("@/components/admin/lib/format");
+const inventory = load("@/components/admin/streamers/lib/inventory");
+const { channelUrl } = load("@/components/admin/streamers/lib/channels");
+const { parseStreamerSearch } = load("@/components/admin/streamers/lib/search");
+const { parseJobFilters } = load("@/components/admin/ingestion/lib/job-filters");
 
 const CHUNK = "3f2a9c4e-1b7d-4e8a-9c2f-0d1e2f3a4b5c";
 const here = { pathname: "/admin/activity", search: "status=failed" };
@@ -247,4 +251,66 @@ test("source links move to the frame time in each platform's format", () => {
     "https://www.bilibili.com/video/BV1GJ411x7h7?p=2&t=61",
   );
   assert.equal(sourceUrlAt("https://example.com/v/1?t=5", 61), "https://example.com/v/1?t=5");
+});
+
+const rows = (...states) => states.map((state, i) => ({ sourceId: String(i), state }));
+
+test("inventory: not scanned keeps only archives with no recording or job", () => {
+  const items = rows("not_seen", "processed", "not_seen", "skipped");
+  const shown = items.filter((item) => inventory.matchesInventoryFilter(item, "not_seen"));
+  assert.deepEqual(shown.map((item) => item.sourceId), ["0", "2"]);
+  assert.equal(items.filter((item) => inventory.matchesInventoryFilter(item, "all")).length, 4);
+});
+
+test("inventory: scanned-not-processed and partial-or-failed group their states", () => {
+  const items = rows("waiting", "cataloged", "processing", "partial", "failed", "processed", "skipped");
+  const under = (filter) => items.filter((item) => inventory.matchesInventoryFilter(item, filter)).map((item) => item.state);
+  assert.deepEqual(under("scanned"), ["waiting", "cataloged", "processing"]);
+  assert.deepEqual(under("attention"), ["partial", "failed"]);
+  assert.deepEqual(under("processed"), ["processed"]);
+  assert.deepEqual(under("skipped"), ["skipped"]);
+});
+
+test("inventory: every state has one chip, so chip counts add up to all", () => {
+  const items = rows(...inventory.INVENTORY_STATES, "not_seen", "failed");
+  const counts = inventory.countInventoryFilters(items);
+  assert.deepEqual(counts, { all: 10, not_seen: 2, skipped: 1, scanned: 3, attention: 3, processed: 1 });
+  const { all, ...groups } = counts;
+  assert.equal(Object.values(groups).reduce((sum, n) => sum + n, 0), all);
+  assert.deepEqual(Object.keys(inventory.INVENTORY_GROUP).sort(), [...inventory.INVENTORY_STATES].sort());
+});
+
+test("inventory: state counts are zero-filled", () => {
+  const counts = inventory.countInventoryStates(rows("partial", "partial"));
+  assert.equal(counts.partial, 2);
+  assert.equal(counts.not_seen, 0);
+  assert.equal(Object.keys(counts).length, 8);
+});
+
+test("inventory: the show parameter accepts only chip groups", () => {
+  assert.deepEqual(inventory.parseInventoryFilter("show=attention&inspect=chunk%3Ac1"), { show: "attention" });
+  assert.deepEqual(inventory.parseInventoryFilter("show=failed"), {});
+  assert.deepEqual(inventory.parseInventoryFilter("show=all"), {});
+  assert.deepEqual(inventory.parseInventoryFilter(""), {});
+});
+
+test("channel links come from what the operator contract carries", () => {
+  const channel = (platform, sourceId, displayName) => ({ id: "c", platform, sourceId, displayName });
+  assert.equal(channelUrl(channel("twitch", "71092938", "Kripparrian")), "https://www.twitch.tv/kripparrian");
+  assert.equal(channelUrl(channel("twitch", "71092938", "\u738b\u8005")), null);
+  assert.equal(channelUrl(channel("twitch", "71092938", null)), null);
+  assert.equal(channelUrl(channel("youtube", "UCabc", "Retro")), "https://www.youtube.com/channel/UCabc");
+  assert.equal(channelUrl(channel("bilibili", "4182", null)), "https://space.bilibili.com/4182");
+  assert.equal(channelUrl(channel("kick", "x", "x")), null);
+});
+
+test("streamer search and job filters drop blanks and unknown values", () => {
+  assert.deepEqual(parseStreamerSearch("q=%20kripp%20"), { q: "kripp" });
+  assert.deepEqual(parseStreamerSearch("q=%20"), {});
+  assert.deepEqual(parseJobFilters("platform=Bilibili&kind=video&status=skipped"), {
+    platform: "bilibili",
+    kind: "video",
+    status: "skipped",
+  });
+  assert.deepEqual(parseJobFilters("kind=clip&status=failed&platform="), {});
 });

@@ -2,17 +2,30 @@ import {
   Archive,
   Circle,
   CircleCheck,
+  CircleDashed,
+  CircleDot,
+  CircleMinus,
+  CircleSlash,
   CircleX,
   Clock,
   Contrast,
   CloudDownload,
   Gauge,
+  Hourglass,
   ListChecks,
   LoaderCircle,
   Users,
   type LucideIcon,
 } from "lucide-react";
-import type { ChunkStatus, OpsAttention, OpsAttentionKind, RecordingStatus } from "@/lib/operator-contract";
+import type {
+  CatalogWorkState,
+  ChunkStatus,
+  IngestionJobStatus,
+  InventoryState,
+  OpsAttention,
+  OpsAttentionKind,
+  RecordingStatus,
+} from "@/lib/operator-contract";
 import type { ActivityStatus } from "./lib/activity-filters";
 import { withInspect } from "./lib/inspect";
 
@@ -34,17 +47,27 @@ export interface StatusStyle {
   fill: string;
 }
 
+/** Every status the console shows: chunks, recordings, ingestion jobs, catalog work and platform inventory. */
+export type Status = ChunkStatus | RecordingStatus | IngestionJobStatus | CatalogWorkState | InventoryState;
+
 /**
- * The one status vocabulary for chunks and recordings. Orange means work is
- * active, destructive means failed, foreground with a check means done, muted
- * means waiting or retired.
+ * The one status vocabulary across the console. Orange means work is active,
+ * destructive means failed, foreground with a check means done, muted means
+ * waiting, skipped or not yet seen.
  */
-export const STATUS: Record<ChunkStatus | RecordingStatus, StatusStyle> = {
+export const STATUS: Record<Status, StatusStyle> = {
+  not_seen: { label: "Not scanned", icon: CircleDashed, text: "text-muted-foreground", fill: "bg-muted-foreground/20" },
+  skipped: { label: "Skipped", icon: CircleSlash, text: "text-muted-foreground", fill: "bg-muted-foreground/15" },
+  idle: { label: "Idle", icon: CircleMinus, text: "text-muted-foreground", fill: "bg-muted-foreground/15" },
+  waiting: { label: "Waiting", icon: Hourglass, text: "text-muted-foreground", fill: "bg-muted-foreground/35" },
   pending: { label: "Pending", icon: Circle, text: "text-muted-foreground", fill: "bg-muted-foreground/35" },
+  cataloged: { label: "Cataloged", icon: CircleDot, text: "text-muted-foreground", fill: "bg-muted-foreground/50" },
   queued: { label: "Queued", icon: Clock, text: ACTIVE_TEXT, fill: "bg-primary/60" },
   processing: { label: "Processing", icon: LoaderCircle, text: ACTIVE_TEXT, fill: "bg-primary" },
+  running: { label: "Running", icon: LoaderCircle, text: ACTIVE_TEXT, fill: "bg-primary" },
   partial: { label: "Partial", icon: Contrast, text: "text-foreground", fill: "bg-foreground/45" },
   completed: { label: "Completed", icon: CircleCheck, text: "text-foreground", fill: "bg-foreground/75" },
+  processed: { label: "Processed", icon: CircleCheck, text: "text-foreground", fill: "bg-foreground/75" },
   failed: { label: "Failed", icon: CircleX, text: FAILED_TEXT, fill: "bg-destructive" },
   archived: { label: "Archived", icon: Archive, text: "text-muted-foreground", fill: "bg-muted-foreground/15" },
 };
