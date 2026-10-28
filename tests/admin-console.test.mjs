@@ -337,3 +337,90 @@ test("streamer search and job filters drop blanks and unknown values", () => {
   });
   assert.deepEqual(parseJobFilters("kind=clip&status=failed&platform="), {});
 });
+
+const reprocess = load("@/components/admin/lib/reprocess");
+const { runOrigin } = load("@/components/admin/lib/runs");
+const { ApiError } = load("@/lib/api-client");
+const { OpsMutationError } = load("@/lib/operator-client");
+
+const chunk = (index, status) => ({ id: `c${index}`, index, status });
+
+test("reprocess: a new run starts from the backend's defaults, which follow the latest run", () => {
+  const defaults = { inputs: { mode: "next", quality: "720p60", runtime_image: "ghcr.io/x@sha256:ab" }, allowedModes: ["next", "legacy"] };
+  assert.deepEqual(reprocess.startingInputs(defaults), { mode: "next", quality: "720p60" });
+  assert.equal(reprocess.runInputsLabel({ mode: "legacy", quality: "480p60" }), "Legacy · 480p · 60 fps");
+  assert.equal(reprocess.RUN_QUALITIES.length, 8);
+});
+
+test("reprocess: bulk defaults come from the earliest selected chunk in table order", () => {
+  const chunks = [chunk(0, "completed"), chunk(1, "failed"), chunk(2, "failed")];
+  assert.equal(reprocess.defaultsChunk(chunks, new Set(["c2", "c1"])), "c1");
+  assert.equal(reprocess.defaultsChunk(chunks, new Set()), null);
+});
+
+test("reprocess: only pending, completed and failed chunks can be selected", () => {
+  for (const status of ["queued", "processing", "archived"]) {
+    assert.equal(reprocess.canReprocess(status), false);
+    const untouched = new Set();
+    assert.equal(reprocess.toggleChunk(untouched, chunk(0, status)), untouched);
+  }
+  const ticked = reprocess.toggleChunk(new Set(), chunk(0, "failed"));
+  assert.deepEqual([...ticked], ["c0"]);
+  assert.deepEqual([...reprocess.toggleChunk(ticked, chunk(0, "failed"))], []);
+});
+
+test("reprocess: select all takes eligible chunks up to the request limit, then clears", () => {
+  const chunks = Array.from({ length: 60 }, (_, i) => chunk(i, i === 3 ? "processing" : "failed"));
+  const all = reprocess.toggleAll(new Set(), chunks);
+  assert.equal(all.size, reprocess.MAX_REPROCESS);
+  assert.equal(all.has("c3"), false);
+  assert.equal(reprocess.toggleAll(all, chunks).size, 0);
+  const full = new Set(all);
+  assert.equal(reprocess.toggleChunk(full, chunk(59, "failed")), full);
+});
+
+test("reprocess: selection drops chunks that were queued or left the list", () => {
+  const selection = new Set(["c0", "c1", "gone"]);
+  const pruned = reprocess.pruneSelection(selection, [chunk(0, "queued"), chunk(1, "failed")]);
+  assert.deepEqual([...pruned], ["c1"]);
+  assert.equal(reprocess.pruneSelection(pruned, [chunk(1, "failed")]), pruned);
+});
+
+test("reprocess: results sum queued, skipped and failed recordings", () => {
+  const response = {
+    dispatched: true,
+    recordings: [
+      { recordingId: 1, chunkIds: ["a", "b"], runIds: ["r1", "r2"], payload: null, skipped: [{ chunkId: "c", reason: "Chunk is queued" }] },
+      { recordingId: 2, chunkIds: [], runIds: [], payload: null, skipped: [{ chunkId: "d", reason: "GitHub refused" }], error: "GitHub refused" },
+    ],
+  };
+  const summary = reprocess.summariseReprocess(response);
+  assert.deepEqual(summary, { queued: 2, skipped: 2, failed: 1 });
+  assert.equal(reprocess.describeReprocess(summary, false), "Queued 2 chunks, 2 skipped, 1 recording failed");
+  assert.equal(reprocess.describeReprocess({ queued: 1, skipped: 0, failed: 0 }, true), "1 chunk would queue");
+});
+
+test("reprocess: failures split into sign-in, refusals with results, and other errors", () => {
+  assert.deepEqual(reprocess.classifyReprocessFailure(new OpsMutationError(403, "Invalid CSRF token", null)), {
+    kind: "session",
+    message: "Invalid CSRF token",
+  });
+  assert.equal(reprocess.classifyReprocessFailure(new ApiError(401, "Sign in")).kind, "session");
+  const body = { dispatched: true, recordings: [], error: "No chunk was queued" };
+  const refused = reprocess.classifyReprocessFailure(new OpsMutationError(502, "No chunk was queued", body));
+  assert.equal(refused.kind, "refused");
+  assert.equal(refused.status, 502);
+  assert.equal(refused.response, body);
+  const conflict = reprocess.classifyReprocessFailure(new OpsMutationError(409, "Chunks cannot be reprocessed", null));
+  assert.equal(conflict.response, null);
+  assert.equal(reprocess.classifyReprocessFailure(new ApiError(503, "GitHub dispatch is not configured")).kind, "error");
+  assert.equal(reprocess.classifyReprocessFailure(new Error("offline")).error.status, 0);
+});
+
+test("runs: origin names the viewer, falls back to the operator id, and labels the rest", () => {
+  const viewer = { userId: "usr_1", name: "Kaio" };
+  assert.equal(runOrigin({ origin: "operator", requestedBy: "usr_1" }, viewer), "Kaio");
+  assert.equal(runOrigin({ origin: "operator", requestedBy: "usr_2" }, viewer), "usr_2");
+  assert.equal(runOrigin({ origin: "automatic", requestedBy: null }, viewer), "Automatic");
+  assert.equal(runOrigin({ origin: "manual", requestedBy: null }, null), "Manual");
+});
