@@ -10,7 +10,9 @@ const { parseJump, jumpHref } = load("@/components/admin/lib/jump");
 const { parseInspect, formatInspect, withInspect } = load("@/components/admin/lib/inspect");
 const { chapterSpans, timelineExtent, placeSpan, placeTick, axisMarks } = load("@/components/admin/lib/timeline");
 const { throughputColumns, throughputTotals } = load("@/components/admin/overview/lib/throughput");
-const { detectionName } = load("@/components/admin/lib/detection");
+const { detectionName, sourceUrlAt } = load("@/components/admin/lib/detection");
+const { regionBox, cropFrame, groupByFrame } = load("@/components/admin/lib/evidence");
+const { FIELD_ORDER, fieldsWithoutEvidence } = load("@/components/admin/lib/detection-fields");
 const { parseActivityFilters, activityHref } = load("@/components/admin/lib/activity-filters");
 const { formatTimecode, formatSeconds } = load("@/components/admin/lib/format");
 
@@ -141,4 +143,108 @@ test("timecodes and durations read the way operators scrub", () => {
   assert.equal(formatSeconds(252), "4m 12s");
   assert.equal(formatSeconds(3780), "1h 03m");
   assert.equal(formatSeconds(null), "-");
+});
+
+const read = (overrides) => ({
+  detectionId: "d1",
+  recordingId: 7,
+  atMs: 60_000,
+  confidence: 0.9,
+  method: "vlm",
+  screenshotUrl: "/api/v1/ops/images/a.jpg",
+  phase: "pre_fight",
+  frameSha256: null,
+  sourceWidth: 1920,
+  sourceHeight: 1080,
+  region: null,
+  selectionReason: null,
+  ...overrides,
+});
+
+test("evidence: a source-pixel region becomes a percent box on its frame", () => {
+  assert.deepEqual(regionBox({ region: [192, 108, 384, 216], sourceWidth: 1920, sourceHeight: 1080 }), {
+    left: 10,
+    top: 10,
+    width: 20,
+    height: 20,
+  });
+  assert.equal(regionBox({ region: [1800, 1000, 240, 160], sourceWidth: 2000, sourceHeight: 1000 }), null);
+  assert.deepEqual(regionBox({ region: [-100, 0, 300, 500], sourceWidth: 1000, sourceHeight: 1000 }), {
+    left: 0,
+    top: 0,
+    width: 20,
+    height: 50,
+  });
+  assert.equal(regionBox({ region: [0, 0, 10, 10], sourceWidth: null, sourceHeight: 1080 }), null);
+  assert.equal(regionBox({ region: null, sourceWidth: 1920, sourceHeight: 1080 }), null);
+});
+
+test("evidence: the crop sizes the frame so only the region fills its box", () => {
+  assert.deepEqual(cropFrame({ region: [100, 50, 200, 100], sourceWidth: 1000, sourceHeight: 500 }), {
+    aspectRatio: 2,
+    width: 500,
+    left: -50,
+    top: -50,
+  });
+  assert.equal(cropFrame({ region: [0, 0, 0, 40], sourceWidth: 1000, sourceHeight: 500 }), null);
+});
+
+test("evidence: reads that share a frame group together, earliest frame first", () => {
+  const clock = { frameSha256: "sha-clock", atMs: 90_000, screenshotUrl: "/api/v1/ops/images/clock.jpg" };
+  const groups = groupByFrame(
+    {
+      winsRemaining: read({ ...clock, region: [10, 10, 20, 20] }),
+      igd: read({ ...clock, region: [40, 10, 20, 20] }),
+      username: read({ atMs: 30_000, screenshotUrl: "/api/v1/ops/images/name.jpg" }),
+      rank: read({ atMs: 30_000, screenshotUrl: "/api/v1/ops/images/name.jpg" }),
+      lethal: read({ atMs: 120_000, screenshotUrl: null }),
+      gameMode: read({ atMs: 120_000, screenshotUrl: null }),
+    },
+    FIELD_ORDER,
+  );
+  assert.deepEqual(
+    groups.map((group) => [group.key, group.reads.map((r) => r.field)]),
+    [
+      ["/api/v1/ops/images/name.jpg", ["username", "rank"]],
+      ["sha-clock", ["igd", "winsRemaining"]],
+      ["field:gameMode", ["gameMode"]],
+      ["field:lethal", ["lethal"]],
+    ],
+  );
+  assert.equal(groups[1].screenshotUrl, "/api/v1/ops/images/clock.jpg");
+  assert.deepEqual(groupByFrame({}, FIELD_ORDER), []);
+});
+
+test("evidence: valued fields without evidence are listed so legacy reads stay visible", () => {
+  const detection = {
+    username: null,
+    nameState: "legacy",
+    rank: "gold",
+    igd: 4,
+    winsRemaining: null,
+    ghostHero: null,
+    streamerHero: "mak",
+    lethal: null,
+    gameMode: null,
+    tournamentWins: null,
+    tournamentLosses: null,
+    fieldEvidence: { igd: read({}) },
+  };
+  assert.deepEqual(fieldsWithoutEvidence(detection), ["username", "rank", "streamerHero"]);
+});
+
+test("source links move to the frame time in each platform's format", () => {
+  assert.equal(
+    sourceUrlAt("https://www.twitch.tv/videos/2290012345?t=1h0m0s", 3723),
+    "https://www.twitch.tv/videos/2290012345?t=1h2m3s",
+  );
+  assert.equal(
+    sourceUrlAt("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10s", 95.6),
+    "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=95s",
+  );
+  assert.equal(
+    sourceUrlAt("https://www.bilibili.com/video/BV1GJ411x7h7?p=2&t=5", 61),
+    "https://www.bilibili.com/video/BV1GJ411x7h7?p=2&t=61",
+  );
+  assert.equal(sourceUrlAt("https://example.com/v/1?t=5", 61), "https://example.com/v/1?t=5");
 });

@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ChunkInspector } from "./chunk-inspector";
-import { DetectionSummary } from "./detection-summary";
+import { DetectionInspector } from "./detection-inspector";
 import { useInspectParam } from "./hooks/use-inspect-param";
 import type { InspectTarget } from "./lib/inspect";
 
@@ -14,7 +14,7 @@ function InspectorBody({ target }: { target: InspectTarget }) {
   return target.kind === "chunk" ? (
     <ChunkInspector key={target.id} id={target.id} />
   ) : (
-    <DetectionSummary key={target.id} id={target.id} />
+    <DetectionInspector key={target.id} id={target.id} />
   );
 }
 
