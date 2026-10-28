@@ -51,7 +51,7 @@ export function RecordingResult({
       {dryRun && result.payload && (
         <div className="flex flex-col gap-1">
           <span className="text-sm">Workflow payload</span>
-          <pre className={cn("max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs break-all whitespace-pre-wrap", MONO)}>
+          <pre className={cn("rounded-md bg-muted p-3 text-xs break-all whitespace-pre-wrap", MONO)}>
             {JSON.stringify(result.payload, null, 2)}
           </pre>
         </div>

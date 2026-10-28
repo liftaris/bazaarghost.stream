@@ -6,7 +6,7 @@ export function IdChip({ value, label = "Copy ID", className }: { value: string 
   return (
     <span
       className={cn(
-        "inline-flex min-w-0 [&_button]:max-w-full [&_button]:truncate [&_button]:font-[family-name:var(--font-jetbrains-mono)] [&_button]:text-xs [&_button]:opacity-100",
+        "inline-flex max-w-full min-w-0 [&_button]:max-w-full [&_button]:truncate [&_button]:font-[family-name:var(--font-jetbrains-mono)] [&_button]:text-xs [&_button]:opacity-100 pointer-coarse:[&_button]:min-h-11",
         className,
       )}
     >

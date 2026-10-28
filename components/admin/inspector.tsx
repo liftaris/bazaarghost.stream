@@ -29,7 +29,7 @@ export function InspectorColumn() {
     >
       <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
         <h2 className="text-sm font-semibold">{TITLES[target.kind]}</h2>
-        <Button variant="ghost" size="icon-sm" onClick={close} aria-label="Close inspector">
+        <Button variant="ghost" size="icon-sm" onClick={close} aria-label="Close inspector" className="pointer-coarse:size-11">
           <X aria-hidden />
         </Button>
       </div>
@@ -40,17 +40,19 @@ export function InspectorColumn() {
   );
 }
 
-/** The inspector as a right sheet, on narrow frames. */
+/** The inspector as a full-height right sheet with one scrolling body, on narrow frames. */
 export function InspectorSheet() {
   const { target, close } = useInspectParam();
   return (
     <Sheet open={target !== null} onOpenChange={(open) => !open && close()}>
-      <SheetContent side="right" className="w-full gap-0 bg-card sm:max-w-md">
-        <SheetHeader className="border-b border-border">
+      <SheetContent side="right" className="w-full gap-0 bg-card pr-[env(safe-area-inset-right)] sm:max-w-md">
+        <SheetHeader className="border-b border-border pt-[max(1rem,env(safe-area-inset-top))]">
           <SheetTitle>{target ? TITLES[target.kind] : "Inspector"}</SheetTitle>
           <SheetDescription className="sr-only">Details of the selected item</SheetDescription>
         </SheetHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">{target && <InspectorBody target={target} />}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {target && <InspectorBody target={target} />}
+        </div>
       </SheetContent>
     </Sheet>
   );

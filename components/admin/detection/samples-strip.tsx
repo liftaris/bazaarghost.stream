@@ -63,7 +63,7 @@ export function SamplesStrip({ evidence, samples, shown, onShow }: SamplesStripP
       <h4 className="text-xs font-medium text-muted-foreground">
         Samples <span className="tabular-nums">({samples.length})</span>
       </h4>
-      <ul className="-mx-1 flex gap-1 overflow-x-auto pb-1">
+      <ul className="flex gap-1 overflow-x-auto overscroll-x-contain pb-1">
         <Thumb
           url={evidence.screenshotUrl}
           label="Chosen"

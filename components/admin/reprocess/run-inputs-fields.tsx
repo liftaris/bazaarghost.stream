@@ -43,7 +43,7 @@ export function RunInputsFields({
             <ToggleGroupItem
               key={mode}
               value={mode}
-              className="h-7 rounded-sm! px-3 text-muted-foreground hover:text-foreground data-[state=on]:bg-primary/15 data-[state=on]:text-foreground"
+              className="h-7 rounded-sm! px-3 text-muted-foreground hover:text-foreground data-[state=on]:bg-primary/15 data-[state=on]:text-foreground pointer-coarse:h-11"
             >
               {MODE_LABEL[mode]}
             </ToggleGroupItem>
@@ -65,7 +65,7 @@ export function RunInputsFields({
             if (quality) onChange({ ...value, quality });
           }}
         >
-          <SelectTrigger id={`${id}-quality`} size="sm" className="w-36 border-border">
+          <SelectTrigger id={`${id}-quality`} size="sm" className="w-36 border-border pointer-coarse:data-[size=sm]:h-11">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -38,12 +38,12 @@ function StageCell({ stage }: { stage: Stage }) {
 
 function StageRow({ label, stages }: { label: string; stages: Stage[] }) {
   return (
-    <div className="flex flex-col gap-1 @2xl:flex-row @2xl:items-center">
-      <h3 className="w-24 shrink-0 px-3 text-sm font-medium @2xl:px-0">{label}</h3>
-      <ol className="flex flex-1 flex-wrap items-center">
+    <div className="flex flex-col gap-1 @4xl:flex-row @4xl:items-center">
+      <h3 className="w-24 shrink-0 px-3 text-sm font-medium @4xl:px-0">{label}</h3>
+      <ol className="grid flex-1 grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] @4xl:flex @4xl:items-center">
         {stages.map((stage, i) => (
-          <li key={stage.status} className="flex flex-1 items-center">
-            {i > 0 && <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground/60" />}
+          <li key={stage.status} className="flex items-center @4xl:flex-1">
+            {i > 0 && <ChevronRight aria-hidden className="hidden size-4 shrink-0 text-muted-foreground/60 @4xl:block" />}
             <StageCell stage={stage} />
           </li>
         ))}
@@ -52,7 +52,10 @@ function StageRow({ label, stages }: { label: string; stages: Stage[] }) {
   );
 }
 
-/** Stage counts for recordings and chunks, left to right; each count opens the matching activity rows. */
+/**
+ * Stage counts for recordings and chunks, left to right with arrows when one
+ * row fits, else as an even grid; each count opens the matching activity rows.
+ */
 export function PipelineStrip({ overview }: { overview: OpsOverview }) {
   const recordings = RECORDING_PIPELINE.map((status) => ({
     status,

@@ -44,12 +44,12 @@ export function ThroughputBars({ throughput }: { throughput: OpsOverview["throug
             </div>
           ))}
         </div>
-        <div className="flex gap-0.5 text-[11px] text-muted-foreground tabular-nums">
-          {columns.map((column, i) => (
-            <span key={column.hour} className="min-w-0 flex-1 overflow-visible whitespace-nowrap">
-              {i % 6 === 0 ? hour(column.hour) : ""}
-            </span>
-          ))}
+        <div className="grid grid-cols-4 gap-0.5 text-[11px] text-muted-foreground tabular-nums">
+          {columns
+            .filter((_, i) => i % 6 === 0)
+            .map((column) => (
+              <span key={column.hour}>{hour(column.hour)}</span>
+            ))}
         </div>
       </div>
       <table className="sr-only">

@@ -18,12 +18,12 @@ function RunError({ error }: { error: string }) {
   if (error.length <= LONG_ERROR) return <p className={text}>{error}</p>;
   return (
     <details className="group flex flex-col gap-1">
-      <summary className="cursor-pointer list-none rounded-sm focus-visible:outline-2 focus-visible:outline-ring">
+      <summary className="cursor-pointer list-none rounded-sm focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:py-2">
         <span className={cn(text, "line-clamp-2 group-open:hidden")}>{error}</span>
         <span className="text-xs text-muted-foreground underline underline-offset-4 group-open:hidden">Full error</span>
         <span className="hidden text-xs text-muted-foreground underline underline-offset-4 group-open:inline">Hide full error</span>
       </summary>
-      <pre className={cn(text, "mt-1 max-h-56 overflow-auto rounded-md bg-muted p-2")}>{error}</pre>
+      <pre className={cn(text, "mt-1 rounded-md bg-muted p-2")}>{error}</pre>
     </details>
   );
 }

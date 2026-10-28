@@ -17,15 +17,15 @@ export function SelectionBar({
   onToggle: () => void;
 }) {
   return (
-    <div className="sticky top-2 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-primary/50 bg-card px-3 py-2">
+    <div className="sticky top-2 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-primary/50 bg-card px-3 py-2 pointer-coarse:static">
       <p className="text-sm font-medium tabular-nums" aria-live="polite">
         {count} {count === 1 ? "chunk" : "chunks"} selected
       </p>
       <div className="ml-auto flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={onClear} disabled={count === 0}>
+        <Button variant="ghost" size="sm" onClick={onClear} disabled={count === 0} className="pointer-coarse:h-11">
           Clear
         </Button>
-        <Button variant={open ? "outline" : "default"} size="sm" aria-expanded={open} aria-controls={open ? controls : undefined} onClick={onToggle} disabled={!open && count === 0}>
+        <Button variant={open ? "outline" : "default"} size="sm" aria-expanded={open} aria-controls={open ? controls : undefined} onClick={onToggle} disabled={!open && count === 0} className="pointer-coarse:h-11">
           <RotateCcw aria-hidden />
           {open ? "Hide rerun form" : "Reprocess selected"}
         </Button>

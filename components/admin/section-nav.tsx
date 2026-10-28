@@ -11,12 +11,15 @@ function isActive(href: string, pathname: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Console sections; vertical in the side column, a scrollable row in the top bar. */
-export function SectionNav({ className }: { className?: string }) {
+/**
+ * Console sections; vertical in the side column, a row in a wide top bar, and
+ * four equal icon-over-label tabs on phones so every section stays in view.
+ */
+export function SectionNav() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Console sections" className={className}>
-      <ul className="flex gap-1 @3xl/console:flex-col">
+    <nav aria-label="Console sections">
+      <ul className="grid grid-cols-4 gap-1 @lg/console:flex @3xl/console:flex-col">
         {SECTIONS.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname);
           return (
@@ -25,7 +28,7 @@ export function SectionNav({ className }: { className?: string }) {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-8 items-center gap-2 rounded-md px-2.5 text-sm whitespace-nowrap transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-ring motion-reduce:transition-none",
+                  "flex min-h-11 flex-col items-center justify-center gap-1 rounded-md px-1 text-xs whitespace-nowrap transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-ring motion-reduce:transition-none @lg/console:flex-row @lg/console:justify-start @lg/console:gap-2 @lg/console:px-2.5 @lg/console:text-sm @lg/console:min-h-8 @lg/console:pointer-coarse:min-h-11",
                   active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                 )}
               >

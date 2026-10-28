@@ -17,7 +17,7 @@ export function JumpBox() {
         aria-busy={pending}
         spellCheck={false}
         autoComplete="off"
-        className="h-8 bg-background pr-8 text-sm md:text-sm"
+        className="h-8 bg-background pr-8 text-sm md:text-sm pointer-coarse:h-11 pointer-coarse:text-base"
       />
       <span aria-hidden className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-muted-foreground">
         {pending ? (

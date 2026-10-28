@@ -38,6 +38,7 @@ export function RecordingRow({
             aria-controls={expanded ? panelId : undefined}
             aria-label={`${expanded ? "Hide" : "Show"} chunks of recording ${recording.id}`}
             onClick={onToggle}
+            className="pointer-coarse:size-11"
           >
             <ChevronRight aria-hidden className={cn("transition-transform duration-150 motion-reduce:transition-none", expanded && "rotate-90")} />
           </Button>
@@ -46,11 +47,11 @@ export function RecordingRow({
           <PlatformIcon platform={recording.platform} className="size-3.5" />
         </td>
         <td className="hidden max-w-40 truncate @4xl:table-cell">{recording.streamer?.displayName ?? MISSING}</td>
-        <td className="max-w-[28rem] min-w-48">
+        <td className="min-w-48">
           <Link
             href={`/admin/recordings/${recording.id}`}
             title={recording.title ?? recording.sourceId}
-            className="block truncate font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+            className="block max-w-60 truncate font-medium pointer-coarse:-my-3 pointer-coarse:py-3 @4xl:max-w-[28rem] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
           >
             {recording.title ?? <span className={cn("text-xs", MONO)}>{recording.sourceId}</span>}
           </Link>

@@ -73,7 +73,7 @@ export function ChannelSection({
   const items = channel.items.filter((item) => matchesInventoryFilter(item, filter));
   const headingId = `channel-${id}`;
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-2">
+    <section aria-labelledby={headingId} className="@container flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <h2 id={headingId} className="flex items-center gap-2 text-sm font-semibold">
           <PlatformIcon platform={platform} className="size-4" />

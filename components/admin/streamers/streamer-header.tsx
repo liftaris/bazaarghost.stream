@@ -39,7 +39,7 @@ export function StreamerHeader({ inventory }: { inventory: OpsInventory }) {
                   target="_blank"
                   rel="noreferrer"
                   aria-label={`${name} on ${platform}`}
-                  className="inline-flex items-center gap-1 font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                  className="inline-flex items-center gap-1 font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11"
                 >
                   {name}
                   <ExternalLink aria-hidden className="size-3 text-muted-foreground" />

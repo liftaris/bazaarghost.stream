@@ -63,7 +63,7 @@ export function ReprocessPanel({
       <p className="text-xs text-muted-foreground">Runs once. If it fails it stays failed until you queue it again.</p>
       <div className="flex flex-wrap gap-2">
         {ACTIONS.map(({ action, label, variant }) => (
-          <Button key={action} variant={variant} size="sm" disabled={disabled} onClick={() => run(action)}>
+          <Button key={action} variant={variant} size="sm" disabled={disabled} onClick={() => run(action)} className="pointer-coarse:h-11">
             {pending && state.action === action && <Spinner aria-hidden />}
             {label}
           </Button>

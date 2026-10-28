@@ -35,7 +35,7 @@ export function PagedList({
           {page.hasMore ? " loaded" : ""}
         </span>
         {page.hasMore && (
-          <Button variant="outline" size="sm" onClick={page.loadMore} disabled={page.loadingMore}>
+          <Button variant="outline" size="sm" onClick={page.loadMore} disabled={page.loadingMore} className="pointer-coarse:h-11">
             {page.loadingMore ? "Loading…" : "Load more"}
           </Button>
         )}
