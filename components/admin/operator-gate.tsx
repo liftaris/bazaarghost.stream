@@ -43,12 +43,17 @@ function GateMessage({ title, children }: { title: string; children: ReactNode }
  * come back here; signed-in non-operators see their user id so it can be granted.
  */
 export function OperatorGate({ children }: { children: ReactNode }) {
-  const { state } = useAuth();
+  const { state, refresh } = useAuth();
   const me = useOpsResource("/me", state.status === "authenticated" ? {} : null);
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams().toString();
-  const signedOut = state.status === "anonymous" || me.error?.status === 401;
+  const signedOut = state.status === "anonymous";
+  const expired = me.error?.status === 401;
+
+  useEffect(() => {
+    if (expired) void refresh();
+  }, [expired, refresh]);
 
   useEffect(() => {
     if (!signedOut) return;
@@ -74,7 +79,7 @@ export function OperatorGate({ children }: { children: ReactNode }) {
       </GateMessage>
     );
 
-  if (me.error && !signedOut)
+  if (me.error)
     return (
       <div className="mx-auto w-full max-w-xl px-4 py-16">
         <ErrorState title="Could not check operator access" error={me.error} onRetry={me.reload} />
