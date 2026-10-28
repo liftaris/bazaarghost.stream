@@ -40,3 +40,8 @@ export function formatDateTime(iso: string | null): string {
 export function formatCount(value: number | null | undefined): string {
   return value == null ? MISSING : value.toLocaleString("en-US");
 }
+
+/** A 0–1 confidence as a whole percent, or the placeholder. */
+export function formatPercent(value: number | null): string {
+  return value == null ? MISSING : `${Math.round(value * 100)}%`;
+}
