@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import type { OpsRecordingDetail } from "@/lib/operator-contract";
 import { useOpsResource } from "../hooks/use-ops-resource";
-import { chunkLabeller, defaultsChunk } from "../lib/reprocess";
+import { chunkLabeller, configBlock, defaultsChunk } from "../lib/reprocess";
 import { ErrorState, RowsSkeleton } from "../load-states";
 import type { ChunkSelectionState } from "./hooks/use-chunk-selection";
 import { ReprocessPanel } from "./reprocess-panel";
@@ -39,7 +39,7 @@ function BulkPanel({
           title={count ? `Rerun ${count} selected ${count === 1 ? "chunk" : "chunks"}` : "Rerun selected chunks"}
           chunkIds={chunkIds}
           defaults={data.runDefaults}
-          blocked={count ? null : "Tick chunks in the table to rerun them."}
+          blocked={count ? configBlock(data.runDefaults) : "Tick chunks in the table to rerun them."}
           chunkLabel={chunkLabeller(detail.chunks)}
           facts={<RerunFacts runtimeImage={data.runDefaults.inputs.runtime_image} recording={detail.recording} detections={detections} />}
         />

@@ -15,7 +15,6 @@ import {
   ListChecks,
   LoaderCircle,
   TimerOff,
-  Unplug,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -68,7 +67,6 @@ export const STATUS: Record<Status, StatusStyle> = {
   completed: { label: "Completed", icon: CircleCheck, text: "text-foreground", fill: "bg-foreground/75" },
   processed: { label: "Processed", icon: CircleCheck, text: "text-foreground", fill: "bg-foreground/75" },
   failed: { label: "Failed", icon: CircleX, text: FAILED_TEXT, fill: "bg-destructive" },
-  dispatch_failed: { label: "Dispatch failed", icon: Unplug, text: FAILED_TEXT, fill: "bg-destructive" },
   expired: { label: "Expired", icon: TimerOff, text: FAILED_TEXT, fill: "bg-destructive/70" },
   archived: { label: "Archived", icon: Archive, text: "text-muted-foreground", fill: "bg-muted-foreground/15" },
 };

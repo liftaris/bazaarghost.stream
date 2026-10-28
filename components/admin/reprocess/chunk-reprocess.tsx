@@ -1,5 +1,5 @@
 import type { OpsChunkDetail } from "@/lib/operator-contract";
-import { chunkLabeller, REPROCESS_BLOCK } from "../lib/reprocess";
+import { chunkLabeller, configBlock, REPROCESS_BLOCK } from "../lib/reprocess";
 import { ReprocessPanel } from "./reprocess-panel";
 import { RerunFacts } from "./rerun-facts";
 
@@ -11,7 +11,7 @@ export function ChunkReprocess({ detail }: { detail: OpsChunkDetail }) {
       title="Rerun this chunk"
       chunkIds={[chunk.id]}
       defaults={runDefaults}
-      blocked={REPROCESS_BLOCK[chunk.status]}
+      blocked={REPROCESS_BLOCK[chunk.status] ?? configBlock(runDefaults)}
       chunkLabel={chunkLabeller([chunk])}
       facts={<RerunFacts runtimeImage={runDefaults.inputs.runtime_image} recording={recording} detections={detections.length} />}
     />

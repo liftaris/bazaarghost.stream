@@ -38,6 +38,11 @@ export function runInputsLabel(inputs: Pick<RunInputs, "mode" | "quality">): str
 }
 
 /** Why a chunk in each status cannot be rerun, or null when it can. Mirrors the backend's resettable statuses. */
+/** Why a rerun cannot start for this environment, from the server's `configError`; null when it can. */
+export function configBlock(defaults: OpsRunDefaults): string | null {
+  return defaults.configError ? `Reruns are unavailable here: ${defaults.configError}` : null;
+}
+
 export const REPROCESS_BLOCK: Record<ChunkStatus, string | null> = {
   pending: null,
   completed: null,
