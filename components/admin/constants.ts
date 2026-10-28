@@ -22,12 +22,8 @@ import type {
   ChunkStatus,
   IngestionJobStatus,
   InventoryState,
-  OpsAttention,
-  OpsAttentionKind,
   RecordingStatus,
 } from "@/lib/operator-contract";
-import type { ActivityStatus } from "./lib/activity-filters";
-import { withInspect } from "./lib/inspect";
 
 /** JetBrains Mono, reserved for ids, timecodes, errors and payloads. */
 export const MONO = "font-[family-name:var(--font-jetbrains-mono)]";
@@ -77,39 +73,6 @@ export const CHUNK_PIPELINE: readonly ChunkStatus[] = ["pending", "queued", "pro
 
 /** Recording statuses in pipeline order, left to right. */
 export const RECORDING_PIPELINE: readonly RecordingStatus[] = ["pending", "processing", "partial", "completed", "failed"];
-
-/**
- * The recording filter that best answers "show me these chunks". The recordings
- * route filters by recording status only, so failed chunks map to `attention`.
- */
-export const CHUNK_STAGE_FILTER: Record<ChunkStatus, ActivityStatus | null> = {
-  pending: "pending",
-  queued: "processing",
-  processing: "processing",
-  completed: "completed",
-  failed: "attention",
-  archived: null,
-};
-
-type AttentionSample = OpsAttention["samples"][number];
-
-const chunkHref = (sample: AttentionSample) =>
-  sample.recordingId == null
-    ? `/admin/activity${withInspect("", { kind: "chunk", id: sample.id })}`
-    : `/admin/recordings/${sample.recordingId}${withInspect("", { kind: "chunk", id: sample.id })}`;
-
-/** Label and sample destination for each attention group the overview lists. */
-export const ATTENTION: Record<OpsAttentionKind, { label: string; href: (sample: AttentionSample) => string }> = {
-  exhausted_chunk: { label: "Chunks out of retries", href: chunkHref },
-  expired_lease: { label: "Expired leases", href: chunkHref },
-  stale_queued: { label: "Stale in queue", href: chunkHref },
-  dispatch_unconfirmed: {
-    label: "Dispatch unconfirmed",
-    href: (sample) => (sample.recordingId == null ? "/admin/ingestion" : `/admin/recordings/${sample.recordingId}`),
-  },
-  failing_ingestion: { label: "Failing ingestion jobs", href: () => "/admin/ingestion" },
-  catalog_failed: { label: "Catalog failures", href: (sample) => `/admin/streamers/${sample.id}` },
-};
 
 /** Console sections in nav order. */
 export const SECTIONS = [

@@ -14,6 +14,7 @@ const { detectionName, sourceUrlAt } = load("@/components/admin/lib/detection");
 const { regionBox, cropFrame, groupByFrame } = load("@/components/admin/lib/evidence");
 const { FIELD_ORDER, fieldsWithoutEvidence } = load("@/components/admin/lib/detection-fields");
 const { parseActivityFilters, activityHref } = load("@/components/admin/lib/activity-filters");
+const { ATTENTION, attentionSampleHref } = load("@/components/admin/lib/attention");
 const { formatTimecode, formatSeconds } = load("@/components/admin/lib/format");
 const inventory = load("@/components/admin/streamers/lib/inventory");
 const { channelUrl } = load("@/components/admin/streamers/lib/channels");
@@ -94,6 +95,28 @@ test("activity filters: unknown statuses and blanks are dropped", () => {
   assert.deepEqual(parseActivityFilters("status=archived&q="), {});
   assert.equal(activityHref({ status: "failed" }), "/admin/activity?status=failed");
   assert.equal(activityHref(), "/admin/activity");
+});
+
+test("activity filters: chunk status filters by any chunk in that status", () => {
+  assert.deepEqual(parseActivityFilters("chunkStatus=failed&status=partial"), { status: "partial", chunkStatus: "failed" });
+  assert.deepEqual(parseActivityFilters("chunkStatus=exploded"), {});
+  assert.equal(activityHref({ chunkStatus: "queued" }), "/admin/activity?chunkStatus=queued");
+});
+
+test("attention: chunk groups open recordings with chunks in the matching status", () => {
+  assert.equal(ATTENTION.exhausted_chunk.href, "/admin/activity?chunkStatus=failed");
+  assert.equal(ATTENTION.expired_lease.href, "/admin/activity?chunkStatus=processing");
+  assert.equal(ATTENTION.stale_queued.href, "/admin/activity?chunkStatus=queued");
+});
+
+test("attention: samples open the entity their target names", () => {
+  const chunk = { kind: "chunk", id: CHUNK };
+  assert.equal(attentionSampleHref({ target: chunk, recordingId: 4182 }), `/admin/recordings/4182?inspect=chunk%3A${CHUNK}`);
+  assert.equal(attentionSampleHref({ target: chunk, recordingId: null }), `/admin/activity?inspect=chunk%3A${CHUNK}`);
+  assert.equal(attentionSampleHref({ target: { kind: "recording", id: "4182" }, recordingId: null }), "/admin/recordings/4182");
+  assert.equal(attentionSampleHref({ target: { kind: "streamer", id: "7" }, recordingId: null }), "/admin/streamers/7");
+  assert.equal(attentionSampleHref({ target: { kind: "ingestion_job", id: "job_1" }, recordingId: null }), "/admin/ingestion");
+  assert.equal(attentionSampleHref({ target: { kind: "dispatch", id: "1" }, recordingId: null }), "/admin/ingestion");
 });
 
 test("timeline: chapters pair up, sort, and drop inverted ranges", () => {
