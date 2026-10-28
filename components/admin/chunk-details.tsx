@@ -11,13 +11,15 @@ import { IdChip } from "./id-chip";
 import { formatCount, formatDateTime, formatMs, formatRelative, formatTimecode, MISSING } from "./lib/format";
 import { withInspect } from "./lib/inspect";
 import { EmptyState } from "./load-states";
+import { ChunkReprocess } from "./reprocess";
+import { RunHistory } from "./runs/run-history";
 import { StatusChip } from "./status-chip";
 
 function When({ iso }: { iso: string | null }) {
   return iso ? <time dateTime={iso} title={formatDateTime(iso)}>{formatRelative(iso)}</time> : <>{MISSING}</>;
 }
 
-/** Status, range, timings, last error and detections of one chunk. */
+/** Status, range, timings, last error, the rerun form, run history and detections of one chunk. */
 export function ChunkDetails({ detail }: { detail: OpsChunkDetail }) {
   const { chunk, recording, detections } = detail;
   const recordingHref = `/admin/recordings/${recording.id}${withInspect("", { kind: "chunk", id: chunk.id })}`;
@@ -67,6 +69,8 @@ export function ChunkDetails({ detail }: { detail: OpsChunkDetail }) {
         </section>
       )}
 
+      <ChunkReprocess detail={detail} />
+      <RunHistory runs={detail.runs} />
       <ChunkDetections detections={detections} />
     </div>
   );

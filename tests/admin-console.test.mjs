@@ -374,9 +374,18 @@ test("reprocess: select all takes eligible chunks up to the request limit, then 
   const all = reprocess.toggleAll(new Set(), chunks);
   assert.equal(all.size, reprocess.MAX_REPROCESS);
   assert.equal(all.has("c3"), false);
+  assert.equal(reprocess.selectionCoverage(all, chunks), "all");
+  assert.equal(reprocess.selectionCoverage(new Set(["c0"]), chunks), "some");
+  assert.equal(reprocess.selectionCoverage(new Set(), chunks), "none");
   assert.equal(reprocess.toggleAll(all, chunks).size, 0);
   const full = new Set(all);
   assert.equal(reprocess.toggleChunk(full, chunk(59, "failed")), full);
+});
+
+test("reprocess: results name chunks by index", () => {
+  const label = reprocess.chunkLabeller([{ id: "ab12cd34-x", index: 3 }]);
+  assert.equal(label("ab12cd34-x"), "Chunk 3");
+  assert.equal(label("ffffffff-0000"), "ffffffff");
 });
 
 test("reprocess: selection drops chunks that were queued or left the list", () => {

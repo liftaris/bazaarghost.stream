@@ -80,10 +80,32 @@ export function toggleAll(selection: ChunkSelection, chunks: readonly OpsChunk[]
   return eligible.every((chunk) => selection.has(chunk.id)) ? new Set() : new Set(eligible.map((chunk) => chunk.id));
 }
 
+/** How much of the eligible list is ticked, for the select-all checkbox. */
+export type SelectionCoverage = "none" | "some" | "all";
+
+/** Whether no, some or every chunk that can be rerun (up to {@link MAX_REPROCESS}) is ticked. */
+export function selectionCoverage(selection: ChunkSelection, chunks: readonly OpsChunk[]): SelectionCoverage {
+  if (selection.size === 0) return "none";
+  const eligible = chunks.filter((chunk) => canReprocess(chunk.status)).slice(0, MAX_REPROCESS);
+  return eligible.every((chunk) => selection.has(chunk.id)) ? "all" : "some";
+}
+
 /** Drop ticks for chunks that left the list or can no longer be rerun; returns the same set when nothing changed. */
 export function pruneSelection(selection: ChunkSelection, chunks: readonly OpsChunk[]): ChunkSelection {
   const keep = new Set(chunks.filter((chunk) => selection.has(chunk.id) && canReprocess(chunk.status)).map((chunk) => chunk.id));
   return keep.size === selection.size ? selection : keep;
+}
+
+/** Names a chunk in results. */
+export type ChunkLabel = (id: string) => string;
+
+/** Label chunks by index, such as `Chunk 3`; ids outside the list show their first eight characters. */
+export function chunkLabeller(chunks: readonly Pick<OpsChunk, "id" | "index">[]): ChunkLabel {
+  const index = new Map(chunks.map((chunk) => [chunk.id, chunk.index]));
+  return (id) => {
+    const found = index.get(id);
+    return found === undefined ? id.slice(0, 8) : `Chunk ${found}`;
+  };
 }
 
 /** Counts across every recording of a reprocess response. */
