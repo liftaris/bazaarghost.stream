@@ -13,11 +13,16 @@ export interface Viewer {
   name: string;
 }
 
-/**
- * Who asked for a run: the scheduler, an operator by name when it is the viewer or by user id
- * otherwise (the contract carries no operator names), or a manual claim.
- */
-export function runOrigin(run: Pick<OpsRun, "origin" | "requestedBy">, viewer: Viewer | null): string {
-  if (run.origin !== "operator" || !run.requestedBy) return RUN_ORIGIN[run.origin];
-  return run.requestedBy === viewer?.userId ? viewer.name : run.requestedBy;
+/** Who asked for a run, as a label plus the operator's user id when the console cannot name them. */
+export interface RunRequester {
+  label: string;
+  /** Set for another operator's run; the contract carries user ids, not operator names. */
+  userId: string | null;
+}
+
+/** Name the scheduler, a manual claim, the viewer by name, or another operator by user id. */
+export function runOrigin(run: Pick<OpsRun, "origin" | "requestedBy">, viewer: Viewer | null): RunRequester {
+  if (run.origin !== "operator" || !run.requestedBy) return { label: RUN_ORIGIN[run.origin], userId: null };
+  if (run.requestedBy === viewer?.userId) return { label: `${RUN_ORIGIN.operator} · ${viewer.name}`, userId: null };
+  return { label: RUN_ORIGIN.operator, userId: run.requestedBy };
 }

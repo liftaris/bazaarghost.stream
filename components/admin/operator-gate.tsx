@@ -7,6 +7,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOpsResource } from "./hooks/use-ops-resource";
 import { IdChip } from "./id-chip";
+import { signInHref } from "./lib/sign-in";
 import { ErrorState } from "./load-states";
 
 function FrameSkeleton() {
@@ -57,8 +58,7 @@ export function OperatorGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!signedOut) return;
-    const here = `${pathname}${search ? `?${search}` : ""}`;
-    router.replace(`/login?next=${encodeURIComponent(here).replaceAll("%2F", "/")}`);
+    router.replace(signInHref(pathname, search));
   }, [signedOut, pathname, search, router]);
 
   if (state.status === "disabled")

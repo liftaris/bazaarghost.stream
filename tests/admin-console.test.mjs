@@ -419,8 +419,8 @@ test("reprocess: failures split into sign-in, refusals with results, and other e
 
 test("runs: origin names the viewer, falls back to the operator id, and labels the rest", () => {
   const viewer = { userId: "usr_1", name: "Kaio" };
-  assert.equal(runOrigin({ origin: "operator", requestedBy: "usr_1" }, viewer), "Kaio");
-  assert.equal(runOrigin({ origin: "operator", requestedBy: "usr_2" }, viewer), "usr_2");
-  assert.equal(runOrigin({ origin: "automatic", requestedBy: null }, viewer), "Automatic");
-  assert.equal(runOrigin({ origin: "manual", requestedBy: null }, null), "Manual");
+  assert.deepEqual(runOrigin({ origin: "operator", requestedBy: "usr_1" }, viewer), { label: "Operator · Kaio", userId: null });
+  assert.deepEqual(runOrigin({ origin: "operator", requestedBy: "usr_2" }, viewer), { label: "Operator", userId: "usr_2" });
+  assert.deepEqual(runOrigin({ origin: "automatic", requestedBy: null }, viewer), { label: "Automatic", userId: null });
+  assert.deepEqual(runOrigin({ origin: "manual", requestedBy: null }, null), { label: "Manual", userId: null });
 });
