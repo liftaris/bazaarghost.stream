@@ -16,6 +16,7 @@ const CONTENT_ROUTES = [
   "/how-it-works",
   "/contact",
   "/donate",
+  "/admin",
 ];
 
 /**
