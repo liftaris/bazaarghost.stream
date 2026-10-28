@@ -1,13 +1,13 @@
-import type { ChunkStatus, RecordingStatus, StatusCounts } from "@/lib/operator-contract";
+import type { ChunkStatus, StatusCounts } from "@/lib/operator-contract";
 import { cn } from "@/lib/utils";
-import { CHUNK_PIPELINE, STATUS } from "./constants";
+import { CHUNK_PIPELINE, STATUS, type Status } from "./constants";
 
 /** Status icon and label from the shared registry. */
 export function StatusChip({
   status,
   className,
 }: {
-  status: ChunkStatus | RecordingStatus;
+  status: Status;
   className?: string;
 }) {
   const { label, icon: Icon, text } = STATUS[status];
