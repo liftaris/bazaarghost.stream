@@ -14,6 +14,8 @@ import {
   Hourglass,
   ListChecks,
   LoaderCircle,
+  TimerOff,
+  Unplug,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -23,6 +25,7 @@ import type {
   IngestionJobStatus,
   InventoryState,
   RecordingStatus,
+  RunStatus,
 } from "@/lib/operator-contract";
 
 /** JetBrains Mono, reserved for ids, timecodes, errors and payloads. */
@@ -43,8 +46,8 @@ export interface StatusStyle {
   fill: string;
 }
 
-/** Every status the console shows: chunks, recordings, ingestion jobs, catalog work and platform inventory. */
-export type Status = ChunkStatus | RecordingStatus | IngestionJobStatus | CatalogWorkState | InventoryState;
+/** Every status the console shows: chunks, runs, recordings, ingestion jobs, catalog work and platform inventory. */
+export type Status = ChunkStatus | RunStatus | RecordingStatus | IngestionJobStatus | CatalogWorkState | InventoryState;
 
 /**
  * The one status vocabulary across the console. Orange means work is active,
@@ -65,6 +68,8 @@ export const STATUS: Record<Status, StatusStyle> = {
   completed: { label: "Completed", icon: CircleCheck, text: "text-foreground", fill: "bg-foreground/75" },
   processed: { label: "Processed", icon: CircleCheck, text: "text-foreground", fill: "bg-foreground/75" },
   failed: { label: "Failed", icon: CircleX, text: FAILED_TEXT, fill: "bg-destructive" },
+  dispatch_failed: { label: "Dispatch failed", icon: Unplug, text: FAILED_TEXT, fill: "bg-destructive" },
+  expired: { label: "Expired", icon: TimerOff, text: FAILED_TEXT, fill: "bg-destructive/70" },
   archived: { label: "Archived", icon: Archive, text: "text-muted-foreground", fill: "bg-muted-foreground/15" },
 };
 
