@@ -14,7 +14,7 @@ export function formatTimecode(seconds: number): string {
 
 /** A length of time as `42s`, `4m 12s` or `1h 03m`. */
 export function formatSeconds(seconds: number | null): string {
-  if (seconds == null || !Number.isFinite(seconds)) return MISSING;
+  if (seconds == null) return MISSING;
   const total = Math.round(seconds);
   if (total < 60) return `${total}s`;
   if (total < 3600) return `${Math.floor(total / 60)}m ${String(total % 60).padStart(2, "0")}s`;
