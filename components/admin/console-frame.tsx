@@ -16,7 +16,7 @@ function ConsoleNav() {
     <div className="shrink-0 border-b border-border bg-card @3xl/console:sticky @3xl/console:top-0 @3xl/console:h-svh @3xl/console:w-60 @3xl/console:border-r @3xl/console:border-b-0">
       <div className="flex flex-col gap-3 p-3">
         <JumpBox />
-        <SectionNav className="-mx-1 overflow-x-auto px-1 @3xl/console:mx-0 @3xl/console:px-0" />
+        <SectionNav />
       </div>
     </div>
   );
@@ -33,7 +33,7 @@ export function ConsoleFrame({ children, className }: { children: ReactNode; cla
     <div
       ref={ref}
       className={cn(
-        "@container/console flex w-full flex-1 flex-col",
+        "@container/console flex w-full flex-1 flex-col pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)]",
         className,
       )}
     >

@@ -8,7 +8,8 @@ const load = sourceModules({
 });
 const { parseJump, jumpHref } = load("@/components/admin/lib/jump");
 const { parseInspect, formatInspect, withInspect } = load("@/components/admin/lib/inspect");
-const { chapterSpans, timelineExtent, placeSpan, placeTick, axisMarks } = load("@/components/admin/lib/timeline");
+const { chapterSpans, timelineExtent, placeSpan, placeTick, axisLabels } = load("@/components/admin/lib/timeline");
+const { scrollEdges } = load("@/components/admin/lib/scroll-edges");
 const { throughputColumns, throughputTotals } = load("@/components/admin/overview/lib/throughput");
 const { detectionName, sourceUrlAt } = load("@/components/admin/lib/detection");
 const { regionBox, cropFrame, groupByFrame } = load("@/components/admin/lib/evidence");
@@ -139,8 +140,24 @@ test("timeline: spans place as percentages with a visible minimum width", () => 
   assert.deepEqual(placeSpan({ start: 0, end: 10 }, 0), { left: 0, width: 0 });
   assert.equal(placeTick(1800, 3600), 50);
   assert.equal(placeTick(5000, 3600), 100);
-  assert.deepEqual(axisMarks(3600), [0, 900, 1800, 2700, 3600]);
-  assert.deepEqual(axisMarks(0), [0]);
+});
+
+test("timeline: axis labels pin the ends and mark every other inner label as minor", () => {
+  assert.deepEqual(axisLabels(3600), [
+    { at: 0, left: 0, align: "start", minor: false },
+    { at: 900, left: 25, align: "center", minor: true },
+    { at: 1800, left: 50, align: "center", minor: false },
+    { at: 2700, left: 75, align: "center", minor: true },
+    { at: 3600, left: 100, align: "end", minor: false },
+  ]);
+  assert.deepEqual(axisLabels(0), [{ at: 0, left: 0, align: "start", minor: false }]);
+});
+
+test("scroll edges: a table scroller reports hidden columns on either side", () => {
+  assert.deepEqual(scrollEdges({ scrollLeft: 0, scrollWidth: 300, clientWidth: 300 }), { before: false, after: false });
+  assert.deepEqual(scrollEdges({ scrollLeft: 0, scrollWidth: 900, clientWidth: 300 }), { before: false, after: true });
+  assert.deepEqual(scrollEdges({ scrollLeft: 250, scrollWidth: 900, clientWidth: 300 }), { before: true, after: true });
+  assert.deepEqual(scrollEdges({ scrollLeft: 599.5, scrollWidth: 900, clientWidth: 300 }), { before: true, after: false });
 });
 
 test("throughput: every hour scales against the busiest one", () => {

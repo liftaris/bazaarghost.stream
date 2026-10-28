@@ -15,18 +15,18 @@ const AVAILABILITY_TEXT: Record<Availability, string> = {
   expired: FAILED_TEXT,
 };
 
-const LINK = "underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring";
+const LINK = "underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:-my-3 pointer-coarse:py-3";
 
 function TitleCell({ item }: { item: InventoryItem }) {
   const text = item.title ?? <span className={cn("text-xs", MONO)}>{item.sourceId}</span>;
-  if (!item.url) return <span className="block truncate">{text}</span>;
+  if (!item.url) return <span className="block max-w-60 truncate @3xl:max-w-[26rem]">{text}</span>;
   return (
     <a
       href={item.url}
       target="_blank"
       rel="noreferrer"
       title={`${item.title ?? item.sourceId} (opens on the platform)`}
-      className={cn("relative z-10 flex min-w-0 items-center gap-1.5", LINK)}
+      className={cn("relative z-10 flex max-w-60 min-w-0 items-center gap-1.5 @3xl:max-w-[26rem]", LINK)}
     >
       <span className="truncate">{text}</span>
       <ExternalLink aria-hidden className="size-3 shrink-0 text-muted-foreground" />
@@ -46,7 +46,7 @@ function InventoryRow({ item }: { item: InventoryItem }) {
           </p>
         )}
       </td>
-      <td className="max-w-[26rem] min-w-48">
+      <td className="min-w-48">
         <TitleCell item={item} />
       </td>
       <td className="whitespace-nowrap text-muted-foreground" title={formatDateTime(item.publishedAt)}>

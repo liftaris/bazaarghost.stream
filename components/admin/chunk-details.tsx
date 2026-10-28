@@ -35,10 +35,12 @@ export function ChunkDetails({ detail }: { detail: OpsChunkDetail }) {
         <IdChip value={chunk.id} label="Copy chunk id" />
         <Link
           href={recordingHref}
-          className="flex min-w-0 items-center gap-2 text-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+          className="flex min-w-0 items-center gap-2 text-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11"
         >
           <PlatformIcon platform={recording.platform} className="size-3.5" />
-          <span className="truncate">{recording.title ?? recording.sourceId}</span>
+          <span className="truncate" title={recording.title ?? recording.sourceId}>
+            {recording.title ?? recording.sourceId}
+          </span>
           <span className="shrink-0 text-muted-foreground tabular-nums">· chunk {chunk.index}</span>
         </Link>
       </div>

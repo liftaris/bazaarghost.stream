@@ -21,7 +21,7 @@ export function GithubRunLink({ url, className }: { url: string | null; classNam
       target="_blank"
       rel="noreferrer"
       className={cn(
-        "inline-flex items-center gap-1 text-xs whitespace-nowrap underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring",
+        "inline-flex items-center gap-1 text-xs whitespace-nowrap underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11",
         className,
       )}
     >

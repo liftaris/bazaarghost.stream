@@ -13,7 +13,7 @@ import { cropFrame, type FieldRead } from "./lib/evidence";
 import { formatTimecode } from "./lib/format";
 
 const LINK =
-  "inline-flex items-center gap-1 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring";
+  "inline-flex items-center gap-1 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11";
 
 /** Props for {@link EvidenceViewer}. */
 export interface EvidenceViewerProps {
@@ -68,7 +68,7 @@ export function EvidenceViewer({ reads, url, atMs, selection, sourceUrl }: Evide
             disabled={!crop || !shownUrl}
             title={crop ? undefined : sample ? "Regions are recorded for the chosen read only" : "This read has no region"}
             onClick={selection.toggleCrop}
-            className={cn("mr-auto", cropped && "border-primary bg-muted")}
+            className={cn("mr-auto pointer-coarse:h-11", cropped && "border-primary bg-muted")}
           >
             <Crop aria-hidden />
             Crop to region

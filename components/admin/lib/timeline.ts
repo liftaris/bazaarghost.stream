@@ -38,8 +38,25 @@ export function placeTick(at: number, extent: number): number {
   return Math.min(Math.max((at / extent) * 100, 0), 100);
 }
 
-/** Evenly spaced axis positions in seconds, from 0 to the extent inclusive. */
-export function axisMarks(extent: number, divisions = 4): number[] {
-  if (extent <= 0) return [0];
-  return Array.from({ length: divisions + 1 }, (_, i) => (extent * i) / divisions);
+/** One time label under the timeline. */
+export interface AxisLabel {
+  /** Seconds into the recording. */
+  at: number;
+  /** Percent of the timeline width. */
+  left: number;
+  /** The ends sit flush with the bar's edges; inner labels centre on their position. */
+  align: "start" | "center" | "end";
+  /** Dropped on narrow timelines so long timecodes never collide. */
+  minor: boolean;
+}
+
+/** Evenly spaced axis labels from 0 to the extent inclusive. */
+export function axisLabels(extent: number, divisions = 4): AxisLabel[] {
+  if (extent <= 0) return [{ at: 0, left: 0, align: "start", minor: false }];
+  return Array.from({ length: divisions + 1 }, (_, i) => ({
+    at: (extent * i) / divisions,
+    left: (i / divisions) * 100,
+    align: i === 0 ? "start" : i === divisions ? "end" : "center",
+    minor: i % 2 === 1,
+  }));
 }

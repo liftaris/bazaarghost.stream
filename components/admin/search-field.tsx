@@ -44,7 +44,7 @@ export function SearchField({
         onChange={(event) => setDraft(event.target.value)}
         placeholder={placeholder}
         aria-label={label}
-        className="h-8 pr-8 pl-8 text-sm md:text-sm"
+        className="h-8 pr-8 pl-8 text-sm md:text-sm pointer-coarse:h-11 pointer-coarse:text-base"
       />
       {draft && (
         <Button
@@ -52,7 +52,7 @@ export function SearchField({
           variant="ghost"
           size="icon-xs"
           aria-label="Clear search"
-          className="absolute top-1/2 right-1 -translate-y-1/2"
+          className="absolute top-1/2 right-1 -translate-y-1/2 pointer-coarse:size-9"
           onClick={() => {
             setDraft("");
             onSearch(undefined);

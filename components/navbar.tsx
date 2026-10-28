@@ -40,12 +40,12 @@ export default function Navbar({
   return (
     <nav
       aria-label="Main navigation"
-      className="shrink-0 border-b border-border bg-card"
+      className="shrink-0 border-b border-border bg-card pt-[env(safe-area-inset-top)]"
     >
       <div className="@container/nav mx-auto w-full max-w-6xl">
         <div
           className={cn(
-            "grid items-center gap-x-3 gap-y-2 px-3 py-2",
+            "grid items-center gap-x-3 gap-y-2 px-3 py-2 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]",
             workspace
               ? "grid-cols-[auto_1fr_auto] @xl/nav:grid-cols-[auto_auto_minmax(0,1fr)_auto]"
               : "grid-cols-[1fr_auto]"
@@ -54,7 +54,7 @@ export default function Navbar({
           <Link
             href="/"
             aria-label="BazaarGhost home"
-            className="flex w-fit shrink-0 items-center gap-3 rounded-sm font-serif transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-ring"
+            className="flex w-fit shrink-0 items-center gap-3 rounded-sm font-serif transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:min-w-11"
           >
             <Image
               src="/logo.svg"
@@ -77,18 +77,18 @@ export default function Navbar({
                 size="icon"
                 aria-label="Open menu"
                 className={cn(
-                  "justify-self-end",
+                  "justify-self-end pointer-coarse:size-11",
                   workspace && "col-start-3 row-start-1 @xl/nav:col-start-4"
                 )}
               >
                 <Menu />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72 font-serif">
-              <SheetHeader>
+            <SheetContent side="right" className="w-72 font-serif pr-[env(safe-area-inset-right)]">
+              <SheetHeader className="shrink-0 pt-[max(1rem,env(safe-area-inset-top))]">
                 <SheetTitle className="text-left">Menu</SheetTitle>
               </SheetHeader>
-              <div className="flex flex-col gap-4 px-4 pb-4">
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pointer-coarse:[&_button]:min-h-11 pointer-coarse:[&_button]:min-w-11 pointer-coarse:[&_a]:min-h-11 pointer-coarse:[&_a]:min-w-11">
                 {[
                   ["/search", "Search"],
                   ["/how-it-works", "How It Works"],
@@ -98,13 +98,13 @@ export default function Navbar({
                     key={href}
                     href={href}
                     onClick={() => setIsOpen(false)}
-                    className="rounded-sm py-1 text-lg font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    className="flex shrink-0 items-center rounded-sm py-1 text-lg font-medium text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {label}
                   </Link>
                 ))}
                 <Separator />
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <Button variant="ghost" size="icon" asChild>
                     <Link
                       href="/donate"

@@ -17,15 +17,17 @@ function SelectCell({ chunk, selection }: { chunk: OpsChunk; selection: ChunkSel
   const blocked = REPROCESS_BLOCK[chunk.status];
   return (
     <td className="w-8 pr-0!">
-      <input
-        type="checkbox"
-        className={CHECKBOX}
-        checked={selection.selected.has(chunk.id)}
-        disabled={blocked !== null}
-        title={blocked ?? undefined}
-        aria-label={blocked ? `Chunk ${chunk.index} cannot be selected. ${blocked}` : `Select chunk ${chunk.index}`}
-        onChange={() => selection.toggle(chunk)}
-      />
+      <label className="relative z-10 inline-flex items-center justify-center pointer-coarse:size-11">
+        <input
+          type="checkbox"
+          className={CHECKBOX}
+          checked={selection.selected.has(chunk.id)}
+          disabled={blocked !== null}
+          title={blocked ?? undefined}
+          aria-label={blocked ? `Chunk ${chunk.index} cannot be selected. ${blocked}` : `Select chunk ${chunk.index}`}
+          onChange={() => selection.toggle(chunk)}
+        />
+      </label>
     </td>
   );
 }
@@ -71,16 +73,18 @@ function ChunkRow({ chunk, selection }: { chunk: OpsChunk; selection?: ChunkSele
 function SelectAll({ selection }: { selection: ChunkSelectionState }) {
   return (
     <th scope="col" className="w-8 pr-0!">
-      <input
-        type="checkbox"
-        className={CHECKBOX}
-        checked={selection.coverage === "all"}
-        ref={(input) => {
-          if (input) input.indeterminate = selection.coverage === "some";
-        }}
-        aria-label="Select all chunks that can be rerun"
-        onChange={selection.toggleAll}
-      />
+      <label className="relative z-10 inline-flex items-center justify-center pointer-coarse:size-11">
+        <input
+          type="checkbox"
+          className={CHECKBOX}
+          checked={selection.coverage === "all"}
+          ref={(input) => {
+            if (input) input.indeterminate = selection.coverage === "some";
+          }}
+          aria-label="Select all chunks that can be rerun"
+          onChange={selection.toggleAll}
+        />
+      </label>
     </th>
   );
 }

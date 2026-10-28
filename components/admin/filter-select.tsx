@@ -29,7 +29,7 @@ export function FilterSelect<V extends string>({
 }) {
   return (
     <Select value={value ?? ANY} onValueChange={(next) => onChange(next === ANY ? undefined : (next as V))}>
-      <SelectTrigger size="sm" aria-label={label} className={cn("w-40", className)}>
+      <SelectTrigger size="sm" aria-label={label} className={cn("w-40 pointer-coarse:data-[size=sm]:h-11", className)}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

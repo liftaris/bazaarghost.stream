@@ -72,7 +72,7 @@ export function FieldRow({ detection, read, selected, onView }: FieldRowProps) {
         aria-pressed={selected}
         aria-label={`View ${field.label.toLowerCase()} evidence`}
         onClick={onView}
-        className={cn(selected && "ring-1 ring-primary")}
+        className={cn("pointer-coarse:h-11", selected && "ring-1 ring-primary")}
       >
         <Eye aria-hidden />
         View

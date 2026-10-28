@@ -37,7 +37,7 @@ export function Overview() {
           )
         }
         actions={
-          <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={reload} disabled={loading} className="pointer-coarse:h-11">
             <RotateCw aria-hidden className={loading ? "animate-spin motion-reduce:animate-none" : undefined} />
             Refresh
           </Button>

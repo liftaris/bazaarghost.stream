@@ -15,7 +15,7 @@ import { DETECTION_FIELDS } from "../lib/detection-fields";
 import { formatPercent, formatTimecode } from "../lib/format";
 import { withInspect } from "../lib/inspect";
 
-const LINK = "underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring";
+const LINK = "underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11";
 
 /** What a name state means for trusting the observed text; complete and legacy reads need no caveat. */
 const NAME_CAVEATS: Partial<Record<NameState, string>> = {

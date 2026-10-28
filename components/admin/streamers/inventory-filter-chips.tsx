@@ -23,7 +23,7 @@ export function InventoryFilterChips({
             aria-pressed={pressed}
             onClick={() => onChange(chip.value)}
             className={cn(
-              "inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs whitespace-nowrap transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-ring motion-reduce:transition-none",
+              "inline-flex h-7 items-center pointer-coarse:h-11 gap-1.5 rounded-md border px-2.5 text-xs whitespace-nowrap transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-ring motion-reduce:transition-none",
               pressed
                 ? "border-primary/60 bg-primary/10 font-medium text-foreground"
                 : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",

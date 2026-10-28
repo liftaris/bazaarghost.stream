@@ -34,7 +34,7 @@ export function RecordingHeader({ detail }: { detail: OpsRecordingDetail }) {
             href={recording.url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:h-11"
           >
             Open on {platform}
             <ExternalLink aria-hidden className="size-3.5" />

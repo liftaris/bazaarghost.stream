@@ -49,7 +49,7 @@ export function RecordingRuns({ runs, chunks }: { runs: readonly OpsRun[]; chunk
                 <Link
                   href={hrefFor({ kind: "chunk", id: run.chunkId })}
                   scroll={false}
-                  className="font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                  className="inline-flex items-center font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                 >
                   {index.get(run.chunkId) ?? run.chunkId.slice(0, 8)}
                 </Link>

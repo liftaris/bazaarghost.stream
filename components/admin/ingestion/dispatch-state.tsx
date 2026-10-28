@@ -46,7 +46,7 @@ export function DispatchState({ dispatch }: { dispatch: OpsIngestion["dispatch"]
               href={dispatch.runUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+              className="inline-flex items-center gap-1 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11"
             >
               Open run
               <ExternalLink aria-hidden className="size-3 text-muted-foreground" />
