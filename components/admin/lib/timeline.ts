@@ -37,3 +37,9 @@ export function placeTick(at: number, extent: number): number {
   if (extent <= 0) return 0;
   return Math.min(Math.max((at / extent) * 100, 0), 100);
 }
+
+/** Evenly spaced axis positions in seconds, from 0 to the extent inclusive. */
+export function axisMarks(extent: number, divisions = 4): number[] {
+  if (extent <= 0) return [0];
+  return Array.from({ length: divisions + 1 }, (_, i) => (extent * i) / divisions);
+}

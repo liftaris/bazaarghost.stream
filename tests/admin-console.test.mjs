@@ -8,7 +8,9 @@ const load = sourceModules({
 });
 const { parseJump, jumpHref } = load("@/components/admin/lib/jump");
 const { parseInspect, formatInspect, withInspect } = load("@/components/admin/lib/inspect");
-const { chapterSpans, timelineExtent, placeSpan, placeTick } = load("@/components/admin/lib/timeline");
+const { chapterSpans, timelineExtent, placeSpan, placeTick, axisMarks } = load("@/components/admin/lib/timeline");
+const { throughputColumns, throughputTotals } = load("@/components/admin/overview/lib/throughput");
+const { detectionName } = load("@/components/admin/lib/detection");
 const { parseActivityFilters, activityHref } = load("@/components/admin/lib/activity-filters");
 const { formatTimecode, formatSeconds } = load("@/components/admin/lib/format");
 
@@ -108,6 +110,28 @@ test("timeline: spans place as percentages with a visible minimum width", () => 
   assert.deepEqual(placeSpan({ start: 0, end: 10 }, 0), { left: 0, width: 0 });
   assert.equal(placeTick(1800, 3600), 50);
   assert.equal(placeTick(5000, 3600), 100);
+  assert.deepEqual(axisMarks(3600), [0, 900, 1800, 2700, 3600]);
+  assert.deepEqual(axisMarks(0), [0]);
+});
+
+test("throughput: every hour scales against the busiest one", () => {
+  const buckets = [
+    { hour: "2026-10-28T00:00:00Z", completed: 6, failed: 2 },
+    { hour: "2026-10-28T01:00:00Z", completed: 2, failed: 0 },
+    { hour: "2026-10-28T02:00:00Z", completed: 0, failed: 0 },
+  ];
+  const [busiest, quiet, idle] = throughputColumns(buckets);
+  assert.equal(busiest.completedHeight + busiest.failedHeight, 100);
+  assert.equal(quiet.completedHeight, 25);
+  assert.equal(idle.completedHeight + idle.failedHeight, 0);
+  assert.deepEqual(throughputTotals(buckets), { completed: 8, failed: 2 });
+  assert.equal(throughputColumns([{ hour: "x", completed: 0, failed: 0 }])[0].completedHeight, 0);
+});
+
+test("detection names keep partial reads marked as observed text", () => {
+  assert.deepEqual(detectionName({ username: "kripp", nameState: "complete" }), { text: "kripp", note: null });
+  assert.deepEqual(detectionName({ username: "kri", nameState: "partial" }), { text: "kri", note: "partial" });
+  assert.deepEqual(detectionName({ username: null, nameState: "unreadable" }), { text: "Unread name", note: "unreadable" });
 });
 
 test("timecodes and durations read the way operators scrub", () => {
