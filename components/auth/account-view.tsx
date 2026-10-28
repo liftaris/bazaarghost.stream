@@ -8,13 +8,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/auth/auth-provider";
-import { ConnectedAccounts } from "@/components/auth/connected-accounts";
 import { DangerZone } from "@/components/auth/danger-zone";
+import { PasskeySignIn } from "@/components/auth/passkey-sign-in";
 import { ProviderButtons } from "@/components/auth/provider-buttons";
 import { SessionList } from "@/components/auth/session-list";
+import { SignInMethods } from "@/components/auth/sign-in-methods";
 import { initials } from "@/components/auth/user-avatar";
 import { isFresh } from "@/lib/auth-client";
 
+/** The signed-in user's profile, sign-in methods, sessions and account deletion. */
 export function AccountView() {
   const { state } = useAuth();
   const router = useRouter();
@@ -59,17 +61,18 @@ export function AccountView() {
           <AlertTitle>Confirm it&apos;s you to make changes</AlertTitle>
           <AlertDescription className="gap-3">
             <p>
-              Linking accounts, ending sessions and deleting your account need a sign in from
-              the last five minutes.
+              Linking accounts, adding passkeys, ending sessions and deleting your account need
+              a sign in from the last five minutes.
             </p>
-            <div className="w-full max-w-xs pt-2">
+            <div className="flex w-full max-w-xs flex-col gap-2 pt-2">
               <ProviderButtons callbackURL="/account" verb="Sign in again with" />
+              <PasskeySignIn label="Sign in again with a passkey" />
             </div>
           </AlertDescription>
         </Alert>
       )}
 
-      <ConnectedAccounts fresh={fresh} />
+      <SignInMethods fresh={fresh} />
       <SessionList fresh={fresh} />
       <DangerZone fresh={fresh} />
     </div>

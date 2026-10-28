@@ -1,11 +1,13 @@
+import { passkeyClient } from "@better-auth/passkey/client";
 import { createAuthClient } from "better-auth/client";
 
 /**
  * Better Auth runs in the backend and is reached through the `/api/auth` gateway.
- * The backend only exposes social sign-in plus its own `/session`, `/accounts` and
- * `/sessions` reads, so those go through the client's `$fetch` rather than `useSession`.
+ * The backend exposes social sign-in, the passkey ceremonies, and its own `/session`,
+ * `/accounts`, `/sessions` and `/passkeys` reads, so those go through the client's
+ * `$fetch` rather than `useSession`.
  */
-export const authClient = createAuthClient({ basePath: "/api/auth" });
+export const authClient = createAuthClient({ basePath: "/api/auth", plugins: [passkeyClient()] });
 
 export type AuthProviderId = "discord" | "twitch";
 

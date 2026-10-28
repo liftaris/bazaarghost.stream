@@ -15,11 +15,14 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/auth/auth-provider";
+import { PasskeySignIn } from "@/components/auth/passkey-sign-in";
+import { PasskeySignUp } from "@/components/auth/passkey-sign-up";
 import { ProviderButtons } from "@/components/auth/provider-buttons";
 import { safeNext } from "@/lib/auth-client";
 
+/** Signs in with Discord, Twitch, or a passkey, or creates a passkey account, then follows `next`. */
 export function LoginCard() {
-  const { state, providers, providersLoaded, ensureProviders } = useAuth();
+  const { state, providersLoaded, ensureProviders } = useAuth();
   const router = useRouter();
   const next = safeNext(useSearchParams().get("next"));
 
@@ -31,16 +34,13 @@ export function LoginCard() {
     if (state.status === "authenticated") router.replace(next);
   }, [state.status, next, router]);
 
-  const unavailable =
-    state.status === "disabled" || (state.status === "anonymous" && providers.length === 0);
-
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="items-center text-center">
         <Image src="/logo.svg" alt="" width={48} height={30} className="mx-auto mb-2 object-contain" />
         <CardTitle className="text-2xl">Sign in to BazaarGhost</CardTitle>
         <CardDescription>
-          Use the account you already have. There are no passwords to remember.
+          Use a passkey, Discord, or Twitch. There are no passwords to remember.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -51,20 +51,26 @@ export function LoginCard() {
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
           </div>
-        ) : unavailable ? (
+        ) : state.status === "disabled" ? (
           <Alert variant="destructive">
             <TriangleAlert />
             <AlertTitle>Sign in is unavailable</AlertTitle>
             <AlertDescription>Try again in a little while.</AlertDescription>
           </Alert>
         ) : (
-          <ProviderButtons callbackURL={next} />
+          <div className="flex flex-col gap-2">
+            <ProviderButtons callbackURL={next} />
+            <PasskeySignIn />
+            <p className="pt-3 text-center text-sm text-muted-foreground">New here?</p>
+            <PasskeySignUp />
+          </div>
         )}
       </CardContent>
       <CardFooter>
         <p className="text-center text-xs text-muted-foreground">
-          We only read your public username and avatar. No email, no servers, no
-          messages. Signing in creates an account if you don&apos;t have one.
+          From Discord and Twitch we only read your public username and avatar. No email, no
+          servers, no messages. Signing in with them creates an account if you don&apos;t have
+          one.
         </p>
       </CardFooter>
     </Card>
