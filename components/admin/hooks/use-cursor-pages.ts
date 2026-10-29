@@ -69,9 +69,11 @@ export function useCursorPages<P extends keyof OpsQueries, T>(
         },
         (error: unknown) => {
           if (controller.signal.aborted) return;
+          const failure = toApiError(error);
+          const denied = failure.status === 401 || failure.status === 403;
           setState((prev) => ({
-            ...(prev?.key === key ? prev : { key, latest: prev?.latest ?? null, items: [], nextCursor: null }),
-            error: toApiError(error),
+            ...(!denied && prev?.key === key ? prev : { key, latest: denied ? null : prev?.latest ?? null, items: [], nextCursor: null }),
+            error: failure,
             pending: null,
           }));
         },

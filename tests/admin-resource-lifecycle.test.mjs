@@ -67,3 +67,23 @@ test("filter changes discard stale pages and invalidation restarts pagination", 
   requests[3].resolve({ items: [9], nextCursor: null }); await settle();
   assert.deepEqual(render("two").items, [8]);
 });
+
+test("authorization failure clears paginated headers and rows instead of retaining protected data", async () => {
+  for (const status of [401, 403]) {
+    const { h, requests, load } = resources();
+    const { useCursorPages } = load("@/components/admin/hooks/use-cursor-pages");
+    const { invalidateOpsResources } = load("@/components/admin/hooks/use-ops-resource");
+    const select = response => response;
+    const render = () => h.render(() => useCursorPages("/ingestion", { limit: 2 }, select));
+    render(); h.flushEffects();
+    requests[0].resolve({ items: ["private"], nextCursor: "next", platforms: ["private"] }); await settle();
+    assert.deepEqual(render().items, ["private"]);
+    invalidateOpsResources(); render(); h.flushEffects();
+    requests[1].reject({ status, message: "denied" }); await settle();
+    const page = render();
+    assert.equal(page.latest, null);
+    assert.deepEqual(page.items, []);
+    assert.equal(page.hasMore, false);
+    assert.equal(page.error.status, status);
+  }
+});
