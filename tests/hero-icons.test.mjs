@@ -8,10 +8,14 @@ import {
   sourceModules,
 } from "./helpers/source-harness.mjs";
 
-function setup() {
+function setup(row = null) {
   const h = hooks();
   const load = sourceModules({
-    react: { ...h.react, memo: (component) => component },
+    react: {
+      ...h.react,
+      memo: (component) => component,
+      useRef: (initial) => h.react.useRef(row ?? initial),
+    },
     "react/jsx-runtime": jsxRuntime,
     "next/image": { default: "Image" },
     "next/link": { default: "Link" },
@@ -90,7 +94,7 @@ test("unknown heroes render an accessible question mark, not a broken image", ()
   }
 });
 
-test("search rows put streamer then ghost hero icons after the ghost name", () => {
+test("search hero icons precede their names, with the ghost icon after rank", () => {
   const { h, load, HeroIcon } = setup();
   const { GhostResultRow } = load("@/components/ghost-result-row");
   const tree = h.render(() =>
@@ -112,16 +116,102 @@ test("search rows put streamer then ghost hero icons after the ghost name", () =
     icons.map((node) => node.props.hero),
     ["karnok", "the_dragons"]
   );
-  assert.ok(
-    nodes.indexOf(nodes.find((node) => node.type === "Link")) <
-      nodes.indexOf(icons[0])
+  const streamer = nodes.find(
+    (node) => node.props?.["data-result-streamer"] === true
   );
-  const pair = nodes.find(
-    (node) => node.props?.["aria-label"] === "Streamer and ghost heroes"
-  );
-  assert.equal(pair.props.children[1].props.children, "/");
-  assert.match(pair.props.className, /text-hero-muted/);
+  const rank = nodes.find((node) => node.props?.src === "/gold.webp");
+  const opponent = nodes.find((node) => node.props?.href === "/matchups/1");
+  assert.ok(nodes.indexOf(icons[0]) < nodes.indexOf(streamer));
+  assert.ok(nodes.indexOf(streamer) < nodes.indexOf(rank));
+  assert.ok(nodes.indexOf(rank) < nodes.indexOf(icons[1]));
+  assert.ok(nodes.indexOf(icons[1]) < nodes.indexOf(opponent));
   assert.ok(icons.every((icon) => icon.props.className === "size-5"));
+});
+
+test("search results omit each missing hero without a placeholder or divider", () => {
+  for (const [streamerHero, ghostHero] of [
+    [null, null],
+    ["karnok", null],
+    [null, "the_dragons"],
+  ]) {
+    const { h, load, HeroIcon } = setup();
+    const { GhostResultRow } = load("@/components/ghost-result-row");
+    const tree = h.render(() =>
+      GhostResultRow({
+        ghost: {
+          matchup: {
+            ...match,
+            encounter: { ...match.encounter, streamerHero, ghostHero },
+          },
+          matchup_id: 1,
+          username: "Ghost",
+          streamer_display_name: "Streamer",
+          streamer_id: "1",
+        },
+        onNavigateToStreamer() {},
+      })
+    );
+    const nodes = elements(tree);
+    assert.deepEqual(
+      nodes
+        .filter((node) => node.type === HeroIcon)
+        .map((node) => node.props.hero),
+      [streamerHero, ghostHero].filter(Boolean)
+    );
+    assert.ok(
+      !nodes.some(
+        (node) => node.props?.children === "/" || node.props?.children === "?"
+      )
+    );
+  }
+});
+
+test("search icons yield to usernames and return when the row is widened", () => {
+  const originalObserver = globalThis.ResizeObserver;
+  const originalStyle = globalThis.getComputedStyle;
+  let resize;
+  globalThis.ResizeObserver = class {
+    constructor(callback) {
+      resize = callback;
+    }
+    observe() {}
+    disconnect() {}
+  };
+  globalThis.getComputedStyle = () => ({ columnGap: "4px" });
+  try {
+    const row = {
+      clientWidth: 350,
+      children: [200, 13, 22, 80].map((scrollWidth, index) => ({
+        scrollWidth,
+        hasAttribute: (name) => name === "data-result-streamer" && index === 0,
+        getClientRects: () => [{}],
+      })),
+    };
+    const { h, load, HeroIcon } = setup(row);
+    const { GhostResultRow } = load("@/components/ghost-result-row");
+    const ghost = {
+      matchup: match,
+      matchup_id: 1,
+      username: "Ghost",
+      streamer_display_name: "Streamer",
+      streamer_id: "1",
+    };
+    const render = () =>
+      elements(
+        h.render(() => GhostResultRow({ ghost, onNavigateToStreamer() {} }))
+      ).filter((node) => node.type === HeroIcon);
+    render();
+    assert.equal(render().length, 0);
+    row.clientWidth = 400;
+    resize();
+    assert.equal(render().length, 2);
+    row.clientWidth = 350;
+    resize();
+    assert.equal(render().length, 0);
+  } finally {
+    globalThis.ResizeObserver = originalObserver;
+    globalThis.getComputedStyle = originalStyle;
+  }
 });
 
 test("companion tiles and selected details show the ghost icon, run headers show the streamer icon", () => {
