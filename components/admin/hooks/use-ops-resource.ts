@@ -29,6 +29,10 @@ const subscribe = (listener: () => void) => {
 };
 const readGeneration = () => generation;
 
+export function useOpsGeneration(): number {
+  return useSyncExternalStore(subscribe, readGeneration, readGeneration);
+}
+
 /** Refetch every mounted operator read, keeping its current data visible; call after a write. */
 export function invalidateOpsResources(): void {
   generation += 1;
@@ -46,7 +50,7 @@ export function useOpsResource<P extends keyof OpsRoutes>(
 ): OpsResource<OpsRoutes[P]> {
   const key = options ? JSON.stringify([path, options]) : null;
   const [retries, setRetries] = useState(0);
-  const attempt = retries + useSyncExternalStore(subscribe, readGeneration, readGeneration);
+  const attempt = retries + useOpsGeneration();
   const [settled, setSettled] = useState<Settled<OpsRoutes[P]> | null>(null);
 
   useEffect(() => {
