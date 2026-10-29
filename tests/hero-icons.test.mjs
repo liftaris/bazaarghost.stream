@@ -8,13 +8,12 @@ import {
   sourceModules,
 } from "./helpers/source-harness.mjs";
 
-function setup(row = null) {
+function setup() {
   const h = hooks();
   const load = sourceModules({
     react: {
       ...h.react,
       memo: (component) => component,
-      useRef: (initial) => h.react.useRef(row ?? initial),
     },
     "react/jsx-runtime": jsxRuntime,
     "next/image": { default: "Image" },
@@ -94,7 +93,7 @@ test("unknown heroes render an accessible question mark, not a broken image", ()
   }
 });
 
-test("search hero icons precede their names, with the ghost icon after rank", () => {
+test("search hero insets belong to their usernames without consuming row space", () => {
   const { h, load, HeroIcon } = setup();
   const { GhostResultRow } = load("@/components/ghost-result-row");
   const tree = h.render(() =>
@@ -124,8 +123,12 @@ test("search hero icons precede their names, with the ghost icon after rank", ()
   assert.ok(nodes.indexOf(icons[0]) < nodes.indexOf(streamer));
   assert.ok(nodes.indexOf(streamer) < nodes.indexOf(rank));
   assert.ok(nodes.indexOf(rank) < nodes.indexOf(icons[1]));
-  assert.ok(nodes.indexOf(icons[1]) < nodes.indexOf(opponent));
-  assert.ok(icons.every((icon) => icon.props.className === "size-5"));
+  assert.ok(elements(opponent).includes(icons[1]));
+  for (const icon of icons) {
+    assert.match(icon.props.className, /absolute/);
+    assert.match(icon.props.className, /size-\[104px\]/);
+    assert.match(icon.props.className, /pointer-events-none/);
+  }
 });
 
 test("search results omit each missing hero without a placeholder or divider", () => {
@@ -163,54 +166,6 @@ test("search results omit each missing hero without a placeholder or divider", (
         (node) => node.props?.children === "/" || node.props?.children === "?"
       )
     );
-  }
-});
-
-test("search icons yield to usernames and return when the row is widened", () => {
-  const originalObserver = globalThis.ResizeObserver;
-  const originalStyle = globalThis.getComputedStyle;
-  let resize;
-  globalThis.ResizeObserver = class {
-    constructor(callback) {
-      resize = callback;
-    }
-    observe() {}
-    disconnect() {}
-  };
-  globalThis.getComputedStyle = () => ({ columnGap: "4px" });
-  try {
-    const row = {
-      clientWidth: 350,
-      children: [200, 13, 22, 80].map((scrollWidth, index) => ({
-        scrollWidth,
-        hasAttribute: (name) => name === "data-result-streamer" && index === 0,
-        getClientRects: () => [{}],
-      })),
-    };
-    const { h, load, HeroIcon } = setup(row);
-    const { GhostResultRow } = load("@/components/ghost-result-row");
-    const ghost = {
-      matchup: match,
-      matchup_id: 1,
-      username: "Ghost",
-      streamer_display_name: "Streamer",
-      streamer_id: "1",
-    };
-    const render = () =>
-      elements(
-        h.render(() => GhostResultRow({ ghost, onNavigateToStreamer() {} }))
-      ).filter((node) => node.type === HeroIcon);
-    render();
-    assert.equal(render().length, 0);
-    row.clientWidth = 400;
-    resize();
-    assert.equal(render().length, 2);
-    row.clientWidth = 350;
-    resize();
-    assert.equal(render().length, 0);
-  } finally {
-    globalThis.ResizeObserver = originalObserver;
-    globalThis.getComputedStyle = originalStyle;
   }
 });
 
