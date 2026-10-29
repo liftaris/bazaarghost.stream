@@ -86,6 +86,7 @@ test("unknown heroes render an accessible question mark, not a broken image", ()
     assert.equal(icon.props.children, "?");
     assert.equal(icon.props.role, "img");
     assert.equal(icon.props["aria-label"], "Unknown hero");
+    assert.match(icon.props.className, /text-hero-muted/);
   }
 });
 
@@ -115,6 +116,12 @@ test("search rows put streamer then ghost hero icons after the ghost name", () =
     nodes.indexOf(nodes.find((node) => node.type === "Link")) <
       nodes.indexOf(icons[0])
   );
+  const pair = nodes.find(
+    (node) => node.props?.["aria-label"] === "Streamer and ghost heroes"
+  );
+  assert.equal(pair.props.children[1].props.children, "/");
+  assert.match(pair.props.className, /text-hero-muted/);
+  assert.ok(icons.every((icon) => icon.props.className === "size-5"));
 });
 
 test("companion tiles and selected details show the ghost icon, run headers show the streamer icon", () => {

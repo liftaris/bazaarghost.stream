@@ -12,7 +12,7 @@ export function HeroIcon({
 }) {
   const label = heroLabel(hero);
   const classes = cn(
-    "inline-flex size-6 shrink-0 items-center justify-center object-contain",
+    "inline-flex size-6 shrink-0 items-center justify-center object-contain text-sm font-semibold text-hero-muted",
     className
   );
 
