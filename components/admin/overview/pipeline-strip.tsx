@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../console-link";
 import { ChevronRight } from "lucide-react";
 import type { ChunkStatus, OpsOverview, RecordingStatus } from "@/lib/operator-contract";
 import { cn } from "@/lib/utils";

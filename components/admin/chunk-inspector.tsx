@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "./console-link";
 import { ChunkDetails } from "./chunk-details";
 import { useInspectParam } from "./hooks/use-inspect-param";
 import { useOpsResource } from "./hooks/use-ops-resource";

@@ -5,6 +5,7 @@ import type { ApiError } from "@/lib/api-client";
 import type { Page } from "@/lib/api-contract";
 import { opsGet, toApiError, type OpsGetOptions } from "@/lib/operator-client";
 import type { OpsQueries, OpsRoutes } from "@/lib/operator-contract";
+import { useOpsGeneration } from "./use-ops-resource";
 
 /** A cursor-paged operator list: the rows loaded so far, the latest response, and paging controls. */
 export interface CursorPages<R, T> {
@@ -40,7 +41,8 @@ export function useCursorPages<P extends keyof OpsQueries, T>(
   params: Omit<OpsQueries[P], "cursor">,
   select: (response: OpsRoutes[P]) => Page<T>,
 ): CursorPages<OpsRoutes[P], T> {
-  const key = JSON.stringify([path, params]);
+  const generation = useOpsGeneration();
+  const key = JSON.stringify([path, params, generation]);
   const [state, setState] = useState<PageState<OpsRoutes[P], T> | null>(null);
   const [attempt, setAttempt] = useState(0);
   const active = useRef<AbortController | null>(null);

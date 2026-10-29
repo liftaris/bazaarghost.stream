@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../console-link";
 import type { OpsRecording } from "@/lib/operator-contract";
 import { FactList } from "../data-table";
 import { IdChip } from "../id-chip";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "../console-link";
 import type { OpsChunk } from "@/lib/operator-contract";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";

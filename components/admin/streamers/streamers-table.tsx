@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../console-link";
 import { PlatformIcon } from "@/components/platform-icon";
 import type { OpsStreamer } from "@/lib/operator-contract";
 import { getPlatform } from "@/lib/platforms/registry";

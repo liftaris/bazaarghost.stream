@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "../console-link";
 import type { OpsChunk, OpsRun } from "@/lib/operator-contract";
 import { DataTable } from "../data-table";
 import { useInspectParam } from "../hooks/use-inspect-param";

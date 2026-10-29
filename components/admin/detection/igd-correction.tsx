@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "../console-link";
 import type { IgdCorrection } from "@/lib/api-contract";
 import { MONO } from "../constants";
 import { useInspectParam } from "../hooks/use-inspect-param";
