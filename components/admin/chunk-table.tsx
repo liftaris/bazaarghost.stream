@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "./console-link";
 import type { OpsChunk } from "@/lib/operator-contract";
 import { cn } from "@/lib/utils";
 import { FAILED_TEXT, MONO } from "./constants";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "../console-link";
 import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { OpsDetection } from "@/lib/operator-contract";

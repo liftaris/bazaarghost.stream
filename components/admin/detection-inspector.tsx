@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import Link from "next/link";
+import Link from "./console-link";
 import type { OpsDetection } from "@/lib/operator-contract";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DetectionHeader } from "./detection/detection-header";

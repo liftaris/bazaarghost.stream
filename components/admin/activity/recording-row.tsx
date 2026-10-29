@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "../console-link";
 import { ChevronRight } from "lucide-react";
 import { PlatformIcon } from "@/components/platform-icon";
 import { Button } from "@/components/ui/button";

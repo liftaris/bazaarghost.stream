@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../console-link";
 import { ExternalLink } from "lucide-react";
 import type { Availability, InventoryItem } from "@/lib/operator-contract";
 import { cn } from "@/lib/utils";

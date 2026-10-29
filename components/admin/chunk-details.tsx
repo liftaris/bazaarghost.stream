@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "./console-link";
 import { PlatformIcon } from "@/components/platform-icon";
 import type { OpsChunkDetail } from "@/lib/operator-contract";
 import { cn } from "@/lib/utils";

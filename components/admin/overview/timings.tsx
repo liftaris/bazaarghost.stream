@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../console-link";
 import type { IngestionJobStatus, OpsOverview } from "@/lib/operator-contract";
 import { FactList } from "../data-table";
 import { formatCount, formatSeconds } from "../lib/format";

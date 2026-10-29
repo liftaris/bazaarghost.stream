@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
+import Link from "../console-link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { CircleAlert } from "lucide-react";
 import type { OpsReprocessResponse } from "@/lib/operator-contract";

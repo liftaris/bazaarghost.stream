@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { opsGet } from "@/lib/operator-client";
 import { jumpHref, parseJump, type JumpTarget } from "../lib/jump";
+import { updateConsoleQuery } from "../lib/console-query";
 
 /** State and submit handler for the jump box. */
 export interface Jump {
@@ -41,7 +42,8 @@ export function useJump(): Jump {
     if (!target || pending) return;
     setPending(true);
     const resolved = target.kind === "source" ? await resolveSource(target) : null;
-    router.push(resolved ?? jumpHref(target, { pathname, search }), { scroll: target.kind !== "chunk" && target.kind !== "detection" });
+    const href = resolved ?? jumpHref(target, { pathname, search });
+    if (!updateConsoleQuery(href, "push")) router.push(href, { scroll: target.kind !== "chunk" && target.kind !== "detection" });
     setPending(false);
     setValue("");
   };
