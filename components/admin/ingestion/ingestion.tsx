@@ -12,6 +12,7 @@ import { useIngestionPage } from "./hooks/use-ingestion-page";
 import { JobFilterBar } from "./job-filter-bar";
 import { JobsTable } from "./jobs-table";
 import { PlatformSwitches } from "./platform-switches";
+import { OperatorGate } from "../operator-gate";
 
 function Section({ id, title, note, children }: { id: string; title: string; note?: string; children: ReactNode }) {
   return (
@@ -46,6 +47,7 @@ export function Ingestion() {
   const filtered = Boolean(page.filters.platform || page.filters.kind || page.filters.status);
 
   return (
+    <OperatorGate>
     <div className="@container flex flex-col gap-6">
       <PageHeader title="Ingestion" description="How platform videos reach the catalog: switches, dispatch, Twitch catalog work and jobs." />
       {!latest && page.error && <ErrorState title="Could not load ingestion" error={page.error} onRetry={page.retry} />}
@@ -90,5 +92,6 @@ export function Ingestion() {
         </>
       )}
     </div>
+    </OperatorGate>
   );
 }

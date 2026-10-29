@@ -6,6 +6,7 @@ import { useFrameWidth } from "./hooks/use-frame-width";
 import { InspectorColumn, InspectorSheet } from "./inspector";
 import { JumpBox } from "./jump-box";
 import { SectionNav } from "./section-nav";
+import { useOperatorAccess } from "./operator-access";
 
 /** Frame width at which the inspector sits beside the list instead of over it. */
 const INSPECTOR_COLUMN_MIN = 1100;
@@ -27,6 +28,8 @@ function ConsoleNav() {
  * URL-driven inspector as a column on wide frames or a sheet on narrow ones.
  */
 export function ConsoleFrame({ children, className }: { children: ReactNode; className?: string }) {
+  const access = useOperatorAccess();
+  const allowed = Boolean(access.data) && !access.loading && !access.error;
   const [ref, width] = useFrameWidth<HTMLDivElement>();
   const wide = width !== null && width >= INSPECTOR_COLUMN_MIN;
   return (
@@ -38,7 +41,7 @@ export function ConsoleFrame({ children, className }: { children: ReactNode; cla
       )}
     >
       <div className="flex flex-1 flex-col @3xl/console:flex-row">
-        <ConsoleNav />
+        {allowed && <ConsoleNav />}
         <main
           id="operator-console-content"
           aria-label="Operator console"
@@ -47,9 +50,9 @@ export function ConsoleFrame({ children, className }: { children: ReactNode; cla
         >
           {children}
         </main>
-        {wide && <InspectorColumn />}
+        {allowed && wide && <InspectorColumn />}
       </div>
-      {width !== null && !wide && <InspectorSheet />}
+      {allowed && width !== null && !wide && <InspectorSheet />}
     </div>
   );
 }

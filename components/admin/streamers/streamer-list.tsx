@@ -7,6 +7,7 @@ import { PagedList } from "../paged-list";
 import { SearchField } from "../search-field";
 import { useStreamersPage } from "./hooks/use-streamers-page";
 import { StreamersTable } from "./streamers-table";
+import { OperatorGate } from "../operator-gate";
 
 /** Streamers by name, searchable from the URL; each opens its platform inventory. */
 export function StreamerList() {
@@ -14,6 +15,7 @@ export function StreamerList() {
   const { q } = page.filters;
 
   return (
+    <OperatorGate>
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Streamers"
@@ -44,5 +46,6 @@ export function StreamerList() {
         <StreamersTable streamers={page.items} />
       </PagedList>
     </div>
+    </OperatorGate>
   );
 }

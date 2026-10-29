@@ -7,6 +7,7 @@ import { PageHeader } from "../page-header";
 import { PagedList } from "../paged-list";
 import { FilterBar } from "./filter-bar";
 import { RecordingsTable } from "./recordings-table";
+import { OperatorGate } from "../operator-gate";
 
 /** Recordings by latest chunk activity, filterable from the URL and expandable to chunks. */
 export function Activity() {
@@ -14,6 +15,7 @@ export function Activity() {
   const filtered = Object.values(page.filters).some(Boolean);
 
   return (
+    <OperatorGate>
     <div className="@container flex flex-col gap-4">
       <PageHeader
         title="Activity"
@@ -38,5 +40,6 @@ export function Activity() {
         <RecordingsTable recordings={page.items} />
       </PagedList>
     </div>
+    </OperatorGate>
   );
 }

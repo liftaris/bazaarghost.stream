@@ -11,6 +11,7 @@ import { AttentionList } from "./attention-list";
 import { PipelineStrip } from "./pipeline-strip";
 import { ThroughputBars } from "./throughput-bars";
 import { Timings } from "./timings";
+import { OperatorGate } from "../operator-gate";
 
 function OverviewSkeleton() {
   return (
@@ -26,7 +27,7 @@ function OverviewSkeleton() {
 export function Overview() {
   const { data, error, loading, reload } = useOpsResource("/overview", {});
   return (
-    <>
+    <OperatorGate>
       <PageHeader
         title="Overview"
         description={
@@ -57,6 +58,6 @@ export function Overview() {
           </div>
         </>
       )}
-    </>
+    </OperatorGate>
   );
 }

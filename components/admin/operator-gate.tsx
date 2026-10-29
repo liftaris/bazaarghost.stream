@@ -9,6 +9,8 @@ import { useOpsResource } from "./hooks/use-ops-resource";
 import { IdChip } from "./id-chip";
 import { signInHref } from "./lib/sign-in";
 import { ErrorState } from "./load-states";
+import { ConsoleFrame } from "./console-frame";
+import { OperatorAccessContext, useOperatorAccess } from "./operator-access";
 
 function FrameSkeleton() {
   return (
@@ -39,22 +41,12 @@ function GateMessage({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-/**
- * Renders the console only for operators. Signed-out visitors go to sign in and
- * come back here; signed-in non-operators see their user id so it can be granted.
- */
-export function OperatorGate({ children }: { children: ReactNode }) {
-  const { state, refresh } = useAuth();
-  const me = useOpsResource("/me", state.status === "authenticated" ? {} : null);
+export function OperatorSession({ children }: { children: ReactNode }) {
+  const { state } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams().toString();
   const signedOut = state.status === "anonymous";
-  const expired = me.error?.status === 401;
-
-  useEffect(() => {
-    if (expired) void refresh();
-  }, [expired, refresh]);
 
   useEffect(() => {
     if (!signedOut) return;
@@ -68,6 +60,32 @@ export function OperatorGate({ children }: { children: ReactNode }) {
       </GateMessage>
     );
 
+  if (state.status !== "authenticated") return <FrameSkeleton />;
+  return (
+    <OperatorAccess key={JSON.stringify([state.identity.userId, state.identity.sessionId])}>
+      {children}
+    </OperatorAccess>
+  );
+}
+
+function OperatorAccess({ children }: { children: ReactNode }) {
+  const me = useOpsResource("/me", {});
+  const { refresh } = useAuth();
+  const expired = me.error?.status === 401;
+  useEffect(() => {
+    if (expired) void refresh();
+  }, [expired, refresh]);
+
+  return (
+    <OperatorAccessContext.Provider value={me}>
+      <ConsoleFrame>{me.error ? <OperatorGate /> : children}</ConsoleFrame>
+    </OperatorAccessContext.Provider>
+  );
+}
+
+export function OperatorGate({ children }: { children?: ReactNode }) {
+  const { state } = useAuth();
+  const me = useOperatorAccess();
   if (me.error?.status === 403 && state.status === "authenticated")
     return (
       <GateMessage title="This account is not an operator">
@@ -86,6 +104,6 @@ export function OperatorGate({ children }: { children: ReactNode }) {
       </div>
     );
 
-  if (!me.data) return <FrameSkeleton />;
+  if (!me.data || me.loading) return <FrameSkeleton />;
   return children;
 }

@@ -109,6 +109,9 @@ export function hooks() {
     flushEffects() {
       effects.splice(0).forEach((f) => f());
     },
+    unmount() {
+      cells.forEach((cell) => cell?.cleanup?.());
+    },
   };
 }
 

@@ -9,6 +9,7 @@ import { useInventoryFilter } from "./hooks/use-inventory-filter";
 import { InventoryFilterChips } from "./inventory-filter-chips";
 import { countInventoryFilters } from "./lib/inventory";
 import { StreamerHeader } from "./streamer-header";
+import { OperatorGate } from "../operator-gate";
 
 function InventorySkeleton() {
   return (
@@ -28,18 +29,24 @@ export function StreamerInventory({ id }: { id: number }) {
 
   if (error?.status === 404)
     return (
-      <EmptyState title={`No streamer ${id}`}>
-        <Link href="/admin/streamers" className="text-foreground underline underline-offset-4">
-          Back to streamers
-        </Link>
-      </EmptyState>
+      <OperatorGate>
+        <EmptyState title={`No streamer ${id}`}>
+          <Link href="/admin/streamers" className="text-foreground underline underline-offset-4">
+            Back to streamers
+          </Link>
+        </EmptyState>
+      </OperatorGate>
     );
-  if (error) return <ErrorState title={`Could not load streamer ${id}`} error={error} onRetry={reload} />;
-  if (!data) return <InventorySkeleton />;
+  if (error) return (
+    <OperatorGate>
+      <ErrorState title={`Could not load streamer ${id}`} error={error} onRetry={reload} />
+    </OperatorGate>
+  );
+  if (!data) return <OperatorGate><InventorySkeleton /></OperatorGate>;
 
   const counts = countInventoryFilters(data.channels.flatMap((channel) => channel.items));
   return (
-    <>
+    <OperatorGate>
       <StreamerHeader inventory={data} />
       {data.channels.length ? (
         <>
@@ -51,6 +58,6 @@ export function StreamerInventory({ id }: { id: number }) {
       ) : (
         <EmptyState title="No channels">Link a channel to this streamer to compare its videos here.</EmptyState>
       )}
-    </>
+    </OperatorGate>
   );
 }

@@ -9,6 +9,7 @@ import { DetectionsTable } from "./recording/detections-table";
 import { RecordingHeader } from "./recording/recording-header";
 import { RecordingTimeline } from "./recording/recording-timeline";
 import { RecordingRuns } from "./runs/recording-runs";
+import { OperatorGate } from "./operator-gate";
 
 function RecordingSkeleton() {
   return (
@@ -27,22 +28,28 @@ export function RecordingView({ id }: { id: number }) {
 
   if (error?.status === 404)
     return (
-      <EmptyState title={`No recording ${id}`}>
-        <Link href="/admin/activity" className="text-foreground underline underline-offset-4">
-          Back to activity
-        </Link>
-      </EmptyState>
+      <OperatorGate>
+        <EmptyState title={`No recording ${id}`}>
+          <Link href="/admin/activity" className="text-foreground underline underline-offset-4">
+            Back to activity
+          </Link>
+        </EmptyState>
+      </OperatorGate>
     );
-  if (error) return <ErrorState title={`Could not load recording ${id}`} error={error} onRetry={reload} />;
-  if (!data) return <RecordingSkeleton />;
+  if (error) return (
+    <OperatorGate>
+      <ErrorState title={`Could not load recording ${id}`} error={error} onRetry={reload} />
+    </OperatorGate>
+  );
+  if (!data) return <OperatorGate><RecordingSkeleton /></OperatorGate>;
 
   return (
-    <>
+    <OperatorGate>
       <RecordingHeader detail={data} />
       <RecordingTimeline detail={data} />
       {data.chunks.length > 0 && <ChunksSection detail={data} />}
       <RecordingRuns runs={data.runs} chunks={data.chunks} />
       <DetectionsTable detections={data.detections} />
-    </>
+    </OperatorGate>
   );
 }
