@@ -5,6 +5,7 @@ import Link from "next/link";
 import { memo, type MouseEvent } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SourceStack } from "@/components/source-stack";
+import { HeroIcon } from "@/components/hero-icon";
 import { cn } from "@/lib/utils";
 import { prefetch } from "@/lib/api-cache";
 import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
@@ -133,6 +134,17 @@ export const GhostResultRow = memo(function GhostResultRow({
             >
               {opponentLabel(ghost)}
             </Link>
+            <span
+              role="group"
+              aria-label="Streamer and ghost heroes"
+              className="inline-flex shrink-0 items-center gap-1"
+            >
+              <HeroIcon hero={ghost.matchup.encounter.streamerHero} />
+              <span aria-hidden className="text-xs text-muted-foreground">
+                vs
+              </span>
+              <HeroIcon hero={ghost.matchup.encounter.ghostHero} />
+            </span>
           </div>
         </div>
         <SourceStack sources={ghost.sources} className="hidden @[200px]:flex" />

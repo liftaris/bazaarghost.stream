@@ -11,7 +11,8 @@ import {
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { ChevronDown } from "lucide-react";
 import type { Matchup, Session } from "@/lib/api-contract";
-import { heroLabel, observedRuns } from "@/lib/session-summary";
+import { observedRuns } from "@/lib/session-summary";
+import { HeroIcon } from "@/components/hero-icon";
 import { cn } from "@/lib/utils";
 import { MatchupDetail } from "./matchup-detail";
 import { MatchupTile } from "./matchup-tile";
@@ -156,11 +157,9 @@ export function MatchupList({
                     )}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-baseline gap-x-2 text-sm font-medium @lg:flex-col">
+                    <span className="flex flex-wrap items-center gap-x-2 text-sm font-medium @lg:items-start @lg:flex-col">
                       <span>Run {run.number ?? "-"}</span>
-                      <span className="text-muted-foreground">
-                        {heroLabel(run.hero)}
-                      </span>
+                      <HeroIcon hero={run.hero} />
                     </span>
                   </span>
                 </button>

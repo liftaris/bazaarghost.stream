@@ -10,6 +10,7 @@ import { RANKS } from "@/lib/session-summary";
 import { clock, matchupTime } from "@/lib/session-navigation";
 import { Button } from "@/components/ui/button";
 import { BookmarkButton } from "@/components/social/bookmark-button";
+import { HeroIcon } from "@/components/hero-icon";
 
 /** Selected canonical metadata and deliberate related searches, without evidence-image downloads. */
 export function MatchupDetail({
@@ -47,6 +48,7 @@ export function MatchupDetail({
         <h4 className="min-w-0 break-words text-lg font-semibold">
           {opponentLabel(opponent)}
         </h4>
+        <HeroIcon hero={encounter.ghostHero} />
         {rank && RANKS.some((value) => value === rank) && (
           <Image
             src={`/${rank}.webp`}

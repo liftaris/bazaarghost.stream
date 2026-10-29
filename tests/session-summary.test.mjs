@@ -153,6 +153,7 @@ test("selected player shows run/day/time and blocks identity searches for masked
     "react/jsx-runtime": jsxRuntime,
     "next/navigation": { useRouter: () => ({}) },
     "next/image": { default: "Image" },
+    "@/components/hero-icon": { HeroIcon: "HeroIcon" },
     "lucide-react": {},
     "@/components/ui/button": { Button: "Button" },
     "@/components/social/bookmark-button": { BookmarkButton: "BookmarkButton" },
@@ -180,6 +181,7 @@ test("square matchup tiles select a fight using its timestamp without any run en
   const load = sourceModules({
     "react/jsx-runtime": jsxRuntime,
     "next/image": { default: "Image" },
+    "@/components/hero-icon": { HeroIcon: "HeroIcon" },
     "lucide-react": { Ghost: "Ghost", Play: "Play", Radio: "Radio" },
     "@/components/ui/button": { Button: "Button" },
   });
@@ -209,7 +211,7 @@ test("square matchup tiles select a fight using its timestamp without any run en
   assert.match(tile.props.className, /size-20/);
   assert.ok(
     elements(tile).some(
-      (node) => node.type === "span" && node.props.children === "Dooley"
+      (node) => node.type === "HeroIcon" && node.props.hero === "dooley"
     )
   );
   assert.equal(tile.props["aria-current"], "true");
@@ -237,7 +239,7 @@ test("square matchup tiles select a fight using its timestamp without any run en
   assert.match(tile.props["aria-label"], /day unknown.*time unknown/);
   assert.ok(
     elements(tile).some(
-      (node) => node.type === "span" && node.props.children === "Dooley"
+      (node) => node.type === "HeroIcon" && node.props.hero === "dooley"
     )
   );
 });
@@ -249,6 +251,7 @@ test("run collapse survives appended pages but a new selection reveals its run",
     "react/jsx-runtime": jsxRuntime,
     "lucide-react": {},
     "@/lib/utils": { cn: (...values) => values.filter(Boolean).join(" ") },
+    "@/components/hero-icon": { HeroIcon: "HeroIcon" },
     "./matchup-detail": { MatchupDetail: "MatchupDetail" },
     "./matchup-tile": { MatchupTile: "MatchupTile" },
     "@tanstack/react-virtual": {

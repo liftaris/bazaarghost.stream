@@ -1,0 +1,116 @@
+{
+  "source": {
+    "type": "steam",
+    "steamAppId": "1617400",
+    "unityVersion": "6000.3.11f1",
+    "steamBuildId": "25914521"
+  },
+  "heroes": {
+    "dooley": {
+      "sprite": "Icon_Hero_Metal_DOO_TUI",
+      "bundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/ui_sprite_atlas_assets_all.bundle",
+      "bundleSha256": "6fd9d77847805f2590524164c9f7a98d081007c0afc9a18a400afa7654792187",
+      "pathId": "3168074489776343399",
+      "atlasBundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/ui_sprite_atlas_assets_all.bundle",
+      "width": 239,
+      "height": 244,
+      "png": "original/Icon_Hero_Metal_DOO_TUI.png",
+      "webp": "dooley.webp",
+      "pngSha256": "872766e7d4779838a1d04fcccc879531c4ba47208eb2634c3031d8c1fd6feea9",
+      "webpSha256": "c631895fc27a8cb49807284d6e41ad1152770bb5f6df20b9548e88ba0ab5fdfb"
+    },
+    "jules": {
+      "sprite": "Icon_Hero_Metal_JUL_TUI",
+      "bundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/ui_sprite_atlas_assets_all.bundle",
+      "bundleSha256": "6fd9d77847805f2590524164c9f7a98d081007c0afc9a18a400afa7654792187",
+      "pathId": "5599573375695148848",
+      "atlasBundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/ui_sprite_atlas_assets_all.bundle",
+      "width": 240,
+      "height": 240,
+      "png": "original/Icon_Hero_Metal_JUL_TUI.png",
+      "webp": "jules.webp",
+      "pngSha256": "57b1581a832955e9d9cb66f136350bad42d77da002410d455078b9df5d1109a5",
+      "webpSha256": "cdad31fef85afc8d726aa5ca3e5b205f56777b716acc437bb107c47b00febcdf"
+    },
+    "karnok": {
+      "sprite": "Icon_Hero_Metal_KAR_TUI",
+      "bundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/heroobjects_assets_all.bundle",
+      "bundleSha256": "edea8daee3da42c4ebd1da73f733482e2ad2d33fecee61e0ac54f8f6f1a78efb",
+      "pathId": "3411567985497045912",
+      "width": 238,
+      "height": 240,
+      "png": "original/Icon_Hero_Metal_KAR_TUI.png",
+      "webp": "karnok.webp",
+      "pngSha256": "a36e17f835e8e9e1c073e3a6b87d0643aa85f4a28f72e5160358d16d07f4b7c3",
+      "webpSha256": "88f1be6e5be34542609cef3106dccd7f26f55b8c41491a7c1aaf7b45f47568bf"
+    },
+    "mak": {
+      "sprite": "Icon_Hero_Metal_MAK_TUI",
+      "bundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/ui_sprite_atlas_assets_all.bundle",
+      "bundleSha256": "6fd9d77847805f2590524164c9f7a98d081007c0afc9a18a400afa7654792187",
+      "pathId": "-5692956041609672743",
+      "atlasBundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/ui_sprite_atlas_assets_all.bundle",
+      "width": 245,
+      "height": 241,
+      "png": "original/Icon_Hero_Metal_MAK_TUI.png",
+      "webp": "mak.webp",
+      "pngSha256": "f310c67f0975372fd3afa91bd96fde5f8bc54fc01f74a8e3c9485287f2a7b66b",
+      "webpSha256": "9a9e14d3159490c3937a959943011d89970ff6adc1212be45934e8bd3890c259"
+    },
+    "pygmalien": {
+      "sprite": "Icon_Hero_Metal_PYG_TUI",
+      "bundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/ui_sprite_atlas_assets_all.bundle",
+      "bundleSha256": "6fd9d77847805f2590524164c9f7a98d081007c0afc9a18a400afa7654792187",
+      "pathId": "8276458257047087831",
+      "atlasBundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/ui_sprite_atlas_assets_all.bundle",
+      "width": 239,
+      "height": 243,
+      "png": "original/Icon_Hero_Metal_PYG_TUI.png",
+      "webp": "pygmalien.webp",
+      "pngSha256": "35dc45d3b39c5765677a7389c6d538bd0bbb4c4c4b138c1b4311ec44f43d7e87",
+      "webpSha256": "ec46f415b3259f1a5c547457616b83f93a5c230bff585fe42adf6c6ab891fb35"
+    },
+    "stelle": {
+      "sprite": "Icon_Hero_Metal_STE_TUI",
+      "bundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/heroobjects_assets_all.bundle",
+      "bundleSha256": "edea8daee3da42c4ebd1da73f733482e2ad2d33fecee61e0ac54f8f6f1a78efb",
+      "pathId": "3052737923107068528",
+      "atlasBundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/ui_sprite_atlas_assets_all.bundle",
+      "width": 246,
+      "height": 248,
+      "png": "original/Icon_Hero_Metal_STE_TUI.png",
+      "webp": "stelle.webp",
+      "pngSha256": "43749df2aa31be061ae3e807b58027bd2c771d389c262e07bc21e4a0ea3cb098",
+      "webpSha256": "c00de9dce9c0a2946a02b6022990a11e158d17fab30f45ae553e24936f4ccf71"
+    },
+    "the_dragons": {
+      "sprite": "Icon_Hero_Metal_DRA_TUI",
+      "bundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/heroobjects_assets_all.bundle",
+      "bundleSha256": "edea8daee3da42c4ebd1da73f733482e2ad2d33fecee61e0ac54f8f6f1a78efb",
+      "pathId": "-3248367892602460682",
+      "width": 256,
+      "height": 256,
+      "png": "original/Icon_Hero_Metal_DRA_TUI.png",
+      "webp": "the_dragons.webp",
+      "pngSha256": "c21eea8ef6e954847d417641ee65fc30f5bad375105250d32298c172ea764fa0",
+      "webpSha256": "102bb5a7f558035850e35486b906aaff7dead50988153df31d1b78aad2867de6"
+    },
+    "vanessa": {
+      "sprite": "Icon_Hero_Metal_VAN_TUI",
+      "bundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/heroobjects_assets_all.bundle",
+      "bundleSha256": "edea8daee3da42c4ebd1da73f733482e2ad2d33fecee61e0ac54f8f6f1a78efb",
+      "pathId": "-4931481911547907792",
+      "atlasBundle": "TheBazaar_Data/StreamingAssets/aa/StandaloneWindows64/ui_sprite_atlas_assets_all.bundle",
+      "width": 243,
+      "height": 240,
+      "png": "original/Icon_Hero_Metal_VAN_TUI.png",
+      "webp": "vanessa.webp",
+      "pngSha256": "8d8a9278c173e384106a3a136e2ae02222ba8d4694e5e5c607f5db28a958c404",
+      "webpSha256": "722e18a353db7bce8f765263da7d947935df46fcd0e53602b51c6bffd6282048"
+    }
+  },
+  "extraction": {
+    "UnityPy": "1.25.4",
+    "Pillow": "13.0.0"
+  }
+}

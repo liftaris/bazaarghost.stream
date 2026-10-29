@@ -7,6 +7,7 @@ import { clock, matchupTime } from "@/lib/session-navigation";
 import { heroLabel, RANKS } from "@/lib/session-summary";
 import { opponentLabel } from "@/lib/opponent-name";
 import { Button } from "@/components/ui/button";
+import { HeroIcon } from "@/components/hero-icon";
 
 /** A square for one observed fight; a playable timestamp does not need a run end. */
 export function MatchupTile({
@@ -62,9 +63,7 @@ export function MatchupTile({
           <Ghost aria-hidden />
         )}
       </span>
-      <span className="w-full truncate text-xs leading-4">
-        {heroLabel(match.encounter.ghostHero)}
-      </span>
+      <HeroIcon hero={match.encounter.ghostHero} />
       <span className="flex w-full items-center gap-1 text-xs leading-4">
         {active && <Radio data-tile-marker aria-hidden />}
         <span className="truncate">{opponentLabel(match.opponent)}</span>
