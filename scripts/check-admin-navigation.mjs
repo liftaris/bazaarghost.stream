@@ -27,6 +27,29 @@ async function key(key) {
   await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key, code: key });
 }
 async function click(expr) { await e(`(${expr}).click()`); }
+async function holdResponse(pathname) {
+  await e(`(() => {
+    const original = window.fetch;
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    window.heldResponse = { pending: false, released: false, release };
+    window.fetch = async (...args) => {
+      const response = await original(...args);
+      if (new URL(response.url).pathname === ${JSON.stringify(pathname)}) {
+        window.heldResponse.pending = true;
+        await gate;
+        window.heldResponse.released = true;
+      }
+      return response;
+    };
+    window.restoreFetch = () => { window.fetch = original; };
+  })()`);
+}
+async function releaseResponse() {
+  await e(`heldResponse.release();restoreFetch()`);
+  await wait(`heldResponse.released`);
+  await sleep(1800);
+}
 async function tap(expr) {
   const point = await e(`(()=>{const el=${expr};el.scrollIntoView({block:'center'});const r=el.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()`);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
@@ -98,9 +121,24 @@ try {
     await wait(`new URLSearchParams(location.search).get('inspect')===first && (${panel})?.textContent.includes('Attempts')`);
     await sleep(1800);
     await check("query-supersedes-pending-route", `location.pathname==='/admin/recordings/172013' && new URLSearchParams(location.search).get('inspect')===first`);
+    await holdResponse("/admin/activity");
+    await e(`window.savedHistoryLength=history.length;const activity=document.querySelector('a[href="/admin/activity"]');activity.href='/admin/activity?reviewRace='+Date.now();activity.click()`);
+    await wait(`heldResponse.pending`);
+    await check("identical-query-route-response-pending", `location.pathname==='/admin/recordings/172013' && new URLSearchParams(location.search).get('inspect')===first && !heldResponse.released`);
+    await click("zero");
+    await releaseResponse();
+    await check("identical-query-cancels-pending-route", `location.pathname==='/admin/recordings/172013' && new URLSearchParams(location.search).get('inspect')===first && !!(${panel})`);
+    await check("identical-query-keeps-history-length", `history.length===savedHistoryLength`);
+    await e(`document.querySelector('a[href*="reviewRace"]').href='/admin/activity'`);
   }
-  await e(`zero.click();document.querySelector('button[aria-label="Close inspector"]').click()`);
-  await wait(`!(${panel})`); await sleep(1600);
+  const pendingChunkPath = await e(`'/api/v1/ops/chunks/'+new URL(document.querySelector('a[aria-label="Inspect chunk 2"]').href).searchParams.get('inspect').split(':')[1]`);
+  await holdResponse(pendingChunkPath);
+  await click(`document.querySelector('a[aria-label="Inspect chunk 2"]')`);
+  await wait(`heldResponse.pending`);
+  await check("different-chunk-fetch-pending-before-close", `!!(${panel})?.querySelector('[aria-busy=true]') && !heldResponse.released`);
+  await click(`document.querySelector('button[aria-label="Close inspector"]')`);
+  await wait(`!(${panel})`);
+  await releaseResponse();
   await check("close-during-fetch-stays-closed", `!(${panel}) && !new URLSearchParams(location.search).has('inspect')`);
   await click(`document.querySelector('a[href="/admin/activity"]')`); await wait(`location.pathname==='/admin/activity' && !!document.querySelector('table[aria-label="Recordings by latest activity"]')`);
   await e(`document.querySelector('input[aria-label="Search recordings by title, streamer or source id"]').focus()`);

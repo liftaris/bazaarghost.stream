@@ -36,13 +36,16 @@ test("history updates use native metadata preservation and avoid duplicate entri
   const writes = browser(t, "/admin/activity?q=a");
   assert.equal(updateConsoleQuery("?q=b", "push"), true);
   assert.equal(updateConsoleQuery("?q=b", "push"), true);
-  assert.equal(writes.length, 1);
+  assert.equal(writes.length, 2);
   assert.equal(writes[0].data, null);
   assert.equal(writes[0].method, "pushState");
-  assert.equal(updateConsoleQuery("?q=c", "replace"), true);
   assert.equal(writes[1].method, "replaceState");
+  assert.equal(writes[1].data, null);
+  assert.equal(writes[1].href, writes[0].href);
+  assert.equal(updateConsoleQuery("?q=c", "replace"), true);
+  assert.equal(writes[2].method, "replaceState");
   assert.equal(updateConsoleQuery("/admin/streamers", "push"), false);
-  assert.equal(writes.length, 2);
+  assert.equal(writes.length, 3);
 });
 
 test("close and filter setters merge into the current URL rather than stale render snapshots", (t) => {

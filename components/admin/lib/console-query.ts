@@ -15,6 +15,6 @@ export function updateConsoleQuery(href: string, mode: "push" | "replace"): bool
   const current = new URL(window.location.href);
   const next = new URL(href, current);
   if (!isConsoleQuery(current, next)) return false;
-  if (next.href !== current.href) window.history[mode === "push" ? "pushState" : "replaceState"](null, "", next);
+  window.history[mode === "push" && next.href !== current.href ? "pushState" : "replaceState"](null, "", next);
   return true;
 }
