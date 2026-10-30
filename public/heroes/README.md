@@ -52,6 +52,17 @@ That download reported a July 2, 2025 last-modified date and contains only six h
 Use a separate output directory with `--output` when inspecting the older ZIP.
 The script exports only `Icon_Hero_Metal_*_TUI` sprites. It does not run the game or extract the whole build.
 
+## Search-result cutouts
+
+`insets/` contains alpha masks derived from the gold WebP sprites above. Pixels with grayscale luminance below 100 become transparent, removing the dark linework. The remaining shapes retain the source alpha. Search results color these masks with `--border`, so the card background shows through the lines in either theme.
+
+Regenerate or verify all eight masks from the repository root:
+
+```sh
+uv run scripts/generate-hero-insets.py
+uv run scripts/generate-hero-insets.py --check
+```
+
 ## Rights
 
 The Bazaar artwork belongs to its respective rights holders. Public availability and extraction do not grant a reuse license.

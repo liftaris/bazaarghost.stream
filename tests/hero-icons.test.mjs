@@ -93,8 +93,8 @@ test("unknown heroes render an accessible question mark, not a broken image", ()
   }
 });
 
-test("search hero insets belong to their usernames without consuming row space", () => {
-  const { h, load, HeroIcon } = setup();
+test("search hero cutouts use shipped masks, with the streamer facing the ghost", () => {
+  const { h, load } = setup();
   const { GhostResultRow } = load("@/components/ghost-result-row");
   const tree = h.render(() =>
     GhostResultRow({
@@ -110,7 +110,7 @@ test("search hero insets belong to their usernames without consuming row space",
     })
   );
   const nodes = elements(tree);
-  const icons = nodes.filter((node) => node.type === HeroIcon);
+  const icons = nodes.filter((node) => node.type?.name === "HeroInset");
   assert.deepEqual(
     icons.map((node) => node.props.hero),
     ["karnok", "the_dragons"]
@@ -124,10 +124,27 @@ test("search hero insets belong to their usernames without consuming row space",
   assert.ok(nodes.indexOf(streamer) < nodes.indexOf(rank));
   assert.ok(nodes.indexOf(rank) < nodes.indexOf(icons[1]));
   assert.ok(elements(opponent).includes(icons[1]));
+  assert.match(icons[0].props.className, /-scale-x-100/);
+  assert.doesNotMatch(icons[1].props.className, /scale-x/);
   for (const icon of icons) {
-    assert.match(icon.props.className, /absolute/);
-    assert.match(icon.props.className, /size-\[104px\]/);
-    assert.match(icon.props.className, /pointer-events-none/);
+    const rendered = icon.type(icon.props);
+    assert.match(rendered.props.className, /absolute/);
+    assert.match(rendered.props.className, /size-\[104px\]/);
+    assert.match(rendered.props.className, /pointer-events-none/);
+    assert.match(rendered.props.className, /bg-border/);
+    assert.equal(
+      rendered.props.style.maskImage,
+      `url(/heroes/insets/${icon.props.hero}.webp)`
+    );
+    assert.ok(
+      existsSync(
+        new URL(
+          `../public/heroes/insets/${icon.props.hero}.webp`,
+          import.meta.url
+        )
+      )
+    );
+    assert.ok(rendered.props["aria-label"]);
   }
 });
 
@@ -137,7 +154,7 @@ test("search results omit each missing hero without a placeholder or divider", (
     ["karnok", null],
     [null, "the_dragons"],
   ]) {
-    const { h, load, HeroIcon } = setup();
+    const { h, load } = setup();
     const { GhostResultRow } = load("@/components/ghost-result-row");
     const tree = h.render(() =>
       GhostResultRow({
@@ -157,7 +174,7 @@ test("search results omit each missing hero without a placeholder or divider", (
     const nodes = elements(tree);
     assert.deepEqual(
       nodes
-        .filter((node) => node.type === HeroIcon)
+        .filter((node) => node.type?.name === "HeroInset")
         .map((node) => node.props.hero),
       [streamerHero, ghostHero].filter(Boolean)
     );
