@@ -169,7 +169,7 @@ export const GhostResultRow = memo(function GhostResultRow({
               aria-current={isActive ? "true" : undefined}
               className="min-w-0 font-medium text-foreground outline-none after:absolute after:inset-0"
             >
-              <span className="relative z-10 block [overflow-wrap:anywhere]">
+              <span className="relative z-10 block truncate">
                 {opponentLabel(ghost)}
               </span>
             </Link>
