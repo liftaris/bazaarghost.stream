@@ -150,36 +150,45 @@ export const GhostResultRow = memo(function GhostResultRow({
           <span className="pointer-events-none relative z-10 hidden text-center text-muted-foreground @[352px]:block">
             vs
           </span>
-          <div className="flex min-w-0 items-center gap-1">
-            {ghost.rank && KNOWN_RANKS.has(ghost.rank.toLowerCase()) && (
-              <Image
-                src={`/${ghost.rank.toLowerCase()}.webp`}
-                alt={ghost.rank}
-                width={22}
-                height={22}
-                unoptimized
-                className="pointer-events-none relative z-10 inline-block shrink-0"
+          <div className="flex min-w-0 items-center @[352px]:-mr-[max(0px,calc((100cqw_-_448px)/2_-_16px))]">
+            <div className="flex min-w-0 max-w-full shrink-0 items-center gap-1">
+              {ghost.rank && KNOWN_RANKS.has(ghost.rank.toLowerCase()) && (
+                <Image
+                  src={`/${ghost.rank.toLowerCase()}.webp`}
+                  alt={ghost.rank}
+                  width={22}
+                  height={22}
+                  unoptimized
+                  className="pointer-events-none relative z-10 inline-block shrink-0"
+                />
+              )}
+              <Link
+                href={href}
+                scroll={false}
+                prefetch={false}
+                onClick={handlePlay}
+                aria-current={isActive ? "true" : undefined}
+                className="min-w-0 font-medium text-foreground outline-none after:absolute after:inset-0"
+              >
+                <span className="relative z-10 block truncate">
+                  {opponentLabel(ghost)}
+                </span>
+              </Link>
+            </div>
+            <div className="@container/sources pointer-events-none relative z-10 hidden min-w-0 flex-1 self-stretch @[352px]:block">
+              <SourceStack
+                sources={ghost.sources}
+                className={cn(
+                  "pointer-events-auto absolute right-0 top-1/2 hidden max-w-[calc(100cqw_-_8px)] -translate-y-1/2 flex-wrap justify-end",
+                  ghost.sources.length > 3
+                    ? "@[46px]/sources:flex"
+                    : "@[24px]/sources:flex"
+                )}
               />
-            )}
-            <Link
-              href={href}
-              scroll={false}
-              prefetch={false}
-              onClick={handlePlay}
-              aria-current={isActive ? "true" : undefined}
-              className="min-w-0 font-medium text-foreground outline-none after:absolute after:inset-0"
-            >
-              <span className="relative z-10 block truncate">
-                {opponentLabel(ghost)}
-              </span>
-            </Link>
+            </div>
           </div>
         </div>
       </div>
-      <SourceStack
-        sources={ghost.sources}
-        className="absolute right-3 top-1/2 hidden max-w-[calc(50%_-_240px)] -translate-y-1/2 flex-wrap justify-end @[560px]:flex"
-      />
     </div>
   );
 });

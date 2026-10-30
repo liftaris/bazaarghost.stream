@@ -105,6 +105,7 @@ test("search hero cutouts use shipped masks, with the streamer facing the ghost"
         streamer_display_name: "Streamer",
         streamer_id: "1",
         rank: "gold",
+        sources: [],
       },
       onNavigateToStreamer() {},
     })
@@ -167,6 +168,7 @@ test("search results omit each missing hero without a placeholder or divider", (
           username: "Ghost",
           streamer_display_name: "Streamer",
           streamer_id: "1",
+          sources: [],
         },
         onNavigateToStreamer() {},
       })
