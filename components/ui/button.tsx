@@ -15,7 +15,7 @@ const buttonVariants = cva(
         outline:
           "border bg-background shadow-xs hover:bg-muted hover:text-foreground",
         matchup:
-          "border border-border bg-card text-foreground hover:bg-muted aria-[current=true]:border-foreground aria-[current=true]:bg-muted aria-[current=true]:ring-1 aria-[current=true]:ring-foreground [&_[data-tile-marker]]:size-2.5",
+          "border border-border bg-card text-foreground hover:bg-muted data-[playing=true]:border-foreground data-[playing=true]:ring-1 data-[playing=true]:ring-foreground aria-pressed:border-primary aria-pressed:ring-1 aria-pressed:ring-primary aria-pressed:data-[playing=true]:border-primary aria-pressed:data-[playing=true]:ring-foreground",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-muted hover:text-foreground",

@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
 import { RecordingResultRow, RecordingResultRowSkeleton } from "@/components/recording-result-row";
@@ -14,7 +16,7 @@ import { useStreamer } from "./hooks/use-streamer-options";
 
 
 /** Avatar, name and the Streamer's Channels, each linking out to its page on its platform. */
-export function StreamerHeader({ streamerId, card }: { streamerId: string; card: StreamerCard | null }) {
+export function StreamerHeader({ streamerId, card, children }: { streamerId: string; card: StreamerCard | null; children?: ReactNode }) {
   const { streamer } = useStreamer(streamerId);
   const shown = streamer ?? card;
   if (!shown) return <Skeleton className="m-2 h-9" />;
@@ -24,7 +26,8 @@ export function StreamerHeader({ streamerId, card }: { streamerId: string; card:
         <AvatarImage src={shown.avatarUrl ?? undefined} alt="" />
         <AvatarFallback className="bg-primary text-xs text-primary-foreground">{shown.displayName[0]?.toUpperCase()}</AvatarFallback>
       </Avatar>
-      <h2 className="min-w-0 flex-1 truncate text-sm font-medium">{shown.displayName}</h2>
+      <h2 className={cn("min-w-0 truncate text-sm font-medium", children ? "max-w-[35%] shrink-0" : "flex-1")}>{shown.displayName}</h2>
+      {children}
       <ul className="flex shrink-0 items-center gap-1.5" aria-label="Channels">
         {!streamer && card?.platforms.map((platform) => (
           <li key={platform} className="flex size-7 items-center justify-center text-muted-foreground">

@@ -4,6 +4,28 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@keyframes session-title-scroll {
+  0%,
+  15% {
+    transform: translateX(0);
+  }
+  85%,
+  100% {
+    transform: translateX(var(--marquee-distance));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .session-title[data-overflow="true"]:hover {
+    text-overflow: clip;
+  }
+
+  .session-title[data-overflow="true"]:hover > span {
+    animation: session-title-scroll var(--marquee-duration) linear infinite
+      alternate;
+  }
+}
+
 :root {
   /* Light mode design system - cream-based palette */
   --background: #fcf9ea;

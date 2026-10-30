@@ -169,7 +169,7 @@ test("search results omit each missing hero without a placeholder or divider", (
   }
 });
 
-test("companion tiles and selected details show the ghost icon, run headers show the streamer icon", () => {
+test("companion tiles show the ghost icon and run headers show the streamer icon", () => {
   const { h, load, HeroIcon } = setup();
   const { MatchupTile } = load("@/components/companion/matchup-tile");
   const tile = h.render(() =>
@@ -177,12 +177,6 @@ test("companion tiles and selected details show the ghost icon, run headers show
   );
   assert.equal(
     elements(tile).find((node) => node.type === HeroIcon).props.hero,
-    "the_dragons"
-  );
-  const { MatchupDetail } = load("@/components/companion/matchup-detail");
-  const detail = h.render(() => MatchupDetail({ match }));
-  assert.equal(
-    elements(detail).find((node) => node.type === HeroIcon).props.hero,
     "the_dragons"
   );
   const { MatchupList } = load("@/components/companion/matchup-list");

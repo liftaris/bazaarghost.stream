@@ -7,9 +7,8 @@ import {
   elements,
 } from "./helpers/source-harness.mjs";
 
-const { observedRuns, summarizeSession, heroLabel } = sourceModules()(
-  "@/lib/session-summary"
-);
+const { observedRuns, summarizeSession, heroLabel, sessionMatchupTable } =
+  sourceModules()("@/lib/session-summary");
 const match = (
   id,
   {
@@ -129,6 +128,8 @@ test("session scores sum latest cumulative wins per run and derive losses from d
   ]);
   assert.equal(summary.wins, 7);
   assert.equal(summary.losses, 2);
+  assert.equal(summary.runCount, 2);
+  assert.equal(summarizeSession([]).runCount, 0);
   assert.equal(
     summarizeSession([match(1, { day: 10, winsRemaining: 0 })]).wins,
     10
@@ -146,34 +147,36 @@ test("session scores sum latest cumulative wins per run and derive losses from d
   assert.equal(summarizeSession([]).heroes.length, 0);
 });
 
-test("selected player shows run/day/time and blocks identity searches for masked names", () => {
-  const h = hooks();
-  const load = sourceModules({
-    react: h.react,
-    "react/jsx-runtime": jsxRuntime,
-    "next/navigation": { useRouter: () => ({}) },
-    "next/image": { default: "Image" },
-    "@/components/hero-icon": { HeroIcon: "HeroIcon" },
-    "lucide-react": {},
-    "@/components/ui/button": { Button: "Button" },
-    "@/components/social/bookmark-button": { BookmarkButton: "BookmarkButton" },
-  });
-  const { MatchupDetail } = load("@/components/companion/matchup-detail");
-  const value = match(1, { day: 0, winsRemaining: 0, lethal: false });
-  value.opponent = { ...value.opponent, username: null, nameState: "masked" };
-  const nodes = elements(
-    h.render(() => MatchupDetail({ match: value, runNumber: 2 }))
+test("run/day table aligns sparse days, deduplicates encounters and retains every unknown day", () => {
+  const first = match(1, { day: 2 });
+  const table = sessionMatchupTable([
+    first,
+    first,
+    match(1, { day: 99 }),
+    match(2, { day: 4 }),
+    match(3),
+    match(4),
+    match(5, { day: 1 }),
+  ]);
+  assert.deepEqual(table.days, [1, 2, 3, 4, null]);
+  assert.equal(table.rows.length, 2);
+  assert.equal(table.rows[0].cells.has(1), false);
+  assert.equal(table.rows[0].cells.has(3), false);
+  assert.deepEqual(
+    table.rows[0].cells.get(2).map((m) => m.id),
+    [1]
   );
-  const metadata = nodes
-    .find((node) => node.type === "p")
-    .props.children.join("");
-  assert.equal(metadata, "Run 2 · Day 0 · at 1:40");
-  assert.equal(
-    nodes.find(
-      (node) => node.type === "Button" && node.props.disabled === true
-    ).props.disabled,
-    true
+  assert.deepEqual(
+    table.rows[0].cells.get(null).map((m) => m.id),
+    [3, 4]
   );
+  assert.deepEqual(
+    table.rows[1].cells.get(1).map((m) => m.id),
+    [5]
+  );
+  assert.deepEqual(sessionMatchupTable([match(1, { day: 0 })]).days, [0]);
+  assert.deepEqual(sessionMatchupTable([match(1)]).days, [null]);
+  assert.deepEqual(sessionMatchupTable([]), { days: [], rows: [] });
 });
 
 test("square matchup tiles select a fight using its timestamp without any run end", () => {
@@ -208,14 +211,17 @@ test("square matchup tiles select a fight using its timestamp without any run en
     onSelect: (match) => selected.push(match.id),
   });
   assert.equal(tile.props.variant, "matchup");
-  assert.match(tile.props.className, /size-20/);
+  assert.match(tile.props.className, /h-20 w-full/);
   assert.ok(
     elements(tile).some(
       (node) => node.type === "HeroIcon" && node.props.hero === "dooley"
     )
   );
-  assert.equal(tile.props["aria-current"], "true");
-  assert.equal(tile.props["aria-controls"], "matchup-player-12");
+  assert.equal(tile.props["aria-current"], "time");
+  assert.equal(tile.props["aria-pressed"], true);
+  assert.equal(tile.props["aria-controls"], undefined);
+  assert.equal(tile.props["aria-expanded"], undefined);
+  assert.ok(!elements(tile).some((node) => node.type === "Radio"));
   assert.match(
     tile.props["aria-label"],
     /day 7, Dooley, gold, 0:00, at playhead/
@@ -223,6 +229,26 @@ test("square matchup tiles select a fight using its timestamp without any run en
   assert.equal(tile.props.disabled, false);
   tile.props.onClick();
   assert.deepEqual(selected, [12]);
+  const playing = MatchupTile({
+    match: value,
+    selected: false,
+    active: true,
+    recordingId: 71,
+    session: null,
+    onSelect() {},
+  });
+  assert.equal(playing.props["aria-current"], "time");
+  assert.equal(playing.props["aria-pressed"], false);
+  const pinned = MatchupTile({
+    match: value,
+    selected: true,
+    active: false,
+    recordingId: 71,
+    session: null,
+    onSelect() {},
+  });
+  assert.equal(pinned.props["aria-current"], undefined);
+  assert.equal(pinned.props["aria-pressed"], true);
   tile = MatchupTile({
     match: {
       ...value,
@@ -244,7 +270,7 @@ test("square matchup tiles select a fight using its timestamp without any run en
   );
 });
 
-test("run collapse survives appended pages but a new selection reveals its run", () => {
+test("table pagination preserves day alignment and independent selected/playing encounters", () => {
   const h = hooks();
   const load = sourceModules({
     react: h.react,
@@ -252,7 +278,6 @@ test("run collapse survives appended pages but a new selection reveals its run",
     "lucide-react": {},
     "@/lib/utils": { cn: (...values) => values.filter(Boolean).join(" ") },
     "@/components/hero-icon": { HeroIcon: "HeroIcon" },
-    "./matchup-detail": { MatchupDetail: "MatchupDetail" },
     "./matchup-tile": { MatchupTile: "MatchupTile" },
     "@tanstack/react-virtual": {
       useVirtualizer: ({ count }) => ({
@@ -274,75 +299,55 @@ test("run collapse survives appended pages but a new selection reveals its run",
       day: id,
     });
   let matches = [entry(1, "a"), entry(2, "b")];
-  let selectedId = 1;
-  let latestTree;
-  const render = () => {
-    let tree = h.render(() =>
-      MatchupList({
-        matches,
-        selectedId,
-        activeId: null,
-        recordingId: null,
-        session: null,
-        onSelect() {},
-      })
+  const render = () =>
+    elements(
+      h.render(() =>
+        MatchupList({
+          matches,
+          selectedId: 1,
+          activeId: 2,
+          recordingId: null,
+          session: null,
+          onSelect() {},
+        })
+      )
     );
-    h.flushEffects();
-    tree = h.render(() =>
-      MatchupList({
-        matches,
-        selectedId,
-        activeId: null,
-        recordingId: null,
-        session: null,
-        onSelect() {},
-      })
-    );
-    latestTree = tree;
-    return elements(tree).filter(
-      (node) => node.type === "button" && !node.props["aria-label"]
-    );
-  };
-  let rows = render();
-  assert.equal(rows[0].props["aria-expanded"], true);
-  rows[0].props.onClick();
-  assert.equal(render()[0].props["aria-expanded"], false);
+  let nodes = render();
+  assert.deepEqual(
+    nodes
+      .filter((n) => n.props.role === "columnheader")
+      .map((n) => n.props.children),
+    ["Run", "Day 1", "Day 2"]
+  );
+  const initial = nodes.filter((n) => n.type === "MatchupTile");
+  assert.deepEqual(
+    initial.map((n) => [n.props.selected, n.props.active]),
+    [
+      [true, false],
+      [false, true],
+    ]
+  );
   matches = [...matches, entry(3, "b")];
-  assert.equal(
-    render()[0].props["aria-expanded"],
-    false,
-    "pagination must not override a deliberate collapse"
+  nodes = render();
+  assert.deepEqual(
+    nodes
+      .filter((n) => n.props.role === "columnheader")
+      .map((n) => n.props.children),
+    ["Run", "Day 1", "Day 2", "Day 3"]
   );
   assert.deepEqual(
-    elements(latestTree)
+    nodes
       .filter((node) => node.type === "MatchupTile")
       .map((node) => node.props.match.id),
     [1, 2, 3],
-    "square tiles retain the canonical matchup order within runs"
+    "table retains the canonical matchup order within runs"
   );
-  const secondRun = elements(latestTree).find(
-    (node) => node.props?.["data-run"] === "run:2"
-  );
+  const secondRun = nodes.find((node) => node.props?.["data-run"] === "run:2");
   assert.deepEqual(
     elements(secondRun)
       .filter((node) => node.type === "MatchupTile")
       .map((node) => node.props.match.id),
     [2, 3]
   );
-  selectedId = 2;
-  assert.equal(render()[1].props["aria-expanded"], true);
-  selectedId = 1;
-  assert.equal(
-    render()[0].props["aria-expanded"],
-    true,
-    "a new explicit selection reveals its run"
-  );
-  selectedId = 4;
-  render();
-  matches = [...matches, entry(4, "c")];
-  assert.equal(
-    render()[2].props["aria-expanded"],
-    true,
-    "a selection opens when its metadata arrives later"
-  );
+  assert.ok(!nodes.some((n) => n.props["data-matchup-detail"]));
 });

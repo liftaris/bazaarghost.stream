@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/collapsible";
 import Image from "next/image";
 import type { Matchup } from "@/lib/api-contract";
-import { heroLabel, summarizeSession } from "@/lib/session-summary";
+import { summarizeSession } from "@/lib/session-summary";
+import { HeroIcon } from "@/components/hero-icon";
 
 export function SessionStats({ matches }: { matches: Matchup[] }) {
   const stats = useMemo(() => summarizeSession(matches), [matches]);
@@ -33,37 +34,26 @@ export function SessionStats({ matches }: { matches: Matchup[] }) {
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="grid grid-cols-2 gap-2 @lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1fr)_minmax(0,1.25fr)]">
+        <div className="grid grid-cols-2 items-start gap-2 @lg:grid-cols-[8.5rem_8.5rem_minmax(0,1fr)]">
           <section
-            aria-label="Win / loss"
-            className="flex min-w-0 flex-col gap-2 rounded-md border border-border bg-background p-2"
+            aria-label="Runs"
+            className="flex aspect-square min-w-0 flex-col gap-2 rounded-md border border-border bg-background p-2"
           >
-            <h3 className="text-xs font-medium">Win / loss</h3>
-            <dl className="grid grid-cols-2 gap-3">
-              <div>
-                <dt className="text-xs text-muted-foreground">Wins</dt>
-                <dd className="text-xl font-medium tabular-nums">
-                  {stats.wins ?? "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Losses</dt>
-                <dd className="text-xl font-medium tabular-nums">
-                  {stats.losses ?? "-"}
-                </dd>
-              </div>
-            </dl>
+            <h3 className="text-center text-xs font-medium">Runs</h3>
+            <p className="flex flex-1 items-center justify-center text-3xl font-medium tabular-nums">
+              {stats.runCount}
+            </p>
           </section>
           <section
             aria-label="Opponent ranks"
-            className="flex min-w-0 flex-col gap-2 rounded-md border border-border bg-background p-2"
+            className="flex aspect-square min-w-0 flex-col gap-1 rounded-md border border-border bg-background p-2"
           >
-            <h3 className="text-xs font-medium">Opponent ranks</h3>
-            <dl className="flex flex-1 items-end justify-between gap-1">
+            <h3 className="text-center text-xs font-medium">Opponent ranks</h3>
+            <dl className="flex min-h-0 flex-1 justify-center gap-1">
               {stats.ranks.map(({ rank, count }) => (
                 <div
                   key={rank}
-                  className="flex min-w-0 flex-1 flex-col-reverse items-center gap-1"
+                  className="flex w-5 min-w-0 flex-col-reverse items-center gap-1"
                 >
                   <dt>
                     <Image
@@ -75,11 +65,11 @@ export function SessionStats({ matches }: { matches: Matchup[] }) {
                       className="size-5 object-contain"
                     />
                   </dt>
-                  <dd className="flex w-full flex-col items-center gap-1 text-xs tabular-nums">
+                  <dd className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 text-xs tabular-nums">
                     <span>{knownRanks ? count : "-"}</span>
                     <span
                       aria-hidden
-                      className="flex h-6 w-3 items-end rounded-sm bg-muted"
+                      className="flex min-h-0 w-3 flex-1 items-end rounded-sm bg-muted"
                     >
                       <span
                         data-chart-bar
@@ -92,22 +82,27 @@ export function SessionStats({ matches }: { matches: Matchup[] }) {
               ))}
             </dl>
             {stats.unknownRanks > 0 && (
-              <p className="text-xs text-muted-foreground">
-                {stats.unknownRanks} without rank data
+              <p
+                className="text-center text-xs text-muted-foreground"
+                title="Without rank data"
+              >
+                {stats.unknownRanks} unknown
               </p>
             )}
           </section>
           <section
             aria-label="Heroes faced"
-            className="col-span-2 flex min-w-0 flex-col gap-2 rounded-md border border-border bg-background p-2 @lg:col-span-1"
+            className="@container col-span-2 flex min-w-0 flex-col gap-2 self-stretch rounded-md border border-border bg-background p-2 @lg:col-span-1"
           >
-            <h3 className="text-xs font-medium">Heroes faced</h3>
+            <h3 className="text-center text-xs font-medium">Heroes faced</h3>
             {stats.heroes.length ? (
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 @lg:grid-cols-1 @3xl:grid-cols-2">
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 @sm:grid-cols-4">
                 {stats.heroes.map(({ hero, count }) => (
                   <div key={hero} className="min-w-0">
-                    <div className="flex items-baseline justify-between gap-2 text-xs">
-                      <dt className="truncate">{heroLabel(hero)}</dt>
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <dt>
+                        <HeroIcon hero={hero} />
+                      </dt>
                       <dd className="tabular-nums text-muted-foreground">
                         {count}
                       </dd>
@@ -123,10 +118,10 @@ export function SessionStats({ matches }: { matches: Matchup[] }) {
                 ))}
               </dl>
             ) : (
-              <p className="text-2xl font-medium">-</p>
+              <p className="text-center text-2xl font-medium">-</p>
             )}
             {stats.unknownHeroes > 0 && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-center text-xs text-muted-foreground">
                 {stats.unknownHeroes} without hero data
               </p>
             )}

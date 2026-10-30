@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Ghost, Radio } from "lucide-react";
+import { Ghost } from "lucide-react";
 import type { Matchup, Session } from "@/lib/api-contract";
 import { clock, matchupTime } from "@/lib/session-navigation";
 import { heroLabel, RANKS } from "@/lib/session-summary";
@@ -9,7 +9,6 @@ import { opponentLabel } from "@/lib/opponent-name";
 import { Button } from "@/components/ui/button";
 import { HeroIcon } from "@/components/hero-icon";
 
-/** A square for one observed fight; a playable timestamp does not need a run end. */
 export function MatchupTile({
   match,
   selected,
@@ -38,18 +37,17 @@ export function MatchupTile({
       id={`matchup-tile-${match.id}`}
       variant="matchup"
       type="button"
-      aria-current={selected ? "true" : undefined}
-      aria-expanded={selected}
-      aria-controls={selected ? `matchup-player-${match.id}` : undefined}
+      aria-current={active ? "time" : undefined}
+      aria-pressed={selected}
+      data-playing={active}
       aria-label={label}
       title={label}
       disabled={!own}
       onClick={() => onSelect(match)}
-      className="relative size-20 flex-col gap-1 rounded-md p-1"
+      className="h-20 w-full min-w-0 flex-col gap-2 rounded-md p-2"
       data-matchup-tile={match.id}
     >
       <span className="flex w-full items-center justify-between gap-1">
-        <span className="text-xs leading-4">d{match.encounter.igd ?? "-"}</span>
         {rank && RANKS.some((value) => value === rank) ? (
           <Image
             src={`/${rank}.webp`}
@@ -62,11 +60,10 @@ export function MatchupTile({
         ) : (
           <Ghost aria-hidden />
         )}
+        <HeroIcon hero={match.encounter.ghostHero} />
       </span>
-      <HeroIcon hero={match.encounter.ghostHero} />
-      <span className="flex w-full items-center gap-1 text-xs leading-4">
-        {active && <Radio data-tile-marker aria-hidden />}
-        <span className="truncate">{opponentLabel(match.opponent)}</span>
+      <span className="w-full truncate text-left text-xs leading-4">
+        {opponentLabel(match.opponent)}
       </span>
     </Button>
   );

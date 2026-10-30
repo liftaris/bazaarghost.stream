@@ -35,7 +35,8 @@ export function summarizeSession(matches: Matchup[]) {
     }))
     .filter(({ count }) => count > 0)
     .sort((a, b) => b.count - a.count);
-  const scores = observedRuns(unique).map((run) => {
+  const runs = observedRuns(unique);
+  const scores = runs.map((run) => {
     const latest = run.matches.findLast(
       (match) => match.encounter.winsRemaining != null
     );
@@ -53,6 +54,7 @@ export function summarizeSession(matches: Matchup[]) {
   );
   return {
     count: unique.length,
+    runCount: runs.length,
     ranks,
     heroes,
     unknownRanks:
@@ -116,4 +118,28 @@ export function observedRuns(matches: Matchup[]): ObservedRun[] {
     run.hero = heroes.size === 1 ? [...heroes][0] : null;
   }
   return runs;
+}
+
+export function sessionMatchupTable(matches: Matchup[]) {
+  const rows = observedRuns(matches).map((run) => {
+    const cells = new Map<number | null, Matchup[]>();
+    for (const match of run.matches) {
+      const day = match.encounter.igd ?? null;
+      const cell = cells.get(day) ?? [];
+      cell.push(match);
+      cells.set(day, cell);
+    }
+    return { ...run, cells };
+  });
+  const knownDays = rows.flatMap((run) =>
+    [...run.cells.keys()].filter((day) => day !== null)
+  );
+  const firstDay = knownDays.includes(0) ? 0 : 1;
+  const lastDay = Math.max(0, ...knownDays);
+  const days: (number | null)[] = Array.from(
+    { length: lastDay - firstDay + 1 },
+    (_, i) => firstDay + i
+  );
+  if (rows.some((run) => run.cells.has(null))) days.push(null);
+  return { days, rows };
 }

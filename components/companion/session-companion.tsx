@@ -1,6 +1,7 @@
 "use client";
 
 import { useEmbedState } from "@/components/embed-provider";
+import { Ghost } from "lucide-react";
 import { StreamerHeader } from "@/components/search/streamer-recordings";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,9 +15,8 @@ import { useSessionMatchups } from "./hooks/use-session-matchups";
 import { useMatchupPlayer } from "./hooks/use-matchup-player";
 import { useSelectedMatchup } from "./hooks/use-selected-matchup";
 import { MatchupList } from "./matchup-list";
-import { MatchupDetail } from "./matchup-detail";
 import { SessionStats } from "./session-stats";
-import { opponentLabel } from "@/lib/opponent-name";
+import { SessionTitle } from "./session-title";
 
 /** One retained streamer/session/day hierarchy, useful with sparse metadata and without video. */
 export function SessionCompanion() {
@@ -31,22 +31,14 @@ export function SessionCompanion() {
   const currentPlayback =
     playback?.recording.sessionId === contextSessionId ? playback : null;
   const recording = currentPlayback?.recording;
-  const inList = data.matches.some((m) => m.id === selectedId);
+  const title =
+    session?.title ??
+    recording?.title ??
+    (contextSessionId ? "Play session" : "Selected matchup");
 
   const header = (
     <>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-3 py-2 @sm:px-4">
-        <div className="flex items-start gap-2">
-          <h2
-            id="companion-heading"
-            tabIndex={-1}
-            className="min-w-0 flex-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {session?.title ??
-              recording?.title ??
-              (contextSessionId ? "Play session" : "Selected matchup")}
-          </h2>
-        </div>
         <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
           {recording?.publishedAt && (
             <time dateTime={recording.publishedAt}>
@@ -56,19 +48,13 @@ export function SessionCompanion() {
             </time>
           )}
           {session && (
-            <span>
-              {session.matchupCount} indexed{" "}
-              {session.matchupCount === 1 ? "matchup" : "matchups"}
-            </span>
-          )}
-          {session && (
-            <span>
-              {session.recordings.filter((r) => r.recording.available).length}{" "}
-              available{" "}
-              {session.recordings.filter((r) => r.recording.available)
-                .length === 1
-                ? "source"
-                : "sources"}
+            <span
+              className="inline-flex items-center gap-1"
+              title="Indexed matchups"
+            >
+              <Ghost aria-hidden className="size-3.5" />
+              <span className="sr-only">Indexed matchups: </span>
+              {session.matchupCount}
             </span>
           )}
           {session?.streamerMode && <span>Hidden names observed</span>}
@@ -91,14 +77,6 @@ export function SessionCompanion() {
           </Button>
         </p>
       )}
-      {canonical && !inList && (
-        <div className="border-y border-border bg-primary/5">
-          <h3 className="px-3 py-3 text-sm font-medium">
-            {opponentLabel(canonical.opponent)}
-          </h3>
-          <MatchupDetail match={canonical} />
-        </div>
-      )}
     </>
   );
   return (
@@ -107,13 +85,18 @@ export function SessionCompanion() {
       aria-label="Session companion"
     >
       {streamer ? (
-        <StreamerHeader streamerId={String(streamer.id)} card={null} />
+        <StreamerHeader streamerId={String(streamer.id)} card={null}>
+          <SessionTitle title={title} />
+        </StreamerHeader>
       ) : (
-        recording && (
-          <h2 className="px-3 py-3 text-sm font-medium">
-            {recording.channel.displayName}
-          </h2>
-        )
+        <div className="flex items-center gap-3 border-b border-border px-3 py-2">
+          {recording && (
+            <span className="max-w-[35%] truncate text-sm font-medium">
+              {recording.channel.displayName}
+            </span>
+          )}
+          <SessionTitle title={title} />
+        </div>
       )}
       {data.matches.length > 0 ? (
         <MatchupList

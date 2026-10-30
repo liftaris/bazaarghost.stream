@@ -9,15 +9,11 @@ import {
   type ReactNode,
 } from "react";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
-import { ChevronDown } from "lucide-react";
 import type { Matchup, Session } from "@/lib/api-contract";
-import { observedRuns } from "@/lib/session-summary";
+import { sessionMatchupTable } from "@/lib/session-summary";
 import { HeroIcon } from "@/components/hero-icon";
-import { cn } from "@/lib/utils";
-import { MatchupDetail } from "./matchup-detail";
 import { MatchupTile } from "./matchup-tile";
 
-/** Chronological run rows of square fights, with measured wrapping and one selected player box. */
 export function MatchupList({
   matches,
   selectedId,
@@ -37,165 +33,185 @@ export function MatchupList({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
+  const columnsRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
   const [margin, setMargin] = useState(0);
   useEffect(() => {
-    const el = headerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(() => setMargin(el.offsetHeight));
-    observer.observe(el);
+    const header = headerRef.current;
+    const columns = columnsRef.current;
+    if (!header || !columns) return;
+    const measure = () => setMargin(header.offsetHeight + columns.offsetHeight);
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    observer.observe(columns);
+    measure();
     return () => observer.disconnect();
   }, []);
-  const runs = useMemo(() => observedRuns(matches), [matches]);
-  const [openRuns, setOpenRuns] = useState<Record<string, boolean>>({});
-  const revealedSelection = useRef<{
-    id: number | null;
-    runKey: string | null;
-  }>({ id: null, runKey: null });
-  useEffect(() => {
-    if (revealedSelection.current.id !== selectedId)
-      revealedSelection.current = { id: selectedId, runKey: null };
-    const run = runs.find((run) =>
-      run.matches.some((match) => match.id === selectedId)
-    );
-    if (!run || revealedSelection.current.runKey === run.key) return;
-    revealedSelection.current.runKey = run.key;
-    setOpenRuns((previous) =>
-      previous[run.key] ? previous : { ...previous, [run.key]: true }
-    );
-  }, [selectedId, runs]);
+
+  const { days, rows } = useMemo(() => sessionMatchupTable(matches), [matches]);
   const [focusedRun, setFocusedRun] = useState<string | null>(null);
   const rangeExtractor = useCallback(
     (range: Parameters<typeof defaultRangeExtractor>[0]) => {
       const indices = new Set(defaultRangeExtractor(range));
-      const focused = runs.findIndex((run) => run.key === focusedRun);
-      // Retain the focused run and its neighbours so Tab can reach the next run even off screen.
+      const focused = rows.findIndex((run) => run.key === focusedRun);
       if (focused >= 0)
         for (
           let i = Math.max(0, focused - 1);
-          i <= Math.min(runs.length - 1, focused + 1);
+          i <= Math.min(rows.length - 1, focused + 1);
           i++
         )
           indices.add(i);
       return [...indices].sort((a, b) => a - b);
     },
-    [runs, focusedRun]
+    [rows, focusedRun]
   );
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack's measured list is intentionally not compiler-memoized
   const virtual = useVirtualizer({
-    count: runs.length,
+    count: rows.length,
     getScrollElement: () => scrollRef.current,
-    getItemKey: (i) => runs[i].key,
+    getItemKey: (i) => rows[i].key,
     scrollMargin: margin,
-    estimateSize: () => 144,
+    estimateSize: () => 96,
     overscan: 4,
     rangeExtractor,
     useAnimationFrameWithResizeObserver: true,
   });
   const previousSelection = useRef(selectedId);
+  const selectedRun = rows.findIndex((run) =>
+    run.matches.some((match) => match.id === selectedId)
+  );
+  const selectedDay =
+    matches.find((match) => match.id === selectedId)?.encounter.igd ?? null;
   useEffect(() => {
-    if (previousSelection.current === selectedId) return;
-    const i = runs.findIndex((run) =>
-      run.matches.some((match) => match.id === selectedId)
-    );
-    if (i >= 0) {
-      previousSelection.current = selectedId;
-      virtual.scrollToIndex(i, { align: "auto" });
+    if (previousSelection.current === selectedId || selectedRun < 0) return;
+    previousSelection.current = selectedId;
+    virtual.scrollToIndex(selectedRun, { align: "auto" });
+    const scroller = tableScrollRef.current;
+    const column = columnsRef.current?.children[days.indexOf(selectedDay) + 1];
+    if (scroller && column instanceof HTMLElement) {
+      const left = column.offsetLeft;
+      const right = left + column.offsetWidth;
+      if (left < scroller.scrollLeft + 80) scroller.scrollLeft = left - 80;
+      else if (right > scroller.scrollLeft + scroller.clientWidth)
+        scroller.scrollLeft = right - scroller.clientWidth;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- explicit selection only; initial rendering leaves the summary at the top
-  }, [selectedId, runs, margin]);
-  /* eslint-disable jsx-a11y/no-noninteractive-tabindex -- keyboard-scrollable region, including an all-disabled source list */
+  }, [selectedId, selectedRun, selectedDay, days, virtual]);
+
+  const gridTemplateColumns = `80px repeat(${days.length}, minmax(96px, 1fr))`;
   return (
     <div
       ref={scrollRef}
       className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
       style={{ overflowAnchor: "none" }}
-      role="region"
-      aria-label="Session matchups"
-      tabIndex={0}
     >
       <div ref={headerRef}>{header}</div>
       <div
-        className="relative w-full"
-        style={{ height: virtual.getTotalSize() }}
+        ref={tableScrollRef}
+        role="region"
+        aria-label="Session matchups"
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- keyboard-scrollable table, including sessions with no playable source
+        tabIndex={0}
+        className="relative w-full overflow-x-auto overscroll-x-contain outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
-        {virtual.getVirtualItems().map((row) => {
-          const run = runs[row.index];
-          const expanded = openRuns[run.key] ?? true;
-          const selected = run.matches.find((match) => match.id === selectedId);
-          return (
+        <div
+          role="table"
+          aria-label="Encounters by run and day"
+          aria-rowcount={rows.length + 1}
+          aria-colcount={days.length + 1}
+          style={{ minWidth: 80 + days.length * 96 }}
+        >
+          <div role="rowgroup">
             <div
-              key={run.key}
-              data-index={row.index}
-              ref={virtual.measureElement}
-              className="absolute left-0 top-0 grid w-full grid-cols-1 gap-2 px-3 py-2 @lg:grid-cols-[6rem_minmax(0,1fr)] @sm:px-4"
-              style={{ transform: `translateY(${row.start - margin}px)` }}
-              onFocusCapture={() => setFocusedRun(run.key)}
-              onBlurCapture={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget))
-                  setFocusedRun(null);
-              }}
-              data-run={run.key}
+              ref={columnsRef}
+              role="row"
+              aria-rowindex={1}
+              className="grid border-y border-border text-center text-xs text-muted-foreground"
+              style={{ gridTemplateColumns }}
             >
-              <h3 className="w-full">
-                <button
-                  type="button"
-                  aria-expanded={expanded}
-                  aria-controls={`run-matchups-${run.matches[0].id}`}
-                  onClick={() =>
-                    setOpenRuns((previous) => ({
-                      ...previous,
-                      [run.key]: !expanded,
-                    }))
-                  }
-                  className="flex min-h-11 w-full items-start gap-1 rounded-md py-1 text-left text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                >
-                  <ChevronDown
-                    aria-hidden
-                    className={cn(
-                      "size-4 shrink-0 transition-transform motion-reduce:transition-none",
-                      !expanded && "-rotate-90"
-                    )}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-center gap-x-2 text-sm font-medium @lg:items-start @lg:flex-col">
-                      <span>Run {run.number ?? "-"}</span>
-                      <HeroIcon hero={run.hero} />
-                    </span>
-                  </span>
-                </button>
-              </h3>
               <div
-                id={`run-matchups-${run.matches[0].id}`}
-                hidden={!expanded}
-                className="min-w-0"
+                role="columnheader"
+                className="sticky left-0 z-10 bg-background px-2 py-2"
               >
-                <div className="flex w-full flex-wrap gap-1.5">
-                  {run.matches.map((match) => (
-                    <MatchupTile
-                      key={match.id}
-                      match={match}
-                      selected={match.id === selectedId}
-                      active={match.id === activeId}
-                      recordingId={recordingId}
-                      session={session}
-                      onSelect={onSelect}
-                    />
+                Run
+              </div>
+              {days.map((day) => (
+                <div
+                  role="columnheader"
+                  key={day ?? "unknown"}
+                  className="px-2 py-2"
+                >
+                  {day === null ? "Unknown day" : `Day ${day}`}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div
+            role="rowgroup"
+            className="relative w-full"
+            style={{ height: virtual.getTotalSize() }}
+          >
+            {virtual.getVirtualItems().map((row) => {
+              const run = rows[row.index];
+              return (
+                <div
+                  role="row"
+                  aria-rowindex={row.index + 2}
+                  key={run.key}
+                  data-index={row.index}
+                  ref={virtual.measureElement}
+                  data-run={run.key}
+                  className="absolute left-0 top-0 grid w-full border-b border-border"
+                  style={{
+                    gridTemplateColumns,
+                    transform: `translateY(${row.start - margin}px)`,
+                  }}
+                  onFocusCapture={() => setFocusedRun(run.key)}
+                  onBlurCapture={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget))
+                      setFocusedRun(null);
+                  }}
+                >
+                  <div
+                    role="rowheader"
+                    className="sticky left-0 z-10 flex flex-col items-center justify-center gap-1 border-r border-border bg-background px-2 py-2 text-xs font-medium"
+                  >
+                    <span>Run {run.number ?? "-"}</span>
+                    <HeroIcon hero={run.hero} />
+                  </div>
+                  {days.map((day) => (
+                    <div
+                      role="cell"
+                      key={day ?? "unknown"}
+                      data-day={day ?? "unknown"}
+                      className="flex min-w-0 flex-col gap-2 p-2"
+                    >
+                      {run.cells
+                        .get(day)
+                        ?.map((match) => (
+                          <MatchupTile
+                            key={match.id}
+                            match={match}
+                            selected={match.id === selectedId}
+                            active={match.id === activeId}
+                            recordingId={recordingId}
+                            session={session}
+                            onSelect={onSelect}
+                          />
+                        )) ?? (
+                        <span
+                          className="flex h-20 items-center justify-center text-xs text-muted-foreground"
+                          aria-label="No indexed encounter"
+                        >
+                          —
+                        </span>
+                      )}
+                    </div>
                   ))}
                 </div>
-                {selected && (
-                  <div id={`matchup-player-${selected.id}`} className="mt-2">
-                    <MatchupDetail
-                      match={selected}
-                      runNumber={run.number}
-                      recordingId={recordingId}
-                      session={session}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
