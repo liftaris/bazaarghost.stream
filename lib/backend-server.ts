@@ -6,5 +6,6 @@ export function backendFetch(request: Request): Promise<Response> {
     method: request.method, headers: Object.fromEntries(request.headers),
     body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
     redirect: "manual",
+    signal: request.signal,
   });
 }

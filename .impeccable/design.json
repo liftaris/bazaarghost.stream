@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-30T14:18:09Z",
+  "title": "Design System: BazaarGhost",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Orange action" },
+      "background": { "role": "neutral", "displayName": "Cream background" },
+      "dark-background": {
+        "role": "neutral",
+        "displayName": "Charcoal background"
+      },
+      "hero-muted": { "role": "neutral", "displayName": "Muted gold" }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Public-page title",
+        "purpose": "Averia Libre; grows to 3.75rem at a 32rem landing container width."
+      },
+      "headline": {
+        "displayName": "Archive total",
+        "purpose": "Tabular numerals above archive lists."
+      },
+      "metadata": {
+        "displayName": "List metadata",
+        "purpose": "Session counts, durations, matchup days, and timestamps."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-xs",
+        "value": "var(--shadow-xs)",
+        "purpose": "Shared inputs and outline buttons; theme-aware geometry from app/globals.css."
+      },
+      {
+        "name": "shadow-sm",
+        "value": "var(--shadow-sm)",
+        "purpose": "Shared cards."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-transition",
+        "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Tailwind default transition timing used by shared controls and preview rows."
+      },
+      {
+        "name": "landing-feeds",
+        "value": "12 / 24 / 36 CSS px per second",
+        "purpose": "Independent native scrolling for streamers, recordings, and ghosts. Pauses on hover, focus, manual input, reduced motion, hidden tabs, or offscreen feeds."
+      }
+    ],
+    "breakpoints": [
+      { "name": "landing-title-container-lg", "value": "32rem" },
+      { "name": "navigation-container-xl", "value": "36rem" },
+      { "name": "landing-columns-container-4xl", "value": "56rem" },
+      { "name": "input-text-viewport-md", "value": "48rem" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Shared button with the landing's dark-text override for both themes.",
+      "html": "<button class=\"ds-primary\">Search</button>",
+      "css": ".ds-primary{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:8px 16px;border:0;border-radius:6px;background:var(--primary);color:var(--foreground);font-family:var(--font-serif);font-size:14px;font-weight:500;line-height:20px;transition:all 150ms cubic-bezier(0.4,0,0.2,1)}:host-context(.dark) .ds-primary{color:var(--background)}.ds-primary:hover{background:color-mix(in oklab,var(--primary) 90%,transparent)}.ds-primary:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 50%,transparent)}.ds-primary:disabled{pointer-events:none;opacity:.5}"
+    },
+    {
+      "name": "Outline button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Bordered secondary action used for retries.",
+      "html": "<button class=\"ds-outline\">Try again</button>",
+      "css": ".ds-outline{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:var(--background);color:var(--foreground);box-shadow:var(--shadow-xs);font-family:var(--font-serif);font-size:14px;font-weight:500;line-height:20px;transition:all 150ms cubic-bezier(0.4,0,0.2,1)}.ds-outline:hover{background:var(--muted)}.ds-outline:focus-visible{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 50%,transparent)}.ds-outline:disabled{pointer-events:none;opacity:.5}"
+    },
+    {
+      "name": "Ghost button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Quiet action used by navigation and feed pause controls.",
+      "html": "<button class=\"ds-ghost\">Pause scrolling</button>",
+      "css": ".ds-ghost{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:8px 16px;border:0;border-radius:6px;background:transparent;color:var(--foreground);font-family:var(--font-serif);font-size:14px;font-weight:500;line-height:20px;transition:all 150ms cubic-bezier(0.4,0,0.2,1)}.ds-ghost:hover{background:var(--muted)}.ds-ghost:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 50%,transparent)}.ds-ghost:disabled{pointer-events:none;opacity:.5}"
+    },
+    {
+      "name": "Search input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Shared input enlarged to the landing's 56px height.",
+      "html": "<input class=\"ds-input\" aria-label=\"Your in-game name\" type=\"search\" placeholder=\"Search for your ghost…\">",
+      "css": ".ds-input{height:56px;width:100%;min-width:0;padding:4px 12px;border:1px solid var(--input);border-radius:6px;background:transparent;color:var(--foreground);font-family:var(--font-serif);font-size:16px;line-height:24px;box-shadow:var(--shadow-xs);transition:color 150ms cubic-bezier(0.4,0,0.2,1),box-shadow 150ms cubic-bezier(0.4,0,0.2,1)}:host-context(.dark) .ds-input{background:color-mix(in oklab,var(--input) 30%,transparent)}.ds-input::placeholder{color:var(--muted-foreground)}.ds-input:focus-visible{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 50%,transparent)}.ds-input[aria-invalid=true]{border-color:var(--destructive);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive) 20%,transparent)}:host-context(.dark) .ds-input[aria-invalid=true]{box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive) 40%,transparent)}.ds-input:disabled{pointer-events:none;cursor:not-allowed;opacity:.5}@media(min-width:48rem){.ds-input{font-size:14px;line-height:20px}}"
+    },
+    {
+      "name": "Secondary badge",
+      "kind": "chip",
+      "refersTo": "badge-secondary",
+      "description": "Shared neutral label; text is a component specimen.",
+      "html": "<span class=\"ds-badge\">Recording</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;justify-content:center;gap:4px;width:fit-content;padding:2px 8px;border:1px solid transparent;border-radius:9999px;background:var(--secondary);color:var(--secondary-foreground);font-family:var(--font-serif);font-size:12px;font-weight:500;line-height:16px;white-space:nowrap;overflow:hidden}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Shared card shell, available beyond the landing's divider-based lists.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-content\">Recording details</div></div>",
+      "css": ".ds-card{display:flex;flex-direction:column;gap:24px;padding:24px 0;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--card-foreground);box-shadow:var(--shadow-sm);font-family:var(--font-serif)}.ds-card-content{padding:0 24px}"
+    },
+    {
+      "name": "Navigation links",
+      "kind": "nav",
+      "description": "Public navigation's inline link group; full navigation also includes the logo and menu sheet.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Page links\"><a href=\"/search\">Search</a><a href=\"/how-it-works\">How it works</a><a href=\"/contact\">Contact</a></nav>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:28px;padding:16px;background:var(--card);border-bottom:1px solid var(--border);font-family:var(--font-serif);font-size:14px;line-height:20px}.ds-nav a{color:var(--muted-foreground);text-decoration:none;border-radius:4px}.ds-nav a:hover{color:var(--foreground)}.ds-nav a:focus-visible{outline:2px solid var(--ring)}"
+    },
+    {
+      "name": "Linked preview row",
+      "kind": "custom",
+      "refersTo": "preview-row",
+      "description": "Landing link treatment with specimen text, not catalog data.",
+      "html": "<a class=\"ds-row\" href=\"/recordings\"><span>Browse recordings</span><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m9 18 6-6-6-6\"/></svg></a>",
+      "css": ".ds-row{display:flex;align-items:center;gap:12px;min-height:88px;width:100%;padding:12px;border:0;border-radius:8px;background:transparent;color:var(--foreground);text-align:left;text-decoration:none;font-family:var(--font-serif);font-size:14px;line-height:20px;transition:color 150ms cubic-bezier(0.4,0,0.2,1),background-color 150ms cubic-bezier(0.4,0,0.2,1)}.ds-row span{flex:1;min-width:0;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere}.ds-row svg{flex-shrink:0;color:var(--muted-foreground)}.ds-row:hover{background:color-mix(in oklab,var(--primary) 10%,transparent)}.ds-row:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--ring)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Incumbent cream/charcoal/orange interface",
+    "overview": "BazaarGhost pairs cream or charcoal backgrounds with orange actions, Averia Libre public-page typography, and existing hero emblems. Dense lists and restrained borders keep recordings and matchups readable.\n\nThis records the implemented system, not a redesign. Source authority is `app/globals.css`, `app/layout.tsx`, `components/ui`, and `components/navbar.tsx`. The landing implementation in `app/(app)/page.tsx` and `components/landing` extends that system. Its selected concept and exact copy remain in `.impeccable/surfaces/landing.md`.",
+    "keyCharacteristics": [
+      "Cream and charcoal theme pairs with a shared orange accent.",
+      "Averia Libre on public pages and the wordmark.",
+      "Hairline dividers, compact controls, and tonal selection states."
+    ],
+    "rules": [
+      {
+        "name": "The Theme Pair Rule",
+        "body": "Use semantic CSS properties so a component follows both existing themes.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do reuse the existing semantic colors, local typeface, logo, and hero emblems.",
+      "Do keep selected rows, hover states, and keyboard focus visually distinct.",
+      "Do preserve readable text in both themes when reusing orange actions."
+    ],
+    "donts": [
+      "Don't replace the incumbent visual identity as part of a new page.",
+      "Don't turn a landing-specific composition or deferred animation into a global rule."
+    ]
+  }
+}

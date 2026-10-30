@@ -29,7 +29,7 @@ export default function Navbar({
   searchRef: Ref<HTMLDivElement>;
   workspace: boolean;
 }) {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(
     subscribeNever,
     () => true,
@@ -48,7 +48,7 @@ export default function Navbar({
             "grid items-center gap-x-3 gap-y-2 px-3 py-2 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]",
             workspace
               ? "grid-cols-[auto_1fr_auto] @xl/nav:grid-cols-[auto_auto_minmax(0,1fr)_auto]"
-              : "grid-cols-[1fr_auto]"
+              : "grid-cols-[1fr_auto] py-4 @xl/nav:grid-cols-[1fr_auto_auto]"
           )}
         >
           <Link
@@ -65,10 +65,37 @@ export default function Navbar({
               priority
               className="object-contain"
             />
-            <span className="hidden text-xl font-bold text-primary @5xl/nav:inline">
+            <span
+              className={cn(
+                "text-xl font-bold text-primary",
+                workspace && "hidden @5xl/nav:inline"
+              )}
+            >
               BazaarGhost
             </span>
           </Link>
+          {!workspace && (
+            <div className="hidden items-center gap-7 px-4 font-serif text-sm text-muted-foreground @xl/nav:flex">
+              <Link
+                href="/search"
+                className="rounded-sm hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                Search
+              </Link>
+              <Link
+                href="/how-it-works"
+                className="rounded-sm hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                How it works
+              </Link>
+              <Link
+                href="/contact"
+                className="rounded-sm hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                Contact
+              </Link>
+            </div>
+          )}
           <div ref={searchRef} className={workspace ? "contents" : "hidden"} />
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
@@ -84,7 +111,10 @@ export default function Navbar({
                 <Menu />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72 font-serif pr-[env(safe-area-inset-right)]">
+            <SheetContent
+              side="right"
+              className="w-72 font-serif pr-[env(safe-area-inset-right)]"
+            >
               <SheetHeader className="shrink-0 pt-[max(1rem,env(safe-area-inset-top))]">
                 <SheetTitle className="text-left">Menu</SheetTitle>
               </SheetHeader>
@@ -129,11 +159,17 @@ export default function Navbar({
                     variant="ghost"
                     size="icon"
                     onClick={() =>
-                      setTheme(theme === "dark" ? "light" : "dark")
+                      setTheme(resolvedTheme === "dark" ? "light" : "dark")
                     }
                     aria-label="Toggle theme"
                   >
-                    {mounted ? theme === "dark" ? <Sun /> : <Moon /> : null}
+                    {mounted ? (
+                      resolvedTheme === "dark" ? (
+                        <Sun />
+                      ) : (
+                        <Moon />
+                      )
+                    ) : null}
                   </Button>
                 </div>
                 <UserMenu onNavigate={() => setIsOpen(false)} />

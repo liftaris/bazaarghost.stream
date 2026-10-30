@@ -3,6 +3,7 @@ import vinext from "vinext";
 import tailwindcss from "@tailwindcss/vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { workersCacheCdnAdapter } from "@vinext/cloudflare/cache/workers-cache-cdn-adapter";
+import { kvDataAdapter } from "@vinext/cloudflare/cache/kv-data-adapter";
 import { imagesOptimizer } from "@vinext/cloudflare/images/images-optimizer";
 
 export default defineConfig({
@@ -10,7 +11,10 @@ export default defineConfig({
     tailwindcss(),
     // vinext auto-injects @mdx-js/rollup with plugins from next.config
     vinext({
-      cache: { cdn: workersCacheCdnAdapter() },
+      cache: {
+        cdn: workersCacheCdnAdapter(),
+        data: kvDataAdapter({ binding: "VINEXT_KV_CACHE" }),
+      },
       images: { optimizer: imagesOptimizer() },
     }),
     cloudflare({

@@ -1,13 +1,14 @@
 "use client";
 
-import { Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { WorkspaceContext } from "@/components/workspace-context";
 import { EmbedProvider } from "@/components/embed-provider";
 import { PlayerHotkeys } from "@/components/player/player-hotkeys";
 import Navbar from "@/components/navbar";
-import SearchPanel from "@/components/search";
 import { cn } from "@/lib/utils";
+
+const SearchPanel = lazy(() => import("@/components/search"));
 
 /** Routes that render their own content instead of the search/player workspace. */
 const CONTENT_ROUTES = [
@@ -27,9 +28,13 @@ const CONTENT_ROUTES = [
 export function AppShell({ children }: { children: ReactNode }) {
   const [searchHost, setSearchHost] = useState<HTMLDivElement | null>(null);
   const pathname = usePathname();
-  const workspace = !CONTENT_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  );
+  const workspace =
+    pathname !== "/" &&
+    !CONTENT_ROUTES.some(
+      (route) => pathname === route || pathname.startsWith(`${route}/`)
+    );
+  const [workspaceMounted, setWorkspaceMounted] = useState(workspace);
+  if (workspace && !workspaceMounted) setWorkspaceMounted(true);
 
   return (
     <EmbedProvider>
@@ -50,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <WorkspaceContext.Provider value={workspace}>
             <Suspense>
-              <SearchPanel navHost={searchHost} />
+              {workspaceMounted && <SearchPanel navHost={searchHost} />}
             </Suspense>
           </WorkspaceContext.Provider>
         </main>
