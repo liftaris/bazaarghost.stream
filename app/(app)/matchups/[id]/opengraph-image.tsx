@@ -56,9 +56,10 @@ function HeroBackdrop({
       alt=""
       style={{
         position: "absolute",
-        top: 100,
-        [side]: -40,
+        bottom: -24,
+        [side]: -24,
         objectFit: "contain",
+        objectPosition: "right bottom",
         transform: side === "left" ? "scaleX(-1)" : "scaleX(1)",
       }}
     />
@@ -76,9 +77,20 @@ function font() {
 
 function Mark() {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 34, color: FOREGROUND }}>
-      <img src={logo} width={64} height={40} alt="" />
-      BazaarGhost
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 14, width: "100%" }}>
+      <span style={{ fontSize: 34 }}>Watch on</span>
+      <span style={{ fontSize: 48, color: ORANGE }}>BazaarGhost</span>
+      <img src={logo} width={80} height={50} alt="" />
+    </div>
+  );
+}
+
+function PlayerName({ name }: { name: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", width: 480 }}>
+      <div style={{ display: "block", maxWidth: "100%", fontSize: 60, lineHeight: 1.05, textAlign: "center", wordBreak: "break-all", lineClamp: 2 }}>
+        {name}
+      </div>
     </div>
   );
 }
@@ -120,6 +132,7 @@ export default async function Image({ params }: Props) {
   const { rank } = matchup.opponent;
   const opponent = opponentLabel(matchup.opponent);
   const badge = rank ? RANK_BADGES[rank.toLowerCase()] : undefined;
+  const day = matchup.encounter.igd;
   return new ImageResponse(
     <div style={root}>
       <HeroBackdrop hero={matchup.encounter.streamerHero} side="left" />
@@ -129,8 +142,8 @@ export default async function Image({ params }: Props) {
         style={{
           position: "absolute",
           top: 148,
-          left: 260,
-          width: 680,
+          left: 230,
+          width: 740,
           height: 240,
           display: "flex",
           alignItems: "center",
@@ -141,9 +154,8 @@ export default async function Image({ params }: Props) {
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
-            gap: 28,
+            justifyContent: "center",
             width: 240,
             flexShrink: 0,
           }}
@@ -151,29 +163,28 @@ export default async function Image({ params }: Props) {
           {creator.avatar ? (
             <img
               src={creator.avatar}
-              width={220}
-              height={220}
+              width={200}
+              height={200}
               alt=""
-              style={{ borderRadius: 110, border: `8px solid ${ORANGE}` }}
+              style={{ borderRadius: 100, border: `6px solid ${ORANGE}` }}
             />
           ) : (
             <div
               style={{
-                width: 220,
-                height: 220,
-                borderRadius: 110,
+                width: 200,
+                height: 200,
+                borderRadius: 100,
                 background: ORANGE,
               }}
             />
           )}
         </div>
-        <div style={{ fontSize: 56, color: ORANGE, display: "flex" }}>vs</div>
+        <div style={{ fontSize: 40, color: "#a0a0a0", display: "flex" }}>vs</div>
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
-            gap: 20,
+            justifyContent: "center",
             width: 240,
             flexShrink: 0,
           }}
@@ -191,21 +202,19 @@ export default async function Image({ params }: Props) {
               <img src={badge} width={128} height={128} alt={rank ?? ""} />
             ) : null}
           </div>
-          <div
-            style={{
-              width: 600,
-              display: "flex",
-              justifyContent: "center",
-              fontSize: 48,
-              textAlign: "center",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {opponent}
-          </div>
         </div>
       </div>
-      <div style={{ display: "flex", height: 10, background: ORANGE, borderRadius: 5 }} />
+      <div
+        style={{ position: "absolute", top: 380, left: 110, width: 980, display: "flex", gap: 20 }}
+      >
+        <PlayerName name={creator.name} />
+        <PlayerName name={opponent} />
+      </div>
+      {day != null ? (
+        <div style={{ display: "flex", justifyContent: "center", width: "100%", fontSize: 40, color: ORANGE }}>
+          Day {day}
+        </div>
+      ) : null}
     </div>,
     { ...size, fonts, headers }
   );

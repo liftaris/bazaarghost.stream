@@ -25,6 +25,7 @@ def main():
         mask = Image.open(public / "heroes/insets" / f"{hero}.webp").convert("RGBA")
         image = Image.new("RGBA", mask.size, "#333333")
         image.putalpha(mask.getchannel("A"))
+        image = image.crop(image.getbbox())
         path = output / f"{hero}.png"
         if args.check:
             actual = Image.open(path).convert("RGBA")
