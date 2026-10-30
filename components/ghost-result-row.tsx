@@ -109,24 +109,21 @@ export const GhostResultRow = memo(function GhostResultRow({
         <HeroInset hero={streamerHero} className="left-0 -scale-x-100" />
       )}
       {ghostHero && <HeroInset hero={ghostHero} className="right-0" />}
-      <div className="flex h-full items-center gap-2 px-3 [--avatar-inset:16px] @[200px]:pl-[var(--avatar-inset)] @[360px]:gap-3 @[360px]:[--avatar-inset:clamp(20px,calc(50cqw_-_224px),112px)]">
-        {/* Streamer avatar — hidden below 200px */}
-        <Avatar className="pointer-events-none relative z-10 hidden size-9 shrink-0 @[200px]:block">
-          {ghost.streamer_avatar && (
-            <AvatarImage
-              src={ghost.streamer_avatar}
-              alt={ghost.streamer_display_name}
-            />
-          )}
-          <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-            {ghost.streamer_display_name[0]?.toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-
-        {/* Main content */}
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
-          <div className="flex min-w-0 items-center justify-center gap-0.5 text-sm @[320px]:gap-1">
-            <span className="relative hidden min-w-0 shrink @[280px]:block">
+      <div className="flex h-full items-center justify-center px-4">
+        <div className="flex w-full max-w-[448px] items-center justify-center gap-2 text-sm @[352px]:grid @[352px]:grid-cols-[minmax(0,1fr)_16px_200px]">
+          <span className="hidden min-w-0 max-w-full shrink-0 items-center gap-2 @[280px]:flex @[352px]:shrink @[352px]:justify-self-end">
+            <Avatar className="pointer-events-none relative z-10 size-9 shrink-0">
+              {ghost.streamer_avatar && (
+                <AvatarImage
+                  src={ghost.streamer_avatar}
+                  alt={ghost.streamer_display_name}
+                />
+              )}
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                {ghost.streamer_display_name[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="hidden min-w-0 @[352px]:block">
               {ghost.streamer_id ? (
                 <button
                   data-result-streamer
@@ -149,9 +146,11 @@ export const GhostResultRow = memo(function GhostResultRow({
                 </span>
               )}
             </span>
-            <span className="pointer-events-none relative z-10 hidden shrink-0 text-muted-foreground @[280px]:block">
-              vs
-            </span>
+          </span>
+          <span className="pointer-events-none relative z-10 hidden text-center text-muted-foreground @[352px]:block">
+            vs
+          </span>
+          <div className="flex min-w-0 items-center gap-1">
             {ghost.rank && KNOWN_RANKS.has(ghost.rank.toLowerCase()) && (
               <Image
                 src={`/${ghost.rank.toLowerCase()}.webp`}
@@ -168,18 +167,19 @@ export const GhostResultRow = memo(function GhostResultRow({
               prefetch={false}
               onClick={handlePlay}
               aria-current={isActive ? "true" : undefined}
-              className="min-w-0 max-w-[calc(100%_-_26px)] shrink-0 font-medium text-foreground outline-none after:absolute after:inset-0 @[280px]:max-w-[calc(100%_-_50px)]"
+              className="min-w-0 font-medium text-foreground outline-none after:absolute after:inset-0"
             >
-              <span className="relative z-10 block truncate">
+              <span className="relative z-10 block [overflow-wrap:anywhere]">
                 {opponentLabel(ghost)}
               </span>
             </Link>
           </div>
         </div>
-        <div className="hidden min-w-[calc(var(--avatar-inset)_+_24px)] shrink-0 justify-end @[200px]:flex">
-          <SourceStack sources={ghost.sources} />
-        </div>
       </div>
+      <SourceStack
+        sources={ghost.sources}
+        className="absolute right-3 top-1/2 hidden max-w-[calc(50%_-_240px)] -translate-y-1/2 flex-wrap justify-end @[560px]:flex"
+      />
     </div>
   );
 });
