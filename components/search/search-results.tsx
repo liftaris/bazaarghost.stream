@@ -52,7 +52,7 @@ function Skeletons({ row: Row }: { row: () => ReactNode }) {
 }
 
 function GhostSkeleton() {
-  return <Skeleton className="h-[72px] w-full" />;
+  return <Skeleton className="mx-auto h-[72px] w-full max-w-[672px]" />;
 }
 
 function None({ icon: Icon }: { icon: typeof Ghost }) {
@@ -89,7 +89,7 @@ export function SearchResults({
   if (mode === "saved")
     return saved.items.length > 0 ? (
       <ScrollMemory scrollKey={scrollKey} stale={false}>
-        <VirtualizedResultList items={saved.items} totalCount={saved.items.length} getItemKey={(g) => g.matchup_id} renderItem={renderGhost} onLoadMore={saved.loadMore} isLoadingMore={saved.loadingMore} hasMore={saved.hasMore} />
+        <VirtualizedResultList contentClassName="mx-auto max-w-[680px]" items={saved.items} totalCount={saved.items.length} getItemKey={(g) => g.matchup_id} renderItem={renderGhost} onLoadMore={saved.loadMore} isLoadingMore={saved.loadingMore} hasMore={saved.hasMore} />
       </ScrollMemory>
     ) : saved.loading ? <Skeletons row={GhostSkeleton} /> : saved.empty ? <None icon={Bookmark} /> : null;
 
@@ -98,6 +98,7 @@ export function SearchResults({
       <ScrollMemory scrollKey={scrollKey} stale={ghosts.stale}>
         <VirtualizedResultList
           items={ghosts.items}
+          contentClassName="mx-auto max-w-[680px]"
           totalCount={ghosts.items.length}
           getItemKey={(g) => g.matchup_id}
           getItemDate={(g) => g.actual_timestamp}

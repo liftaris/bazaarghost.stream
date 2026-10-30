@@ -122,8 +122,8 @@ test("search hero cutouts use shipped masks, with the streamer facing the ghost"
   const opponent = nodes.find((node) => node.props?.href === "/matchups/1");
   assert.ok(nodes.indexOf(icons[0]) < nodes.indexOf(streamer));
   assert.ok(nodes.indexOf(streamer) < nodes.indexOf(rank));
-  assert.ok(nodes.indexOf(rank) < nodes.indexOf(icons[1]));
-  assert.ok(elements(opponent).includes(icons[1]));
+  assert.ok(nodes.indexOf(icons[1]) < nodes.indexOf(streamer));
+  assert.ok(!elements(opponent).includes(icons[1]));
   assert.match(icons[0].props.className, /-scale-x-100/);
   assert.doesNotMatch(icons[1].props.className, /scale-x/);
   for (const icon of icons) {

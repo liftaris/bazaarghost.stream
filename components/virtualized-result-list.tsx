@@ -49,6 +49,7 @@ interface HeaderMeta {
 }
 
 interface VirtualizedResultListProps<T> {
+  contentClassName?: string;
   /** The accumulated items array */
   items: T[];
   /** Total count from the server (used for result count display) */
@@ -226,6 +227,7 @@ export function VirtualizedResultList<T>({
   searchQuery,
   stale = false,
   activeKey = null,
+  contentClassName,
 }: VirtualizedResultListProps<T>) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastInteraction = useRef(0);
@@ -429,7 +431,10 @@ export function VirtualizedResultList<T>({
             style={{ height: `${stickyHeight}px` }}
           >
             <div
-              className="flex h-full w-full items-center gap-3 bg-background pr-2"
+              className={cn(
+                "flex h-full w-full items-center gap-3 bg-background pr-2",
+                contentClassName
+              )}
               style={{
                 transform: stickyOffset
                   ? `translateY(${stickyOffset}px)`
@@ -447,7 +452,10 @@ export function VirtualizedResultList<T>({
 
         {/* Scrollable virtual list — pr-2 leaves gutter for scrollbar */}
         <div ref={scrollRef} className="h-full overflow-y-auto pl-4 pr-2">
-          <div className="relative w-full" style={{ height: `${totalSize}px` }}>
+          <div
+            className={cn("relative w-full", contentClassName)}
+            style={{ height: `${totalSize}px` }}
+          >
             {virtualItems.map((virtualRow) => {
               const entry = entries[virtualRow.index];
               if (!entry) return null;

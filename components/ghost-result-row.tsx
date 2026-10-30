@@ -106,9 +106,10 @@ export const GhostResultRow = memo(function GhostResultRow({
       )}
     >
       {streamerHero && (
-        <HeroInset hero={streamerHero} className="-left-[22px] -scale-x-100" />
+        <HeroInset hero={streamerHero} className="left-0 -scale-x-100" />
       )}
-      <div className="flex h-full items-center gap-2 px-3 @[200px]:pl-4 @[360px]:gap-3 @[360px]:pl-5">
+      {ghostHero && <HeroInset hero={ghostHero} className="right-0" />}
+      <div className="flex h-full items-center gap-2 px-3 [--avatar-inset:16px] @[200px]:pl-[var(--avatar-inset)] @[360px]:gap-3 @[360px]:[--avatar-inset:clamp(20px,calc(50cqw_-_224px),112px)]">
         {/* Streamer avatar — hidden below 200px */}
         <Avatar className="pointer-events-none relative z-10 hidden size-9 shrink-0 @[200px]:block">
           {ghost.streamer_avatar && (
@@ -124,7 +125,7 @@ export const GhostResultRow = memo(function GhostResultRow({
 
         {/* Main content */}
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
-          <div className="flex min-w-0 items-center gap-0.5 text-sm @[320px]:gap-1">
+          <div className="flex min-w-0 items-center justify-center gap-0.5 text-sm @[320px]:gap-1">
             <span className="relative hidden min-w-0 shrink @[280px]:block">
               {ghost.streamer_id ? (
                 <button
@@ -167,23 +168,17 @@ export const GhostResultRow = memo(function GhostResultRow({
               prefetch={false}
               onClick={handlePlay}
               aria-current={isActive ? "true" : undefined}
-              className="flex min-w-0 flex-auto items-center font-medium text-foreground outline-none after:absolute after:inset-0"
+              className="min-w-0 max-w-[calc(100%_-_26px)] shrink-0 font-medium text-foreground outline-none after:absolute after:inset-0 @[280px]:max-w-[calc(100%_-_50px)]"
             >
-              <span className="relative z-10 min-w-0 truncate">
+              <span className="relative z-10 block truncate">
                 {opponentLabel(ghost)}
-              </span>
-              <span className="relative min-w-0 flex-1 self-stretch">
-                {ghostHero && (
-                  <HeroInset
-                    hero={ghostHero}
-                    className="left-[min(8px,calc(100%_-_104px))]"
-                  />
-                )}
               </span>
             </Link>
           </div>
         </div>
-        <SourceStack sources={ghost.sources} className="hidden @[200px]:flex" />
+        <div className="hidden min-w-[calc(var(--avatar-inset)_+_24px)] shrink-0 justify-end @[200px]:flex">
+          <SourceStack sources={ghost.sources} />
+        </div>
       </div>
     </div>
   );
