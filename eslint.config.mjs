@@ -28,6 +28,10 @@ export default defineConfig([
   jsxA11y.flatConfigs.recommended,
   nextPlugin.configs["core-web-vitals"],
   {
+    files: ["components/og/**/*.tsx"],
+    rules: { "@next/next/no-img-element": "off" },
+  },
+  {
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
   },
 ]);
