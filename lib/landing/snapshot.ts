@@ -39,6 +39,7 @@ async function get<P extends SnapshotPath>(
       "error" in failure &&
       failure.error === "Unsupported query parameter"
     ) {
+      params.representation = null;
       url.searchParams.delete("representation");
       response = await backendFetch(new Request(url, { signal }));
     }
@@ -83,6 +84,12 @@ async function loadSnapshot(): Promise<LandingSnapshot> {
   const recordingsFrom = new Date(now - DAY).toISOString();
   const ghostsFrom = new Date(now - DAY * 7).toISOString();
   const signal = AbortSignal.timeout(20_000);
+  const ghostParams: Params = {
+    representation: "summary",
+    from: ghostsFrom,
+    to: generatedAt,
+    limit: 100,
+  };
   const [stats, streamers, sessions, pool] = await Promise.all([
     get("/stats", {}, signal),
     collectPages((cursor) => get("/streamers", { limit: 100, cursor }, signal)),
@@ -93,21 +100,10 @@ async function loadSnapshot(): Promise<LandingSnapshot> {
         signal
       )
     ),
-    collectPages(
-      (cursor) =>
-        get(
-          "/search",
-          {
-            representation: "summary",
-            from: ghostsFrom,
-            to: generatedAt,
-            limit: 100,
-            cursor,
-          },
-          signal
-        ),
-      500
-    ),
+    collectPages((cursor) => {
+      ghostParams.cursor = cursor;
+      return get("/search", ghostParams, signal);
+    }, 500),
   ]);
 
   return {

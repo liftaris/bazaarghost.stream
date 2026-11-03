@@ -113,7 +113,11 @@ test("legacy backends retry only the unsupported summary parameter without losin
     searches.push(url);
     if (url.searchParams.has("representation"))
       return Response.json(
-        { error: "Unsupported query parameter" },
+        {
+          error: url.searchParams.has("cursor")
+            ? "Cursor belongs to another query"
+            : "Unsupported query parameter",
+        },
         { status: 400 }
       );
     const next = url.searchParams.has("cursor");
@@ -126,17 +130,13 @@ test("legacy backends retry only the unsupported summary parameter without losin
   assert.equal(snapshot.streamers.length, 1);
   assert.equal(snapshot.recordings.length, 1);
   assert.equal(snapshot.ghosts.length, 2);
-  assert.equal(searches.length, 4);
-  for (let i = 0; i < searches.length; i += 2) {
-    const summary = new URL(searches[i]);
-    assert.equal(summary.searchParams.get("representation"), "summary");
-    summary.searchParams.delete("representation");
-    assert.equal(searches[i + 1].href, summary.href);
-    assert.equal(
-      summary.searchParams.get("cursor"),
-      i === 0 ? null : "legacy-next"
-    );
-  }
+  assert.equal(searches.length, 3);
+  const summary = new URL(searches[0]);
+  assert.equal(summary.searchParams.get("representation"), "summary");
+  summary.searchParams.delete("representation");
+  assert.equal(searches[1].href, summary.href);
+  summary.searchParams.set("cursor", "legacy-next");
+  assert.equal(searches[2].href, summary.href);
 });
 
 test("summary validation errors do not trigger a legacy retry", async () => {
