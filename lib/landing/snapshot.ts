@@ -27,7 +27,22 @@ async function get<P extends SnapshotPath>(
   for (const [key, value] of Object.entries(params)) {
     if (value !== null) url.searchParams.set(key, String(value));
   }
-  const response = await backendFetch(new Request(url, { signal }));
+  let response = await backendFetch(new Request(url, { signal }));
+  if (response.status === 400 && params.representation === "summary") {
+    const failure: unknown = await response
+      .clone()
+      .json()
+      .catch(() => null);
+    if (
+      failure &&
+      typeof failure === "object" &&
+      "error" in failure &&
+      failure.error === "Unsupported query parameter"
+    ) {
+      url.searchParams.delete("representation");
+      response = await backendFetch(new Request(url, { signal }));
+    }
+  }
   if (!response.ok) throw new SnapshotRequestError(response.status);
   return response.json();
 }

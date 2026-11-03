@@ -98,6 +98,62 @@ test("snapshot exhausts streamers/recordings with fixed 24h bounds and sends no 
   assert.equal("channel" in snapshot.recordings[0], false);
 });
 
+test("legacy backends retry only the unsupported summary parameter without losing filters or pagination", async () => {
+  const searches = [];
+  const getSnapshot = loader(async (request) => {
+    const url = new URL(request.url);
+    assert.equal(request.headers.has("cookie"), false);
+    assert.equal(request.headers.has("authorization"), false);
+    if (url.pathname.endsWith("/stats"))
+      return Response.json({ streamers: 1, recordings: 1, matchups: 2 });
+    if (url.pathname.endsWith("/streamers"))
+      return Response.json({ items: [streamer(1)], nextCursor: null });
+    if (url.pathname.endsWith("/sessions"))
+      return Response.json({ items: [session(1)], nextCursor: null });
+    searches.push(url);
+    if (url.searchParams.has("representation"))
+      return Response.json(
+        { error: "Unsupported query parameter" },
+        { status: 400 }
+      );
+    const next = url.searchParams.has("cursor");
+    return Response.json({
+      items: [ghost(next ? 2 : 1)],
+      nextCursor: next ? null : "legacy-next",
+    });
+  });
+  const snapshot = await getSnapshot();
+  assert.equal(snapshot.streamers.length, 1);
+  assert.equal(snapshot.recordings.length, 1);
+  assert.equal(snapshot.ghosts.length, 2);
+  assert.equal(searches.length, 4);
+  for (let i = 0; i < searches.length; i += 2) {
+    const summary = new URL(searches[i]);
+    assert.equal(summary.searchParams.get("representation"), "summary");
+    summary.searchParams.delete("representation");
+    assert.equal(searches[i + 1].href, summary.href);
+    assert.equal(
+      summary.searchParams.get("cursor"),
+      i === 0 ? null : "legacy-next"
+    );
+  }
+});
+
+test("summary validation errors do not trigger a legacy retry", async () => {
+  let searches = 0;
+  const getSnapshot = loader(async (request) => {
+    if (new URL(request.url).pathname.endsWith("/search")) {
+      searches++;
+      return Response.json({ error: "Invalid date range" }, { status: 400 });
+    }
+    return request.url.endsWith("/stats")
+      ? Response.json({ streamers: 0, recordings: 0, matchups: 0 })
+      : Response.json({ items: [], nextCursor: null });
+  });
+  await assert.rejects(getSnapshot(), /400/);
+  assert.equal(searches, 1);
+});
+
 test("hourly runtime cache reuses data and never publishes a failed refresh", async (t) => {
   let now = Date.parse("2026-10-30T14:00:00Z");
   t.mock.method(Date, "now", () => now);
