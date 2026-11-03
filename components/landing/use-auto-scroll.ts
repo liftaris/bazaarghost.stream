@@ -1,24 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
-const SCROLL_KEYS = new Set([
-  "ArrowUp",
-  "ArrowDown",
-  "PageUp",
-  "PageDown",
-  "Home",
-  "End",
-  " ",
-]);
-
-/**
- * Move one native list at a fixed pixel speed, suspending it while being read.
- * @param speed Multiplier of the 12 CSS pixels per second base speed.
- * @returns Column, viewport, and list refs plus manual pause controls.
- */
 export function useAutoScroll(speed: 1 | 2 | 3) {
-  const [paused, setPaused] = useState(false);
   const columnRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -32,7 +16,13 @@ export function useAutoScroll(speed: 1 | 2 | 3) {
     const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
     let hovered =
       matchMedia("(hover: hover)").matches && column.matches(":hover");
-    let focused = column.contains(document.activeElement);
+    const hasKeyboardFocus = () =>
+      column.contains(document.activeElement) &&
+      document.activeElement?.matches(":focus-visible");
+    let focused = hasKeyboardFocus();
+    let touching = false;
+    let touchPaused = false;
+    let resumeTimer: ReturnType<typeof setTimeout> | undefined;
     let visible = false;
     let maximum = 0;
     let frame = 0;
@@ -53,7 +43,7 @@ export function useAutoScroll(speed: 1 | 2 | 3) {
       previous = 0;
       position = viewport.scrollTop;
       if (
-        !paused &&
+        !touchPaused &&
         !hovered &&
         !focused &&
         visible &&
@@ -75,23 +65,39 @@ export function useAutoScroll(speed: 1 | 2 | 3) {
       sync();
     }
     function focus() {
-      focused = true;
+      focused = !touchPaused && hasKeyboardFocus();
       sync();
     }
     const blur = (event: FocusEvent) => {
       focused =
-        event.relatedTarget instanceof Node &&
-        column.contains(event.relatedTarget);
+        event.relatedTarget instanceof Element &&
+        column.contains(event.relatedTarget) &&
+        event.relatedTarget.matches(":focus-visible");
       sync();
     };
-    function manual() {
-      setPaused(true);
+    function touchStart() {
+      clearTimeout(resumeTimer);
+      touching = true;
+      touchPaused = true;
+      focused = false;
+      sync();
     }
-    const pointer = (event: PointerEvent) => {
-      if (event.pointerType === "touch" || event.target === viewport) manual();
+    function resumeAfterTouch() {
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => {
+        touchPaused = false;
+        sync();
+      }, 2000);
+    }
+    const touchEnd = (event: TouchEvent) => {
+      touching = Array.from(event.touches).some(
+        (touch) =>
+          touch.target instanceof Node && viewport.contains(touch.target)
+      );
+      if (!touching) resumeAfterTouch();
     };
-    function key(event: KeyboardEvent) {
-      if (SCROLL_KEYS.has(event.key)) manual();
+    function scroll() {
+      if (touchPaused && !touching) resumeAfterTouch();
     }
 
     const intersection = new IntersectionObserver(([entry]) => {
@@ -109,27 +115,30 @@ export function useAutoScroll(speed: 1 | 2 | 3) {
     column.addEventListener("pointerleave", leave);
     column.addEventListener("focusin", focus);
     column.addEventListener("focusout", blur);
-    viewport.addEventListener("wheel", manual, { passive: true });
-    viewport.addEventListener("pointerdown", pointer);
-    viewport.addEventListener("keydown", key);
+    viewport.addEventListener("touchstart", touchStart, { passive: true });
+    viewport.addEventListener("touchend", touchEnd);
+    viewport.addEventListener("touchcancel", touchEnd);
+    viewport.addEventListener("scroll", scroll, { passive: true });
     document.addEventListener("visibilitychange", sync);
     reducedMotion.addEventListener("change", sync);
 
     return () => {
       cancelAnimationFrame(frame);
+      clearTimeout(resumeTimer);
       intersection.disconnect();
       resize.disconnect();
       column.removeEventListener("pointerenter", enter);
       column.removeEventListener("pointerleave", leave);
       column.removeEventListener("focusin", focus);
       column.removeEventListener("focusout", blur);
-      viewport.removeEventListener("wheel", manual);
-      viewport.removeEventListener("pointerdown", pointer);
-      viewport.removeEventListener("keydown", key);
+      viewport.removeEventListener("touchstart", touchStart);
+      viewport.removeEventListener("touchend", touchEnd);
+      viewport.removeEventListener("touchcancel", touchEnd);
+      viewport.removeEventListener("scroll", scroll);
       document.removeEventListener("visibilitychange", sync);
       reducedMotion.removeEventListener("change", sync);
     };
-  }, [speed, paused]);
+  }, [speed]);
 
-  return { columnRef, viewportRef, listRef, paused, setPaused };
+  return { columnRef, viewportRef, listRef };
 }

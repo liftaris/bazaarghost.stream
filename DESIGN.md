@@ -127,13 +127,13 @@ Destructive red marks errors. Selection uses a 10% orange fill rather than a new
 
 Averia Libre regular and bold load locally. The public landing page and navigation explicitly select the serif stack recorded above. Other components inherit their parent's font; loading Inter and JetBrains Mono variables alone does not assign them to every component.
 
-The display role grows to 3.75rem when the landing container reaches 32rem. The subtitle uses the title role, growing to 1.5rem at the same width. Archive totals use the headline role and tabular numerals. Navigation and form labels use the label role; list metadata uses the smallest role. The wordmark uses bold title-size text.
+The landing navbar wordmark is the page heading, growing from 1.875rem to 3rem at a 36rem container width. The subtitle grows from 1.25rem to 1.5rem at the same width. Archive totals use the headline role and tabular numerals. Navigation and form labels use the label role; list metadata uses the smallest role. Other pages retain the compact navbar wordmark.
 
 ## Layout
 
-Public navigation and the landing page share a centered 72rem maximum width. The landing page has 20px horizontal padding. Its title and search form become two columns at a 56rem container width; the archive changes from stacked sections to three columns at that same threshold. Navigation reveals inline links at a 36rem container width while retaining the menu button.
+Public navigation and the landing page share a centered 72rem maximum width. The landing hero expands the existing navbar, with its logo, wordmark, navigation links, and menu above a centered search form. The archive has 20px horizontal padding and changes from stacked sections to three columns at a 56rem container width. Navigation reveals inline links at a 36rem container width while retaining the menu button.
 
-Spacing follows the existing 4px rhythm. List rows have an 88px minimum height, 12px padding, and 12px internal gaps. Browse links have a 44px minimum height. Feed viewports are 288px tall on compact layouts and 352px tall in the three-column layout. The landing search input and submit button are 56px tall. Compact layouts preserve content order and let footer links wrap.
+Spacing follows the existing 4px rhythm. List rows have an 88px minimum height, 12px padding, and 12px internal gaps. Feed viewports are 288px tall on compact layouts and 352px tall in the three-column layout. The landing search input and submit button are 56px tall. Column headings remain links; bottom browse links, feed controls, refresh text, and the landing footer are removed.
 
 ## Elevation & Depth
 
@@ -150,9 +150,11 @@ Controls use the medium radius, selectable rows the large radius, and shared car
 - **Badges:** Compact pill labels with primary, secondary, outline, and other shared variants. The sidecar samples the neutral secondary variant.
 - **Cards:** A card-color fill, border, small shadow, and 24px content insets. These remain available to other pages; they are not required around each list.
 - **Navigation:** A card-color bar with a bottom border, existing logo, orange wordmark, muted links, and a right-hand menu sheet. Links brighten on hover; keyboard focus remains visible. Coarse pointers receive at least 44px menu and brand targets.
-- **Preview rows:** Entire rows are links to the existing workspace, with prefetch disabled. Hover uses a 10% orange tint; focus uses a 2px inset ring. Metadata truncates and titles can occupy two lines. Each column has its own pause and resume button.
+- **Preview rows:** Entire rows are links to the existing workspace, with prefetch disabled. Hover uses a 10% orange tint; focus uses a 2px inset ring. Metadata truncates and titles can occupy two lines.
 
-Shared controls use short color and shadow transitions. Landing feeds scroll independently at 12, 24, and 36 CSS pixels per second. Each list resets at its end. Hover, focus, reduced motion, hidden tabs, and offscreen feeds pause animation. Manual scrolling pauses until the user presses Resume. The elaborate animated panel remains deferred.
+Shared controls use short color and shadow transitions. Landing feeds scroll independently at 12, 24, and 36 CSS pixels per second. Each list resets at its end. Hover and keyboard focus pause a column; leaving resumes it. Touch pauses a list until two seconds after the last touch or momentum scroll. Reduced motion, hidden tabs, and offscreen feeds stop animation.
+
+Two trimmed characters in the landing search open `/search` with the query preserved. IME input waits for composition to finish. Supported browsers animate the shared brand and input through a View Transition. Reduced motion and unsupported browsers use direct navigation. Focus and text entered during navigation transfer to the workspace input.
 
 ## Do's and Don'ts
 

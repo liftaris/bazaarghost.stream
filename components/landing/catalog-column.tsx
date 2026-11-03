@@ -2,15 +2,13 @@
 
 import { useId } from "react";
 import Link from "next/link";
-import { ArrowRight, Pause, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 import type { LandingEntry } from "@/lib/landing/types";
 import { CatalogRow } from "./catalog-row";
 import { useAutoScroll } from "./use-auto-scroll";
 
 const number = new Intl.NumberFormat("en-US");
 
-/** An independent archive feed; hover, focus or explicit pause stops its motion. */
 export function CatalogColumn({
   title,
   total,
@@ -29,8 +27,7 @@ export function CatalogColumn({
   empty: string;
 }) {
   const id = useId();
-  const { columnRef, viewportRef, listRef, paused, setPaused } =
-    useAutoScroll(speed);
+  const { columnRef, viewportRef, listRef } = useAutoScroll(speed);
 
   return (
     <section
@@ -54,22 +51,8 @@ export function CatalogColumn({
           className="ml-auto size-4 self-center text-primary"
         />
       </Link>
-      <div className="flex items-center justify-between gap-2 px-4 py-3">
+      <div className="px-4 py-3">
         <p className="text-sm text-muted-foreground">{context}</p>
-        {entries.length > 0 && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-9 shrink-0 motion-reduce:hidden"
-            aria-label={`${paused ? "Resume" : "Pause"} ${title.toLowerCase()} scrolling`}
-            aria-pressed={paused}
-            aria-controls={`${id}-feed`}
-            onClick={() => setPaused(!paused)}
-          >
-            {paused ? <Play aria-hidden /> : <Pause aria-hidden />}
-          </Button>
-        )}
       </div>
       <div
         ref={viewportRef}
@@ -89,14 +72,6 @@ export function CatalogColumn({
           </p>
         )}
       </div>
-      <Link
-        href={href}
-        prefetch={false}
-        className="mx-5 my-4 inline-flex min-h-11 items-center gap-2 rounded-sm text-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-      >
-        Browse all {title.toLowerCase()}
-        <ArrowRight aria-hidden className="size-4 text-primary" />
-      </Link>
     </section>
   );
 }

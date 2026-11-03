@@ -64,7 +64,32 @@ try {
       .count(),
     1
   );
-  const generatedAt = await page.locator("time").getAttribute("datetime");
+  assert.equal(
+    await page.getByRole("navigation", { name: "Main navigation" }).count(),
+    1
+  );
+  assert.equal(
+    await page
+      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("searchbox", { name: "Your in-game name" })
+      .count(),
+    1
+  );
+  assert.equal(await page.locator("footer").count(), 0);
+  assert.equal(
+    await page.getByRole("link", { name: /^Browse all/ }).count(),
+    0
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: /(?:Pause|Resume).*scrolling/ })
+      .count(),
+    0
+  );
+  assert.equal(
+    await page.getByText(/Hover or focus a column|Refreshes hourly/).count(),
+    0
+  );
   const counts = await page
     .locator('[aria-label$=" feed"]')
     .evaluateAll((nodes) =>
@@ -76,7 +101,6 @@ try {
   );
   checks.push({
     check: "Exact copy and server-provided datasets",
-    generatedAt,
     counts,
   });
 
@@ -112,19 +136,59 @@ try {
   await release();
   await feed("Recordings").hover();
   await page.mouse.wheel(0, 100);
-  await page
-    .getByRole("button", { name: "Resume recordings scrolling" })
-    .waitFor();
-  await release();
-  assert.equal((await movement(500))[1], 0);
-  await page
-    .getByRole("button", { name: "Resume recordings scrolling" })
-    .click();
+  await page.waitForTimeout(300);
   await release();
   assert.ok((await movement(500))[1] > 0);
   checks.push({
     check:
-      "Whole-column hover, keyboard focus/reveal, manual pause and explicit resume",
+      "Whole-column hover, keyboard focus/reveal, wheel scroll and automatic resume on leave",
+  });
+
+  const mobile = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  await mobile.goto(origin);
+  const mobileFeed = mobile.getByRole("region", {
+    name: "Streamers feed",
+    exact: true,
+  });
+  await mobileFeed.getByRole("link").first().waitFor();
+  await mobile.waitForFunction(
+    () => document.querySelector('[aria-label="Streamers feed"]').scrollTop > 5
+  );
+  const box = await mobileFeed.boundingBox();
+  const cdp = await mobile.context().newCDPSession(mobile);
+  const touch = { x: box.x + box.width / 2, y: box.y + 150 };
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [touch],
+  });
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [{ ...touch, y: touch.y - 50 }],
+  });
+  await mobile.waitForTimeout(150);
+  const held = await mobileFeed.evaluate((node) => node.scrollTop);
+  await mobile.waitForTimeout(2200);
+  assert.equal(await mobileFeed.evaluate((node) => node.scrollTop), held);
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await mobile.waitForTimeout(1400);
+  assert.equal(await mobileFeed.evaluate((node) => node.scrollTop), held);
+  await mobile.waitForTimeout(1200);
+  assert.ok((await mobileFeed.evaluate((node) => node.scrollTop)) > held);
+  await mobile.screenshot({
+    path: `${output}/mobile-touch.png`,
+    fullPage: true,
+  });
+  await mobile.close();
+  checks.push({
+    check:
+      "Real mobile touch holds pause and resumes two seconds after release",
   });
 
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -183,6 +247,7 @@ try {
     const row = feed(name).getByRole("link").first();
     const href = await row.getAttribute("href");
     assert.ok(href.startsWith(prefix));
+    if (process.env.LANDING_ONLY) continue;
     await row.click();
     await page.waitForURL(
       (url) => url.pathname === new URL(href, origin).pathname
@@ -191,17 +256,12 @@ try {
     await page.getByRole("link", { name: "BazaarGhost home" }).click();
     await page.waitForURL(origin + "/");
     await ready();
-    assert.equal(
-      await page.locator("time").getAttribute("datetime"),
-      generatedAt
-    );
   }
-  await page
-    .getByRole("searchbox", { name: "Your in-game name" })
-    .fill("  Sash & test  ");
-  await page
-    .getByRole("searchbox", { name: "Your in-game name" })
-    .press("Enter");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.getByRole("searchbox", { name: "Your in-game name" }).fill("S");
+  await page.waitForTimeout(400);
+  assert.equal(new URL(page.url()).pathname, "/");
+  await page.keyboard.type("ash & test", { delay: 80 });
   await page.waitForURL(
     (url) =>
       url.pathname === "/search" && url.searchParams.get("q") === "Sash & test"
@@ -210,9 +270,92 @@ try {
     await page.getByPlaceholder("Ghost username…").inputValue(),
     "Sash & test"
   );
+  assert.equal(
+    await page
+      .getByPlaceholder("Ghost username…")
+      .evaluate((node) => node === document.activeElement),
+    true
+  );
+  await page.keyboard.type(" continued");
+  await page.waitForURL(
+    (url) => url.searchParams.get("q") === "Sash & test continued"
+  );
+  assert.equal(
+    await page.getByPlaceholder("Ghost username…").inputValue(),
+    "Sash & test continued"
+  );
+  await page.screenshot({ path: `${output}/search.png`, fullPage: true });
+
+  await page.getByRole("link", { name: "BazaarGhost home" }).click();
+  await ready();
+  const homeQuery = page.getByRole("searchbox", { name: "Your in-game name" });
+  await homeQuery.dispatchEvent("compositionstart");
+  await homeQuery.fill("猫猫");
+  await page.waitForTimeout(400);
+  assert.equal(new URL(page.url()).pathname, "/");
+  await homeQuery.dispatchEvent("compositionend");
+  await page.waitForURL(
+    (url) => url.pathname === "/search" && url.searchParams.get("q") === "猫猫"
+  );
+  assert.equal(
+    await page
+      .getByPlaceholder("Ghost username…")
+      .evaluate((node) => node === document.activeElement),
+    true
+  );
+
+  for (const fallback of [false, true]) {
+    const compact = await browser.newPage({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+      reducedMotion: "no-preference",
+    });
+    if (fallback)
+      await compact.addInitScript(() => {
+        document.startViewTransition = undefined;
+      });
+    await compact.route("**/*_rsc=*", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      await route.continue();
+    });
+    await compact.goto(origin);
+    await compact.waitForFunction(
+      () =>
+        document.querySelector('[aria-label="Streamers feed"]').scrollTop > 5
+    );
+    if (fallback) await compact.emulateMedia({ reducedMotion: "reduce" });
+    await compact
+      .getByRole("searchbox", { name: "Your in-game name" })
+      .fill("Ra");
+    await compact.keyboard.type("pid entry");
+    await compact.waitForURL(
+      (url) =>
+        url.pathname === "/search" &&
+        url.searchParams.get("q") === "Rapid entry"
+    );
+    assert.equal(
+      await compact.getByPlaceholder("Ghost username…").inputValue(),
+      "Rapid entry"
+    );
+    assert.equal(
+      await compact
+        .getByPlaceholder("Ghost username…")
+        .evaluate((node) => node === document.activeElement),
+      true
+    );
+    await compact.screenshot({
+      path: `${output}/mobile-search${fallback ? "-fallback" : ""}.png`,
+      fullPage: true,
+    });
+    await compact.close();
+  }
   checks.push({
     check:
-      "Each feed opens its workspace; cached snapshot survives navigation; keyboard search encodes input",
+      "IME waits for composition; re-entering mounted workspace, rapid mobile typing, delayed navigation and reduced-motion/no-View-Transition fallback preserve query and focus",
+  });
+  checks.push({
+    check: `Feed links verified${process.env.LANDING_ONLY ? " without backend-dependent detail navigation" : " through their workspaces"}; two-character search transition preserves focus and continued typing`,
   });
 
   const staticPage = await browser.newPage({ javaScriptEnabled: false });
@@ -223,10 +366,6 @@ try {
       .getByRole("link")
       .count(),
     counts[0]
-  );
-  assert.equal(
-    await staticPage.locator("time").getAttribute("datetime"),
-    generatedAt
   );
   await staticPage.close();
   checks.push({
