@@ -8,6 +8,10 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SearchHandoffContext } from "@/components/search-handoff";
 
+function preloadWorkspace() {
+  void import("@/components/search");
+}
+
 export function LandingSearch() {
   const router = useRouter();
   const handoffRef = useContext(SearchHandoffContext);
@@ -16,41 +20,17 @@ export function LandingSearch() {
 
   function search(value: string, submit = false) {
     const query = value.trim();
-    if (!navigating.current && !submit && query.length < 2) return;
     if (navigating.current) {
-      if (handoffRef?.current)
-        handoffRef.current = { ...handoffRef.current, query };
+      if (handoffRef) handoffRef.current = query;
       return;
     }
+    if (!submit && query.length < 2) return;
     navigating.current = true;
-    if (handoffRef) handoffRef.current = { query, complete: () => {} };
+    if (handoffRef) handoffRef.current = query;
     const params = new URLSearchParams(query ? { q: query } : {});
-    const navigate = () =>
-      router.push(`/search${params.size ? `?${params}` : ""}`, {
-        scroll: false,
-      });
-    if (
-      handoffRef &&
-      document.startViewTransition &&
-      !matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      document.startViewTransition(
-        () =>
-          new Promise<void>((resolve) => {
-            const timeout = setTimeout(resolve, 2000);
-            handoffRef.current = {
-              query: handoffRef.current?.query ?? query,
-              complete: () => {
-                clearTimeout(timeout);
-                resolve();
-              },
-            };
-            navigate();
-          })
-      );
-    } else {
-      navigate();
-    }
+    router.push(`/search${params.size ? `?${params}` : ""}`, {
+      scroll: false,
+    });
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -64,6 +44,8 @@ export function LandingSearch() {
       action="/search"
       method="get"
       onSubmit={submit}
+      onPointerEnter={preloadWorkspace}
+      onFocus={preloadWorkspace}
       role="search"
       aria-label="Find your ghost"
     >
@@ -88,7 +70,7 @@ export function LandingSearch() {
                 search(event.currentTarget.value);
               }}
               placeholder="Search for your ghost…"
-              className="h-14 min-w-0 flex-1 [view-transition-name:nav-search]"
+              className="h-14 min-w-0 flex-1"
             />
             <Button type="submit" size="lg" className="h-14">
               Search <ArrowRight data-icon="inline-end" aria-hidden />

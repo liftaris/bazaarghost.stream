@@ -2,10 +2,7 @@
 
 import { createContext, type RefObject } from "react";
 
-export type SearchHandoff = {
-  query: string;
-  complete: () => void;
-};
-
-export const SearchHandoffContext =
-  createContext<RefObject<SearchHandoff | null> | null>(null);
+/** The landing query waiting for the workspace input to mount and take focus. */
+export const SearchHandoffContext = createContext<RefObject<
+  string | null
+> | null>(null);

@@ -34,12 +34,11 @@ export function SearchInput({
   const active = useWorkspaceActive();
   useLayoutEffect(() => {
     if (!active || !handoffRef || handoffRef.current === null) return;
-    const { query, complete } = handoffRef.current;
+    const query = handoffRef.current;
     handoffRef.current = null;
     if (query !== value) onChange(query);
     inputRef.current?.focus({ preventScroll: true });
     inputRef.current?.setSelectionRange(query.length, query.length);
-    complete();
   }, [active, handoffRef, onChange, value]);
   return (
     <div className="relative min-w-0 flex-1">
@@ -50,7 +49,7 @@ export function SearchInput({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 border-border bg-card pl-9 pr-8 text-sm placeholder:text-muted-foreground focus-visible:ring-primary [view-transition-name:nav-search]"
+        className="h-9 border-border bg-card pl-9 pr-8 text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
       />
       {isLoading && (
         <Loader2 className="absolute right-3 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />

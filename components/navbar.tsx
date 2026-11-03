@@ -64,7 +64,7 @@ export default function Navbar({
           <Link
             href="/"
             aria-label="BazaarGhost home"
-            className="flex w-fit shrink-0 items-center gap-3 rounded-sm font-serif transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:min-w-11 [view-transition-name:nav-brand]"
+            className="flex w-fit shrink-0 items-center gap-3 rounded-sm font-serif transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:min-w-11"
           >
             <Image
               src="/logo.svg"

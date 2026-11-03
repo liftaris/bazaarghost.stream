@@ -6,10 +6,7 @@ import { WorkspaceContext } from "@/components/workspace-context";
 import { EmbedProvider } from "@/components/embed-provider";
 import { PlayerHotkeys } from "@/components/player/player-hotkeys";
 import Navbar from "@/components/navbar";
-import {
-  SearchHandoffContext,
-  type SearchHandoff,
-} from "@/components/search-handoff";
+import { SearchHandoffContext } from "@/components/search-handoff";
 import { cn } from "@/lib/utils";
 
 const SearchPanel = lazy(() => import("@/components/search"));
@@ -30,7 +27,7 @@ const CONTENT_ROUTES = [
  * routes so results and the player survive client navigation.
  */
 export function AppShell({ children }: { children: ReactNode }) {
-  const searchHandoff = useRef<SearchHandoff | null>(null);
+  const searchHandoff = useRef<string | null>(null);
   const [searchHost, setSearchHost] = useState<HTMLDivElement | null>(null);
   const pathname = usePathname();
   const workspace =

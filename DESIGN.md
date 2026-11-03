@@ -154,7 +154,7 @@ Controls use the medium radius, selectable rows the large radius, and shared car
 
 Shared controls use short color and shadow transitions. Landing feeds scroll independently at 12, 24, and 36 CSS pixels per second. Each list resets at its end. Hover and keyboard focus pause a column; leaving resumes it. Touch pauses a list until two seconds after the last touch or momentum scroll. Reduced motion, hidden tabs, and offscreen feeds stop animation.
 
-Two trimmed characters in the landing search open `/search` with the query preserved. IME input waits for composition to finish. Supported browsers animate the shared brand and input through a View Transition. Reduced motion and unsupported browsers use direct navigation. Focus and text entered during navigation transfer to the workspace input.
+Two trimmed characters in the landing search open `/search` with the query preserved. IME input waits for composition to finish. The page never freezes for this route change. The landing input stays live while the route loads, then the navbar collapses through CSS transitions. Hovering or focusing the form preloads the workspace code. Focus and text entered during navigation transfer to the workspace input.
 
 ## Do's and Don'ts
 

@@ -24,7 +24,7 @@ DATA: One public snapshot contains all streamers, recording sessions started in 
 
 MOTION: Streamers move at 12 CSS pixels per second, recordings at 24, and ghosts at 36. Each native list resets at its end. Hover or keyboard focus pauses that column; leaving resumes it. Touch pauses until two seconds after the last touch or momentum scroll. Reduced motion, hidden tabs, and offscreen feeds stop animation. Links disable speculative prefetching.
 
-SEARCH: Two trimmed characters open `/search` with the query preserved. IME waits for composition to finish. A View Transition connects the enlarged brand and input to the workspace navbar. Reduced motion and unsupported browsers navigate directly. Preserve focus and text entered while navigation is pending.
+SEARCH: Two trimmed characters open `/search` with the query preserved. IME waits for composition to finish. Never freeze the page for the route change: no View Transition snapshot. The landing input stays live while the route loads, and the navbar collapses with CSS padding, logo, and wordmark transitions. Hovering or focusing the form preloads the workspace code. Focus and text entered while navigation is pending move to the workspace input.
 
 FORM: User-selected E from the previous code-rendered concepts. Reference: .impeccable/mocks/landing-data-concepts-2026-10-30/e-follow-the-matchup.png. Code-led implementation, retaining the approved structure. seed: none (user selected).
 

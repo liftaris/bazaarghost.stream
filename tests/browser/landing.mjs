@@ -304,55 +304,70 @@ try {
     true
   );
 
-  for (const fallback of [false, true]) {
-    const compact = await browser.newPage({
-      viewport: { width: 390, height: 844 },
-      isMobile: true,
-      hasTouch: true,
-      reducedMotion: "no-preference",
-    });
-    if (fallback)
-      await compact.addInitScript(() => {
-        document.startViewTransition = undefined;
-      });
-    await compact.route("**/*_rsc=*", async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      await route.continue();
-    });
-    await compact.goto(origin);
-    await compact.waitForFunction(
-      () =>
-        document.querySelector('[aria-label="Streamers feed"]').scrollTop > 5
-    );
-    if (fallback) await compact.emulateMedia({ reducedMotion: "reduce" });
+  const compact = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  await compact.addInitScript(() => {
+    window.__viewTransitions = 0;
+    const start = document.startViewTransition?.bind(document);
+    if (start)
+      document.startViewTransition = (...args) => {
+        window.__viewTransitions++;
+        return start(...args);
+      };
+  });
+  let releaseRoute;
+  const routeHeld = new Promise((resolve) => {
+    releaseRoute = resolve;
+  });
+  await compact.route("**/*_rsc=*", async (route) => {
+    await routeHeld;
+    await route.continue();
+  });
+  await compact.goto(origin);
+  await compact.waitForFunction(
+    () => document.querySelector('[aria-label="Streamers feed"]').scrollTop > 5
+  );
+  const landingQuery = compact.getByRole("searchbox", {
+    name: "Your in-game name",
+  });
+  await landingQuery.fill("Ra");
+  await compact.keyboard.type("pid", { delay: 60 });
+  assert.equal(new URL(compact.url()).pathname, "/");
+  assert.equal(await landingQuery.inputValue(), "Rapid");
+  assert.equal(
+    await landingQuery.evaluate((node) => node === document.activeElement),
+    true
+  );
+  assert.equal(await compact.evaluate(() => window.__viewTransitions), 0);
+  await compact.screenshot({ path: `${output}/mobile-search-pending.png` });
+  await compact.keyboard.type(" entry");
+  releaseRoute();
+  await compact.waitForURL(
+    (url) =>
+      url.pathname === "/search" && url.searchParams.get("q") === "Rapid entry"
+  );
+  assert.equal(
+    await compact.getByPlaceholder("Ghost username…").inputValue(),
+    "Rapid entry"
+  );
+  assert.equal(
     await compact
-      .getByRole("searchbox", { name: "Your in-game name" })
-      .fill("Ra");
-    await compact.keyboard.type("pid entry");
-    await compact.waitForURL(
-      (url) =>
-        url.pathname === "/search" &&
-        url.searchParams.get("q") === "Rapid entry"
-    );
-    assert.equal(
-      await compact.getByPlaceholder("Ghost username…").inputValue(),
-      "Rapid entry"
-    );
-    assert.equal(
-      await compact
-        .getByPlaceholder("Ghost username…")
-        .evaluate((node) => node === document.activeElement),
-      true
-    );
-    await compact.screenshot({
-      path: `${output}/mobile-search${fallback ? "-fallback" : ""}.png`,
-      fullPage: true,
-    });
-    await compact.close();
-  }
+      .getByPlaceholder("Ghost username…")
+      .evaluate((node) => node === document.activeElement),
+    true
+  );
+  assert.equal(await compact.evaluate(() => window.__viewTransitions), 0);
+  await compact.screenshot({
+    path: `${output}/mobile-search.png`,
+    fullPage: true,
+  });
+  await compact.close();
   checks.push({
     check:
-      "IME waits for composition; re-entering mounted workspace, rapid mobile typing, delayed navigation and reduced-motion/no-View-Transition fallback preserve query and focus",
+      "IME waits for composition; while the search route is held, the landing input stays live with no View Transition, then the workspace receives the full query and focus",
   });
   checks.push({
     check: `Feed links verified${process.env.LANDING_ONLY ? " without backend-dependent detail navigation" : " through their workspaces"}; two-character search transition preserves focus and continued typing`,
