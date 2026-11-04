@@ -121,6 +121,7 @@ export default function SearchPanel({
     prefetch(`/sessions/${session.id}`);
     prefetch(`/recordings/${session.defaultRecording.id}/playback`);
     prefetch("/search", { sessionId: session.id, sort: "time", limit: 500 });
+    if (session.streamer) prefetch(`/streamers/${session.streamer.id}`);
   }, []);
 
   const warmStreamer = useCallback(
@@ -153,6 +154,8 @@ export default function SearchPanel({
 
   const selectRecording = useCallback(
     (session: SessionCard) => {
+      // Touch has no hover, so start every request the session view needs before it mounts.
+      warmSession(session);
       router.push(selectionHref(`/recordings/${session.id}`), {
         scroll: false,
       });
@@ -160,7 +163,7 @@ export default function SearchPanel({
         () => undefined
       );
     },
-    [router, selectionHref, startSession, platformFilter]
+    [router, selectionHref, startSession, platformFilter, warmSession]
   );
 
   const playStreamerRecording = useCallback(
