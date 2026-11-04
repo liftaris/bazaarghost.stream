@@ -10,13 +10,7 @@ import {
 import { PlayerSlot } from "@/components/player/player-slot";
 import { PlayerControls } from "@/components/player/player-controls";
 import { EmbedTimeline } from "@/components/embed-timeline";
-import {
-  Empty,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-  EmptyDescription,
-} from "@/components/ui/empty";
+import { Empty, EmptyHeader, EmptyMedia } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ResizableHandle,
@@ -65,10 +59,6 @@ export function EmbedPanel({
             <EmptyMedia>
               <Ghost aria-hidden className="size-10 text-muted-foreground" />
             </EmptyMedia>
-            <EmptyTitle>Find a matchup to watch</EmptyTitle>
-            <EmptyDescription>
-              Your search stays here while you explore its session.
-            </EmptyDescription>
           </EmptyHeader>
         </Empty>
       </>
