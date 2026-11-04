@@ -14,7 +14,7 @@ const MODE_PARAMS: Record<SearchMode, readonly string[]> = {
   streamers: ["platform", "xplatform"],
   saved: [],
 };
-const DEBOUNCE_MS = 300;
+const DEBOUNCE_MS = 150;
 
 export type ParamOverrides = Record<string, string | null | undefined>;
 
