@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { LandingSearch } from "@/components/landing/landing-search";
+import { RotatingPlatform } from "@/components/landing/rotating-platform";
 
 const subscribeNever = () => () => {};
 
@@ -194,7 +195,7 @@ export default function Navbar({
           {landing && (
             <div className="col-span-full mx-auto flex w-full max-w-2xl flex-col gap-6 pb-4 font-serif @xl/nav:pb-6">
               <p className="text-center text-xl text-muted-foreground @xl/nav:text-2xl">
-                Bazaar ghost data from streams
+                Bazaar ghost data from <RotatingPlatform /> streams
               </p>
               <LandingSearch />
             </div>
