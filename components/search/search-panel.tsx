@@ -9,13 +9,16 @@ import { useEmbedState } from "@/components/embed-provider";
 import { useSessionPlayer } from "@/components/session-player";
 import { prefetch } from "@/lib/api-cache";
 import type { SessionCard, StreamerCard } from "@/lib/api-contract";
-import { filterParams, type PlatformFilter } from "@/lib/search-filters";
+import { filterParams, parseDay, parsePlatformList, type PlatformFilter } from "@/lib/search-filters";
+import { isWorkspacePath } from "@/lib/workspace-routes";
+import { deriveSearchMode } from "./lib/route-utils";
 
 import { useSearchUrl } from "./hooks/use-search-url";
 import { streamerIdOf, useStreamerOptions } from "./hooks/use-streamer-options";
-import { useGhostSearch, type ListFilters } from "./hooks/use-ghost-search";
-import { useRecordingSearch } from "./hooks/use-recording-search";
-import { useStreamerList } from "./hooks/use-streamer-list";
+import { ghostSearchParams, useGhostSearch, type ListFilters } from "./hooks/use-ghost-search";
+import { recordingSearchParams, useRecordingSearch } from "./hooks/use-recording-search";
+import { streamerListParams, useStreamerList } from "./hooks/use-streamer-list";
+import { prefetchPage } from "./hooks/use-api-page";
 import { useChannelName } from "./hooks/use-channel-name";
 import { usePlatformOptions } from "./hooks/use-platform-options";
 import { useSavedMatchups } from "./hooks/use-saved-matchups";
@@ -32,6 +35,27 @@ import { PlatformFilter as PlatformFilterButtons } from "./platform-filter";
  * Top-level search workspace: the URL model ({@link useSearchUrl}) drives one list per mode on
  * the left and one right panel; nothing here remounts when the mode or selection changes.
  */
+/** Start the first page of the list this URL shows while React is still mounting (same params as the list hooks). */
+function warmListFromLocation() {
+  const { pathname, search } = window.location;
+  if (!isWorkspacePath(pathname)) return;
+  const params = new URLSearchParams(search);
+  const include = parsePlatformList(params.get("platform"));
+  const filters: ListFilters = {
+    q: params.get("q") ?? "",
+    include,
+    exclude: parsePlatformList(params.get("xplatform")).filter((id) => !include.includes(id)),
+    from: parseDay(params.get("from")),
+    to: parseDay(params.get("to")),
+  };
+  const streamerId = streamerIdOf(params.get("streamer"));
+  const mode = deriveSearchMode(pathname, params.get("list"));
+  if (mode === "ghosts") prefetchPage("/search", ghostSearchParams(filters, streamerId, params.get("channel")));
+  else if (mode === "streamers") prefetchPage("/streamers", streamerListParams(filters));
+  else if (mode === "recordings") prefetchPage("/sessions", recordingSearchParams(filters, streamerId));
+}
+if (typeof window !== "undefined") warmListFromLocation();
+
 export default function SearchPanel({
   navHost,
 }: {
@@ -93,6 +117,20 @@ export default function SearchPanel({
     enabled: mode === "recordings",
   });
 
+  // The target list starts loading with the route change instead of after it renders.
+  const switchModeWarm = useCallback(
+    (target: Parameters<typeof switchMode>[0]) => {
+      const kept = { ...listFilters, q: "" };
+      if (target === "streamers")
+        prefetchPage("/streamers", streamerListParams({ ...kept, from: null, to: null }));
+      else if (target === "recordings")
+        prefetchPage("/sessions", recordingSearchParams(kept, streamerId));
+      else prefetchPage("/search", ghostSearchParams(kept, streamerId, url.channelParam));
+      switchMode(target);
+    },
+    [listFilters, streamerId, url.channelParam, switchMode]
+  );
+
   // ---- Header pieces ----
   const picker = useStreamerOptions({
     streamerId,
@@ -121,6 +159,7 @@ export default function SearchPanel({
     prefetch(`/sessions/${session.id}`);
     prefetch(`/recordings/${session.defaultRecording.id}/playback`);
     prefetch("/search", { sessionId: session.id, sort: "time", limit: 500 });
+    if (session.streamer) prefetch(`/streamers/${session.streamer.id}`);
   }, []);
 
   const warmStreamer = useCallback(
@@ -153,6 +192,8 @@ export default function SearchPanel({
 
   const selectRecording = useCallback(
     (session: SessionCard) => {
+      // Touch has no hover, so start every request the session view needs before it mounts.
+      warmSession(session);
       router.push(selectionHref(`/recordings/${session.id}`), {
         scroll: false,
       });
@@ -160,7 +201,7 @@ export default function SearchPanel({
         () => undefined
       );
     },
-    [router, selectionHref, startSession, platformFilter]
+    [router, selectionHref, startSession, platformFilter, warmSession]
   );
 
   const playStreamerRecording = useCallback(
@@ -217,7 +258,7 @@ export default function SearchPanel({
       inputValue={url.inputValue}
       isLoading={isLoading}
       onInputChange={url.handleInputChange}
-      onModeChange={switchMode}
+      onModeChange={switchModeWarm}
       picker={{
         options: picker.options,
         query: picker.pickerQuery,

@@ -8,18 +8,13 @@ import { PlayerHotkeys } from "@/components/player/player-hotkeys";
 import Navbar from "@/components/navbar";
 import { SearchHandoffContext } from "@/components/search-handoff";
 import { cn } from "@/lib/utils";
+import { isWorkspacePath } from "@/lib/workspace-routes";
 
-const SearchPanel = lazy(() => import("@/components/search"));
+const loadSearch = () => import("@/components/search");
+const SearchPanel = lazy(loadSearch);
+// A cold workspace load needs the panel at once; fetch it with the app chunks, not after the first render.
+if (typeof window !== "undefined" && isWorkspacePath(window.location.pathname)) void loadSearch();
 
-/** Routes that render their own content instead of the search/player workspace. */
-const CONTENT_ROUTES = [
-  "/login",
-  "/account",
-  "/how-it-works",
-  "/contact",
-  "/donate",
-  "/admin",
-];
 
 /**
  * Single root shell: one Navbar, one EmbedProvider (which owns the persistent
@@ -30,11 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const searchHandoff = useRef<string | null>(null);
   const [searchHost, setSearchHost] = useState<HTMLDivElement | null>(null);
   const pathname = usePathname();
-  const workspace =
-    pathname !== "/" &&
-    !CONTENT_ROUTES.some(
-      (route) => pathname === route || pathname.startsWith(`${route}/`)
-    );
+  const workspace = isWorkspacePath(pathname);
   const [workspaceMounted, setWorkspaceMounted] = useState(workspace);
   if (workspace && !workspaceMounted) setWorkspaceMounted(true);
 
