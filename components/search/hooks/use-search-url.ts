@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { deriveSearchMode, deriveSelection, MODE_PATHS } from "../lib/route-utils";
 import { LIST_PARAMS, parseDay, parsePlatformList } from "@/lib/search-filters";
@@ -17,6 +17,8 @@ const MODE_PARAMS: Record<SearchMode, readonly string[]> = {
 const DEBOUNCE_MS = 150;
 
 export type ParamOverrides = Record<string, string | null | undefined>;
+type Location = { pathname: string; search: string };
+type PendingLocation = { origin: string; target: Location };
 
 /**
  * The search workspace's URL model: mode and selection come from the path, list filters from the
@@ -33,7 +35,11 @@ export function useSearchUrl() {
   const [lastWorkspace, setLastWorkspace] = useState({ pathname: livePathname, search: liveSearch });
   if (workspaceActive && (lastWorkspace.pathname !== livePathname || lastWorkspace.search !== liveSearch))
     setLastWorkspace({ pathname: livePathname, search: liveSearch });
-  const { pathname, search } = workspaceActive ? { pathname: livePathname, search: liveSearch } : lastWorkspace;
+  const locationKey = `${livePathname}?${liveSearch}`;
+  const [pending, setPending] = useState<PendingLocation | null>(null);
+  const activePending = workspaceActive && pending?.origin === locationKey ? pending : null;
+  if (pending && !activePending) setPending(null);
+  const { pathname, search } = activePending?.target ?? (workspaceActive ? { pathname: livePathname, search: liveSearch } : lastWorkspace);
   const params = useMemo(() => new URLSearchParams(search), [search]);
 
   const mode: SearchMode = deriveSearchMode(pathname, params.get("list"));
@@ -53,29 +59,45 @@ export function useSearchUrl() {
   // ---- Local controlled input ----
   const [inputValue, setInputValue] = useState(queryParam);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [syncedQuery, setSyncedQuery] = useState(queryParam);
-  if (syncedQuery !== queryParam) {
-    setSyncedQuery(queryParam);
+  const cancelSearch = useCallback(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = null;
+  }, []);
+  useEffect(() => {
+    const cancel = () => { cancelSearch(); setPending(null); };
+    window.addEventListener("popstate", cancel);
+    return () => { cancelSearch(); window.removeEventListener("popstate", cancel); };
+  }, [cancelSearch]);
+  useEffect(() => cancelSearch, [pathname, workspaceActive, cancelSearch]);
+  const inputKey = `${pathname}?${queryParam}`;
+  const [syncedQuery, setSyncedQuery] = useState(inputKey);
+  if (syncedQuery !== inputKey) {
+    setSyncedQuery(inputKey);
     setInputValue(queryParam);
   }
 
-  /** Change list params in place: no navigation, no server request. */
   const setParams = useCallback((overrides: ParamOverrides) => {
-    const live = new URLSearchParams(window.location.search);
+    const live = new URLSearchParams(activePending?.target.search ?? window.location.search);
     for (const [key, value] of Object.entries(overrides)) {
       if (value) live.set(key, value);
       else live.delete(key);
     }
     const qs = live.toString();
-    const url = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
-    if (url !== `${window.location.pathname}${window.location.search}`) window.history.replaceState(null, "", url);
-  }, []);
+    const path = activePending?.target.pathname ?? window.location.pathname;
+    const url = `${path}${qs ? `?${qs}` : ""}`;
+    if (activePending) {
+      setPending(`${path}?${qs}` === locationKey ? null : { ...activePending, target: { pathname: path, search: qs } });
+      router.push(url, { scroll: false });
+    } else if (url !== `${window.location.pathname}${window.location.search}`) window.history.replaceState(null, "", url);
+  }, [activePending, router, locationKey]);
+  const updateParams = useRef(setParams);
+  useEffect(() => { updateParams.current = setParams; }, [setParams]);
 
   const handleInputChange = useCallback((value: string) => {
     setInputValue(value);
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => setParams({ q: value || null }), DEBOUNCE_MS);
-  }, [setParams]);
+    cancelSearch();
+    searchTimer.current = setTimeout(() => updateParams.current({ q: value || null }), DEBOUNCE_MS);
+  }, [cancelSearch]);
 
   /** The list params as a query string, to carry onto a selection URL. */
   const listQuery = useMemo(() => {
@@ -99,7 +121,7 @@ export function useSearchUrl() {
 
   /** Switch mode with client navigation, keeping only the filters the target mode has. */
   const switchMode = useCallback((target: Exclude<SearchMode, "saved">) => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
+    cancelSearch();
     const out = new URLSearchParams();
     for (const key of MODE_PARAMS[target]) {
       const value = params.get(key);
@@ -108,8 +130,9 @@ export function useSearchUrl() {
     if (target === "ghosts" && channelParam) out.set("channel", channelParam);
     const qs = out.toString();
     setInputValue("");
+    setPending(`${MODE_PATHS[target]}?${qs}` === locationKey ? null : { origin: locationKey, target: { pathname: MODE_PATHS[target], search: qs } });
     router.push(`${MODE_PATHS[target]}${qs ? `?${qs}` : ""}`, { scroll: false });
-  }, [router, params, channelParam]);
+  }, [router, params, channelParam, locationKey, cancelSearch]);
 
   return {
     mode, selection,
