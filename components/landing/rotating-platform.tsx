@@ -13,7 +13,7 @@ export function RotatingPlatform() {
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const timer = setInterval(
       () => setIndex((current) => (current + 1) % platforms.length),
-      1000
+      2500
     );
     return () => clearInterval(timer);
   }, []);

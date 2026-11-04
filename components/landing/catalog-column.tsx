@@ -54,23 +54,25 @@ export function CatalogColumn({
       <div className="px-4 py-3">
         <p className="text-sm text-muted-foreground">{context}</p>
       </div>
-      <div
-        ref={viewportRef}
-        id={`${id}-feed`}
-        role="region"
-        aria-label={`${title} feed`}
-        className="mx-4 mb-4 h-72 overflow-y-auto overscroll-contain scroll-auto rounded-lg border border-border bg-black p-2 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] @4xl/landing:h-88"
-      >
-        <ul ref={listRef} className="flex flex-col gap-2">
-          {entries.map((entry) => (
-            <CatalogRow key={entry.href} entry={entry} />
-          ))}
-        </ul>
-        {!entries.length && (
-          <p className="flex min-h-44 items-center justify-center px-6 text-center text-sm text-neutral-400">
-            {empty}
-          </p>
-        )}
+      <div className="relative mx-4 mb-4 rounded-lg border border-border bg-[color-mix(in_oklab,var(--background),black_7%)] after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_2px_10px_rgb(0_0_0/0.14)] dark:bg-[color-mix(in_oklab,var(--background),black_25%)] dark:after:shadow-[inset_0_3px_12px_rgb(0_0_0/0.6)]">
+        <div
+          ref={viewportRef}
+          id={`${id}-feed`}
+          role="region"
+          aria-label={`${title} feed`}
+          className="h-72 overflow-y-auto overscroll-contain scroll-auto rounded-[inherit] p-2 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] @4xl/landing:h-88"
+        >
+          <ul ref={listRef} className="flex flex-col gap-2">
+            {entries.map((entry) => (
+              <CatalogRow key={entry.href} entry={entry} />
+            ))}
+          </ul>
+          {!entries.length && (
+            <p className="flex min-h-44 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+              {empty}
+            </p>
+          )}
+        </div>
       </div>
     </section>
   );
