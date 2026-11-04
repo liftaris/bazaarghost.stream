@@ -52,6 +52,8 @@ export function useSessionPlayer() {
       return null;
     }
     const [session, page] = loaded;
+    const title = session.title ?? session.streamer?.displayName;
+    if (title) document.title = `${title} | BazaarGhost`;
     if (session.redirectedFrom !== undefined) window.history.replaceState(window.history.state, "", `/recordings/${session.id}${window.location.search}`);
     const sources = sessionSources(session);
     const pick = pickRecordingSource(sources, pin, preferredPlatform(), filter);
