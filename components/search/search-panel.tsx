@@ -378,7 +378,17 @@ export default function SearchPanel({
   return (
     <>
       {navHost && createPortal(searchHeader, navHost)}
-      <SearchLayout searchResults={searchResults} detail={detail} />
+      <SearchLayout
+        searchResults={searchResults}
+        detail={detail}
+        detailKey={[
+          selectedStreamerId,
+          url.recordingParam,
+          contextSessionId,
+          selectedGhost?.detection_id,
+          selectedMatchup?.id,
+        ].join("|")}
+      />
     </>
   );
 }

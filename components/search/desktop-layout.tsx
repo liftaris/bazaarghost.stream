@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { Video } from "lucide-react";
 import { EmbedDrawer } from "@/components/embed-drawer";
 import { EmbedPanel } from "@/components/embed-panel";
 import {
@@ -16,30 +17,39 @@ import { cn } from "@/lib/utils";
 export function SearchLayout({
   searchResults,
   detail,
+  detailKey,
 }: {
   searchResults: ReactNode;
   detail: ReactNode;
+  detailKey: string;
 }) {
   const split = useResizableSplit("results", 0.28, "results", "workspace");
   const [mobileTab, setMobileTab] = useState("results");
+  const [seenDetailKey, setSeenDetailKey] = useState(detailKey);
+  if (detailKey !== seenDetailKey) {
+    setSeenDetailKey(detailKey);
+    if (detail) setMobileTab("details");
+  }
   const activeTab = detail ? mobileTab : "results";
-  const mobileNavigation = (
-    <TabsList
-      aria-label="Workspace panels"
-      className="mx-3 my-2 h-11! w-auto shrink-0 md:hidden"
-    >
-      <TabsTrigger value="results">Search Results</TabsTrigger>
-      <TabsTrigger value="details" disabled={!detail}>
-        Details
-      </TabsTrigger>
-    </TabsList>
-  );
   return (
     <Tabs
       value={activeTab}
       onValueChange={setMobileTab}
       className="min-h-0 flex-1 gap-0"
     >
+      <TabsList
+        aria-label="Workspace panels"
+        className="mx-3 my-2 h-11! w-auto shrink-0 md:hidden"
+      >
+        <TabsTrigger value="results">Search Results</TabsTrigger>
+        <TabsTrigger
+          value="details"
+          disabled={!detail}
+          aria-label="Recording"
+        >
+          <Video aria-hidden />
+        </TabsTrigger>
+      </TabsList>
       <ResizablePanelGroup
         id="search-workspace"
         data-mobile-tab={activeTab}
@@ -48,7 +58,7 @@ export function SearchLayout({
         disabled={split.compact}
         onLayoutChange={split.onLayoutChange}
         onLayoutChanged={split.onLayoutChanged}
-        className="min-h-0 flex-1 bg-background max-md:flex-col! max-md:[&>[data-panel]]:w-full! max-md:[&>[data-panel]]:max-h-none! max-md:[&>#results]:order-3 max-md:[&>#results]:flex-1! max-md:[&>#workspace]:order-1 max-md:[&>#workspace]:flex-none! max-md:data-[mobile-tab=details]:[&>#results]:hidden! max-md:data-[mobile-tab=details]:[&>#workspace]:flex-1!"
+        className="min-h-0 flex-1 bg-background max-md:flex-col! max-md:[&>[data-panel]]:w-full! max-md:[&>[data-panel]]:max-h-none! max-md:[&>[data-panel]]:flex-1! max-md:data-[mobile-tab=details]:[&>#results]:hidden! max-md:data-[mobile-tab=results]:[&>#workspace]:hidden!"
       >
         <ResizablePanel
           id="results"
@@ -93,10 +103,7 @@ export function SearchLayout({
           )}
         >
           <EmbedDrawer>
-            <EmbedPanel
-              mobileNavigation={mobileNavigation}
-              mobileTab={activeTab}
-            >
+            <EmbedPanel>
               {detail && (
                 <TabsContent
                   value="details"

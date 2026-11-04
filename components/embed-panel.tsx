@@ -21,15 +21,7 @@ import { useResizableSplit } from "@/hooks/use-resizable-split";
 import { cn } from "@/lib/utils";
 
 /** Persistent video chrome above a retained nested companion; closing video frees its full context area. */
-export function EmbedPanel({
-  children,
-  mobileNavigation,
-  mobileTab = "details",
-}: {
-  children?: ReactNode;
-  mobileNavigation?: ReactNode;
-  mobileTab?: string;
-}) {
+export function EmbedPanel({ children }: { children?: ReactNode }) {
   const {
     isVisible,
     videoId,
@@ -52,28 +44,24 @@ export function EmbedPanel({
   );
   if (!showVideo && !children)
     return (
-      <>
-        {mobileNavigation}
-        <Empty className="max-md:hidden md:m-2">
-          <EmptyHeader>
-            <EmptyMedia>
-              <Ghost aria-hidden className="size-10 text-muted-foreground" />
-            </EmptyMedia>
-          </EmptyHeader>
-        </Empty>
-      </>
+      <Empty className="max-md:hidden md:m-2">
+        <EmptyHeader>
+          <EmptyMedia>
+            <Ghost aria-hidden className="size-10 text-muted-foreground" />
+          </EmptyMedia>
+        </EmptyHeader>
+      </Empty>
     );
   return (
     <div className="@container flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-card">
       <ResizablePanelGroup
         id="video-context"
-        data-mobile-tab={mobileTab}
         orientation="vertical"
         groupRef={split.groupRef}
         disabled={split.compact}
         onLayoutChange={split.onLayoutChange}
         onLayoutChanged={split.onLayoutChanged}
-        className="min-h-0 flex-1 max-md:[&>[data-panel]]:max-h-none! max-md:[&>#video]:flex-none! max-md:[&>#context]:min-h-0! max-md:[&>#context]:flex-1! max-md:data-[mobile-tab=results]:[&>#context]:hidden!"
+        className="min-h-0 flex-1 max-md:[&>[data-panel]]:max-h-none! max-md:[&>#video]:flex-none! max-md:[&>#context]:min-h-0! max-md:[&>#context]:flex-1!"
       >
         {showVideo && (
           <>
@@ -123,7 +111,6 @@ export function EmbedPanel({
             )}
           </>
         )}
-        {mobileNavigation}
         {children && (
           <ResizablePanel
             id="context"
