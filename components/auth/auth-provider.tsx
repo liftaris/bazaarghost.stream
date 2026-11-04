@@ -23,6 +23,8 @@ export type AuthState =
 
 interface AuthContextValue {
   state: AuthState;
+  /** `social-auth` flag: public sign in, account and bookmarks. Operators can still sign in for /admin. */
+  social: boolean;
   providers: AuthProviderId[];
   /** True once the provider list has been fetched (it is loaded lazily). */
   providersLoaded: boolean;
@@ -63,6 +65,14 @@ export function AuthProvider({
   initialState?: Exclude<AuthState, { status: "loading" | "disabled" }> | null;
 }) {
   const [state, setState] = useState<AuthState>(initialState ?? { status: "loading" });
+  // Off until the flag answers, so a disabled launch never flashes sign-in UI.
+  const [social, setSocial] = useState(false);
+  useEffect(() => {
+    void fetch("/api/flags", { cache: "no-store" })
+      .then((response) => (response.ok ? (response.json() as Promise<{ social?: boolean }>) : null))
+      .then((flags) => setSocial(flags?.social === true))
+      .catch(() => {});
+  }, []);
   const [providers, setProviders] = useState<AuthProviderId[]>([]);
   const [providersLoaded, setProvidersLoaded] = useState(false);
   const providersRequest = useRef<Promise<void> | null>(null);
@@ -148,6 +158,7 @@ export function AuthProvider({
   const value = useMemo<AuthContextValue>(
     () => ({
       state,
+      social,
       providers,
       providersLoaded,
       ensureProviders,
@@ -156,7 +167,7 @@ export function AuthProvider({
       linkProvider: (provider, callbackURL) => start("link", provider, callbackURL),
       post,
     }),
-    [state, providers, providersLoaded, ensureProviders, refresh, start, post],
+    [state, social, providers, providersLoaded, ensureProviders, refresh, start, post],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -9,9 +9,10 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
 
 export function SavedLink({ onNavigate }: { onNavigate?: () => void }) {
-  const { signedIn } = useBookmarkActions();
+  const { signedIn, enabled } = useBookmarkActions();
   const { state } = useAuth();
   const active = usePathname() === "/saved";
+  if (!enabled) return null;
   if (state.status === "loading") return <span className="size-9 shrink-0" aria-hidden />;
   if (!signedIn) return null;
   return (

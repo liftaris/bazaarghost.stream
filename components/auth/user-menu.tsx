@@ -20,10 +20,10 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { initials } from "@/components/auth/user-avatar";
 
 export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
-  const { state, post, refresh } = useAuth();
+  const { state, social, post, refresh } = useAuth();
   const router = useRouter();
 
-  if (state.status === "disabled") return null;
+  if (!social || state.status === "disabled") return null;
   if (state.status === "loading") return <Slot><Skeleton className="size-9 rounded-full" /></Slot>;
   if (state.status === "anonymous") {
     return (

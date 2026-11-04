@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => ({
       ASSETS: bindings.assets(),
       IMAGES: bindings.images(),
       VINEXT_KV_CACHE: bindings.kv(),
+      FLAGS: bindings.flagship({ id: "836d1b9e-a6e4-4db8-b342-cd991811e839" }),
       BACKEND: bindings.worker({
         worker:
           mode === "validation"

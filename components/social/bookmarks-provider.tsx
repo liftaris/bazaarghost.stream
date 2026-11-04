@@ -177,9 +177,10 @@ interface BookmarksValue {
 const BookmarksContext = createContext<BookmarksContextValue | null>(null);
 
 export function BookmarksProvider({ children }: { children: React.ReactNode }) {
-  const { state } = useAuth();
+  const { state, social } = useAuth();
   const [store] = useState(() => new BookmarkStore());
-  const userId = state.status === "authenticated" ? state.identity.userId : null;
+  const enabled = social && state.status !== "disabled";
+  const userId = enabled && state.status === "authenticated" ? state.identity.userId : null;
   const known = state.status !== "loading";
   const csrf = state.status === "authenticated" ? state.identity.csrfToken : null;
 
@@ -193,8 +194,8 @@ export function BookmarksProvider({ children }: { children: React.ReactNode }) {
   }, [store, userId, known]);
 
   const value = useMemo<BookmarksContextValue>(
-    () => ({ store, enabled: state.status !== "disabled", signedIn: userId !== null }),
-    [store, state.status, userId],
+    () => ({ store, enabled, signedIn: userId !== null }),
+    [store, enabled, userId],
   );
   return <BookmarksContext.Provider value={value}>{children}</BookmarksContext.Provider>;
 }
