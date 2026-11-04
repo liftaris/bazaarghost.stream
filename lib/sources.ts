@@ -1,4 +1,4 @@
-import type { Matchup, RecordingSource, Session, Source } from "./api-contract";
+import type { MatchupCard, RecordingSource, Session, Source } from "./api-contract";
 import { NO_PLATFORM_FILTER, platformAllowed, type PlatformFilter } from "./search-filters";
 export { mapSessionTime } from "./session-navigation";
 
@@ -34,7 +34,7 @@ export function rememberPlatform(platform: string) {
  * Pinned Source, else the preferred platform, else the Streamer's own Recording, else any; null when
  * nothing plays. The platform filter narrows the choice, unless it would leave nothing to play.
  */
-export function pickSource(matchup: Matchup, pin: string | null, preferred: string | null, filter: PlatformFilter = NO_PLATFORM_FILTER): RecordingSource | null {
+export function pickSource(matchup: MatchupCard, pin: string | null, preferred: string | null, filter: PlatformFilter = NO_PLATFORM_FILTER): RecordingSource | null {
   return pickRecordingSource(recordingSources(matchup.sources), pin, preferred, filter);
 }
 

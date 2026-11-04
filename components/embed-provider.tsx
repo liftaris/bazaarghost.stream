@@ -17,7 +17,7 @@ import { PlayerHost, SLOT_EVENT } from "@/components/player/player-host";
 import { toast } from "sonner";
 import { usePlayback } from "@/hooks/use-playback";
 import { cachedGet } from "@/lib/api-cache";
-import type { Matchup, Playback, RecordingSource, Session, Source } from "@/lib/api-contract";
+import type { MatchupCard, Playback, RecordingSource, Session, Source } from "@/lib/api-contract";
 import { adjacentIndex, matchupTime } from "@/lib/session-navigation";
 import { createPlaybackIntent } from "@/lib/playback-intent";
 import { withListParams } from "@/lib/search-filters";
@@ -81,9 +81,9 @@ interface EmbedActions {
   /** Pin a user-selected matchup, separately from the passive playhead. */
   setActiveGhost: (ghost: EmbedGhost | null) => void;
   /** Hydrate canonical context without seeking or changing the pinned ID. */
-  setMatchupContext: (matchup: Matchup) => void;
+  setMatchupContext: (matchup: MatchupCard) => void;
   /** Register ordered canonical session navigation, independently of source markers. */
-  setSessionNavigation: (session: Session, matches: Matchup[]) => void;
+  setSessionNavigation: (session: Session, matches: MatchupCard[]) => void;
   /** Step from the pinned selection, or commit a timeline marker, with one seek and resource navigation. */
   goToGhost: (target: "prev" | "next" | EmbedGhost) => void;
   /** Read the latest playback time without subscribing to ticks. */
@@ -109,7 +109,7 @@ interface EmbedSlowState extends EmbedState {
   activeGhost: EmbedGhost | null;
   /** Explicit user selection, unaffected by passive playback or source switching. */
   selectedGhost: EmbedGhost | null;
-  selectedMatchup: Matchup | null;
+  selectedMatchup: MatchupCard | null;
   contextSessionId: string | null;
   navigationIds: number[] | null;
   /** True while activeGhost is an optimistic (user-initiated) override. */
@@ -197,10 +197,10 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
   const sessionIdRef = useRef<string | null>(null);
   const [contextSessionId, setContextSessionId] = useState<string | null>(null);
   const [selectedGhost, setSelectedGhost] = useState<EmbedGhost | null>(null);
-  const [selectedMatchup, setSelectedMatchup] = useState<Matchup | null>(null);
+  const [selectedMatchup, setSelectedMatchup] = useState<MatchupCard | null>(null);
   const [navigationIds, setNavigationIds] = useState<number[] | null>(null);
   const [playbackIntent] = useState(createPlaybackIntent);
-  const sessionNavigation = useRef<{ session: Session; matches: Matchup[] } | null>(null);
+  const sessionNavigation = useRef<{ session: Session; matches: MatchupCard[] } | null>(null);
   const failedSourcesRef = useRef(new Set<number>());
   const [isReady, setIsReady] = useState(false);
   // Adapter errors belong to the video/source that raised them and lapse with it
@@ -432,11 +432,11 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     setSelectedMatchup((old) => old?.id === ghost?.matchup_id ? old : null);
   }, []);
 
-  const setMatchupContext = useCallback((matchup: Matchup) => {
+  const setMatchupContext = useCallback((matchup: MatchupCard) => {
     setSelectedMatchup(matchup);
     setContextSessionId(matchup.session?.id ?? null);
   }, []);
-  const setSessionNavigation = useCallback((session: Session, matches: Matchup[]) => {
+  const setSessionNavigation = useCallback((session: Session, matches: MatchupCard[]) => {
     if (session.id !== sessionIdRef.current) return;
     sessionNavigation.current = { session, matches };
     setNavigationIds(matches.map((m) => m.id));
@@ -550,7 +550,7 @@ export function EmbedProvider({ children }: { children: ReactNode }) {
     const { ghosts, selectedGhost: active, capabilities: caps } = nav.current;
     if (!caps?.navigate) return;
     let ghost: EmbedGhost | null;
-    let canonical: Matchup | undefined;
+    let canonical: MatchupCard | undefined;
     if (typeof target === "string") {
       const sessionNav = sessionNavigation.current;
       if (sessionNav) {

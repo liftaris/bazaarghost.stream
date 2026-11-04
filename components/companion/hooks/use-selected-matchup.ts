@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Matchup } from "@/lib/api-contract";
+import type { MatchupCard } from "@/lib/api-contract";
 import { cachedGet } from "@/lib/api-cache";
 import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
 
 /** Reuse canonical list data, fetching at most the selected detail when a sparse timeline lacks it. */
-export function useSelectedMatchup(matches: Matchup[]) {
+export function useSelectedMatchup(matches: MatchupCard[]) {
   const { selectedGhost, selectedMatchup } = useEmbedState();
   const { setMatchupContext } = useEmbedActions();
   const selectedId = selectedMatchup?.id ?? selectedGhost?.matchup_id ?? null;

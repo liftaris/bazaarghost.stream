@@ -1,4 +1,4 @@
-import type { Matchup, Session } from "./api-contract";
+import type { MatchupCard, Session } from "./api-contract";
 
 /** Map a moment between piecewise Recording timelines. Segment ends are exclusive. */
 export function mapSessionTime(
@@ -24,7 +24,7 @@ export function mapSessionTime(
 
 /** Resolve a Matchup anchor on a Recording, trying every available aligned copy. */
 export function matchupTime(
-  match: Matchup,
+  match: MatchupCard,
   recordingId: number,
   session: Session | null
 ): number | null {
@@ -50,7 +50,7 @@ export function matchupTime(
 }
 
 /** Recognize an applied explicit/aligned source without overriding a valid explicit source pin. */
-export function matchupOnRecording(match: Matchup, recordingId: number, pin: string | null, session: Session | null): boolean {
+export function matchupOnRecording(match: MatchupCard, recordingId: number, pin: string | null, session: Session | null): boolean {
   const pinned = match.sources.find((s) => s.kind === "recording" && s.available && `r${s.recording.id}` === pin);
   if (pinned?.kind === "recording") return pinned.recording.id === recordingId;
   const aligned = session?.id === match.session?.id ? session : null;
@@ -60,10 +60,10 @@ export function matchupOnRecording(match: Matchup, recordingId: number, pin: str
 /** One chronological display entry; day headers never imply a complete run. */
 export type DayEntry =
   | { kind: "day"; key: string; day: number | null }
-  | { kind: "matchup"; key: string; matchup: Matchup };
+  | { kind: "matchup"; key: string; matchup: MatchupCard };
 
 /** Group only adjacent supported days, preserving server order, unknowns and repeated IDs. */
-export function observedDayEntries(matches: Matchup[]): DayEntry[] {
+export function observedDayEntries(matches: MatchupCard[]): DayEntry[] {
   const entries: DayEntry[] = [];
   const seen = new Set<number>();
   let previous: number | null | undefined;

@@ -1,11 +1,11 @@
-import type { Matchup, RecordingSource, Streamer } from "./api-contract";
+import type { MatchupCard, RecordingSource, Streamer } from "./api-contract";
 import type { SourceStackItem } from "@/components/source-stack";
 import { opponentNameState, type OpponentName } from "./opponent-name";
 
 /** Presentation fields of one Matchup row; playback uses its default Source. */
 export interface GhostResult extends OpponentName {
   /** Canonical data retained for instant companion context, never an evidence image request. */
-  matchup: Matchup;
+  matchup: MatchupCard;
   matchup_id: number; rank: string | null;
   frame_time_seconds: number; actual_timestamp: string;
   vod_id: number; vod_source_id: string; vod_title: string;
@@ -19,11 +19,11 @@ export interface StreamerOption {
 }
 
 /** First available recording Source in the API's order, or null. */
-function defaultSource(value: Matchup): RecordingSource | null {
+function defaultSource(value: MatchupCard): RecordingSource | null {
   return value.sources.find((s): s is RecordingSource => s.kind === "recording" && s.available) ?? null;
 }
 /** One mark per platform, in Source order; a clip-only platform keeps its clip badge. */
-function sourceMarks(value: Matchup): SourceStackItem[] {
+function sourceMarks(value: MatchupCard): SourceStackItem[] {
   const marks = new Map<string, SourceStackItem>();
   for (const s of value.sources) {
     if (!s.available) continue;
@@ -36,14 +36,14 @@ function sourceMarks(value: Matchup): SourceStackItem[] {
   return [...marks.values()];
 }
 /** Who to show for a Matchup: its Streamer, else the Channel of its first Source. */
-export function matchupOwner(value: Matchup): { id: string | null; name: string; avatar: string } {
+export function matchupOwner(value: MatchupCard): { id: string | null; name: string; avatar: string } {
   if (value.streamer) return { id: String(value.streamer.id), name: value.streamer.displayName, avatar: value.streamer.avatarUrl ?? "" };
   const first = value.sources[0];
   const channel = first && (first.kind === "recording" ? first.channel : first.attribution);
   return { id: null, name: channel?.displayName ?? "Unknown channel", avatar: channel?.avatarUrl ?? "" };
 }
 /** Adapt a Matchup for the result layout; null when it has no playable recording. */
-export function ghostResult(value: Matchup, chosen?: RecordingSource | null): GhostResult | null {
+export function ghostResult(value: MatchupCard, chosen?: RecordingSource | null): GhostResult | null {
   const source = chosen ?? defaultSource(value);
   if (!source) return null;
   const owner = matchupOwner(value);
