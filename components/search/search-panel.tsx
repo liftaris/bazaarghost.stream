@@ -13,9 +13,10 @@ import { filterParams, type PlatformFilter } from "@/lib/search-filters";
 
 import { useSearchUrl } from "./hooks/use-search-url";
 import { streamerIdOf, useStreamerOptions } from "./hooks/use-streamer-options";
-import { useGhostSearch, type ListFilters } from "./hooks/use-ghost-search";
-import { useRecordingSearch } from "./hooks/use-recording-search";
-import { useStreamerList } from "./hooks/use-streamer-list";
+import { ghostSearchParams, useGhostSearch, type ListFilters } from "./hooks/use-ghost-search";
+import { recordingSearchParams, useRecordingSearch } from "./hooks/use-recording-search";
+import { streamerListParams, useStreamerList } from "./hooks/use-streamer-list";
+import { prefetchPage } from "./hooks/use-api-page";
 import { useChannelName } from "./hooks/use-channel-name";
 import { usePlatformOptions } from "./hooks/use-platform-options";
 import { useSavedMatchups } from "./hooks/use-saved-matchups";
@@ -92,6 +93,20 @@ export default function SearchPanel({
     streamerId,
     enabled: mode === "recordings",
   });
+
+  // The target list starts loading with the route change instead of after it renders.
+  const switchModeWarm = useCallback(
+    (target: Parameters<typeof switchMode>[0]) => {
+      const kept = { ...listFilters, q: "" };
+      if (target === "streamers")
+        prefetchPage("/streamers", streamerListParams({ ...kept, from: null, to: null }));
+      else if (target === "recordings")
+        prefetchPage("/sessions", recordingSearchParams(kept, streamerId));
+      else prefetchPage("/search", ghostSearchParams(kept, streamerId, url.channelParam));
+      switchMode(target);
+    },
+    [listFilters, streamerId, url.channelParam, switchMode]
+  );
 
   // ---- Header pieces ----
   const picker = useStreamerOptions({
@@ -220,7 +235,7 @@ export default function SearchPanel({
       inputValue={url.inputValue}
       isLoading={isLoading}
       onInputChange={url.handleInputChange}
-      onModeChange={switchMode}
+      onModeChange={switchModeWarm}
       picker={{
         options: picker.options,
         query: picker.pickerQuery,

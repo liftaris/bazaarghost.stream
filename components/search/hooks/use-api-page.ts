@@ -1,12 +1,16 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "@/lib/api-client";
-import { cachedGet, invalidate, peek } from "@/lib/api-cache";
+import { cachedGet, invalidate, peek, prefetch } from "@/lib/api-cache";
 import type { PublicRoutes } from "@/lib/api-contract";
 
 type ListPath = "/search" | "/sessions" | "/streamers";
 type Item<P extends ListPath> = PublicRoutes[P]["items"][number];
 
+/** Start loading a list's first page, exactly as useApiPage will request it. */
+export function prefetchPage<P extends ListPath>(path: P, params: Record<string, string | number | boolean | null>) {
+  prefetch(path, { ...params, cursor: null, limit: 50 });
+}
 /** Cursor pagination with cancellation, bounded refresh, and visible retryable errors. */
 export function useApiPage<P extends ListPath>(path: P, params: Record<string, string | number | boolean | null>, enabled = true) {
   const key = JSON.stringify([path, params]);
