@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
-import type { Matchup, Session } from "@/lib/api-contract";
+import type { MatchupCard, Session } from "@/lib/api-contract";
 import { sessionMatchupTable } from "@/lib/session-summary";
 import { HeroIcon } from "@/components/hero-icon";
 import { MatchupTile } from "./matchup-tile";
@@ -23,12 +23,12 @@ export function MatchupList({
   onSelect,
   header,
 }: {
-  matches: Matchup[];
+  matches: MatchupCard[];
   selectedId: number | null;
   activeId: number | null;
   recordingId: number | null;
   session: Session | null;
-  onSelect: (match: Matchup) => void;
+  onSelect: (match: MatchupCard) => void;
   header?: ReactNode;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);

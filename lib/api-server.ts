@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { backendFetch } from "./backend-server";
-import type { ChannelLookup, Matchup, MatchupDetail, Page, Playback, Recording, Session, Streamer, TimelineMarker } from "./api-contract";
+import type { ChannelLookup, MatchupCard, MatchupDetail, Page, Playback, Recording, Session, Streamer, TimelineMarker } from "./api-contract";
 import { recordingPath } from "./sources";
 
 /** Share the current public matchup between metadata and rendering within one request. */
@@ -99,11 +99,11 @@ export const getVideo = cache(async (id: number): Promise<Playback["recording"] 
 });
 
 /** Most recent matchups for the sitemap. */
-export async function getRecentMatchups(limit: number): Promise<Matchup[]> {
-  const out: Matchup[] = [];
+export async function getRecentMatchups(limit: number): Promise<MatchupCard[]> {
+  const out: MatchupCard[] = [];
   let cursor: string | null = null;
   while (out.length < limit) {
-    const page: Page<Matchup> | null = await publicGet("/search", { cursor, limit: Math.min(100, limit - out.length) });
+    const page: Page<MatchupCard> | null = await publicGet("/search", { cursor, limit: Math.min(100, limit - out.length) });
     if (!page) break;
     out.push(...page.items);
     cursor = page.nextCursor;

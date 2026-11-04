@@ -1,4 +1,4 @@
-import type { Hero, Matchup } from "./api-contract";
+import type { Hero, MatchupCard } from "./api-contract";
 
 export const HERO_LABELS: Record<Hero, string> = {
   vanessa: "Vanessa",
@@ -17,7 +17,7 @@ export function heroLabel(hero: Hero | null | undefined): string {
 }
 
 /** Summaries describe distinct loaded observations, never estimated session totals. */
-export function summarizeSession(matches: Matchup[]) {
+export function summarizeSession(matches: MatchupCard[]) {
   const unique = [
     ...new Map(matches.map((match) => [match.id, match])).values(),
   ];
@@ -72,10 +72,10 @@ export interface ObservedRun {
   key: string;
   number: number | null;
   hero: Hero | null;
-  matches: Matchup[];
+  matches: MatchupCard[];
 }
 
-export function observedRuns(matches: Matchup[]): ObservedRun[] {
+export function observedRuns(matches: MatchupCard[]): ObservedRun[] {
   const runs: ObservedRun[] = [];
   const seen = new Set<number>();
   let previousRecording: number | null = null;
@@ -83,9 +83,7 @@ export function observedRuns(matches: Matchup[]): ObservedRun[] {
   for (const match of matches) {
     if (seen.has(match.id)) continue;
     seen.add(match.id);
-    const proof =
-      match.fieldEvidence?.encounter ??
-      match.encounter.fieldEvidence?.encounter;
+    const proof = match.encounter.fieldEvidence.encounter;
     const source = match.sources?.find((source) => source.kind === "recording");
     const recording =
       proof?.recordingId ??
@@ -120,9 +118,9 @@ export function observedRuns(matches: Matchup[]): ObservedRun[] {
   return runs;
 }
 
-export function sessionMatchupTable(matches: Matchup[]) {
+export function sessionMatchupTable(matches: MatchupCard[]) {
   const rows = observedRuns(matches).map((run) => {
-    const cells = new Map<number | null, Matchup[]>();
+    const cells = new Map<number | null, MatchupCard[]>();
     for (const match of run.matches) {
       const day = match.encounter.igd ?? null;
       const cell = cells.get(day) ?? [];

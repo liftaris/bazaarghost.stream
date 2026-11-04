@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useEmbedActions, useEmbedState } from "@/components/embed-provider";
-import type { Matchup, Session } from "@/lib/api-contract";
+import type { MatchupCard, Session } from "@/lib/api-contract";
 import { matchupTime } from "@/lib/session-navigation";
 import { pickSource, preferredPlatform, sourcePin } from "@/lib/sources";
 import { withListParams } from "@/lib/search-filters";
@@ -15,7 +15,7 @@ export function useMatchupPlayer(session: Session | null) {
     useEmbedActions();
   const router = useRouter();
   return useCallback(
-    (match: Matchup) => {
+    (match: MatchupCard) => {
       const current = Number(videoId?.slice(2));
       const mapped = matchupTime(match, current, session);
       const source = pickSource(

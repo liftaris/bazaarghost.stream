@@ -9,11 +9,11 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import Image from "next/image";
-import type { Matchup } from "@/lib/api-contract";
+import type { MatchupCard } from "@/lib/api-contract";
 import { summarizeSession } from "@/lib/session-summary";
 import { HeroIcon } from "@/components/hero-icon";
 
-export function SessionStats({ matches }: { matches: Matchup[] }) {
+export function SessionStats({ matches }: { matches: MatchupCard[] }) {
   const stats = useMemo(() => summarizeSession(matches), [matches]);
   const knownRanks = stats.count - stats.unknownRanks;
   const maxRank = Math.max(1, ...stats.ranks.map(({ count }) => count));

@@ -55,7 +55,12 @@ function setup() {
 const match = {
   id: 1,
   opponent: { username: "Ghost", nameState: "complete", rank: "gold" },
-  encounter: { streamerHero: "karnok", ghostHero: "the_dragons", igd: 1 },
+  encounter: {
+    streamerHero: "karnok",
+    ghostHero: "the_dragons",
+    igd: 1,
+    fieldEvidence: {},
+  },
   sources: [
     { kind: "recording", available: true, recording: { id: 1 }, at: 100 },
   ],

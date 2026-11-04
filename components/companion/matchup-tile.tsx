@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Ghost } from "lucide-react";
-import type { Matchup, Session } from "@/lib/api-contract";
+import type { MatchupCard, Session } from "@/lib/api-contract";
 import { clock, matchupTime } from "@/lib/session-navigation";
 import { heroLabel, RANKS } from "@/lib/session-summary";
 import { opponentLabel } from "@/lib/opponent-name";
@@ -17,12 +17,12 @@ export function MatchupTile({
   session,
   onSelect,
 }: {
-  match: Matchup;
+  match: MatchupCard;
   selected: boolean;
   active: boolean;
   recordingId: number | null;
   session: Session | null;
-  onSelect: (match: Matchup) => void;
+  onSelect: (match: MatchupCard) => void;
 }) {
   const mapped =
     recordingId === null ? null : matchupTime(match, recordingId, session);

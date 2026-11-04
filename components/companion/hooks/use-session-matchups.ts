@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "@/lib/api-client";
 import { cachedGet, invalidate } from "@/lib/api-cache";
-import type { Matchup, Session } from "@/lib/api-contract";
+import type { MatchupCard, Session } from "@/lib/api-contract";
 import { useEmbedActions } from "@/components/embed-provider";
 
 interface Loaded {
   id: string;
   session: Session | null;
-  matches: Matchup[];
+  matches: MatchupCard[];
   loading: boolean;
   error: string | null;
 }
@@ -25,7 +25,7 @@ export function useSessionMatchups(id: string | null) {
     const signal = controller.signal;
     const load = async () => {
       let session: Session | null = null;
-      let matches: Matchup[] = [];
+      let matches: MatchupCard[] = [];
       try {
         const [info, first] = await Promise.all([
           cachedGet(`/sessions/${id}`, {}, { signal }),
