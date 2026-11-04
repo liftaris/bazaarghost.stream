@@ -59,15 +59,15 @@ export function CatalogColumn({
         id={`${id}-feed`}
         role="region"
         aria-label={`${title} feed`}
-        className="mx-2 h-72 overflow-y-auto overscroll-contain scroll-auto rounded-sm [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] @4xl/landing:h-88"
+        className="mx-4 mb-4 h-72 overflow-y-auto overscroll-contain scroll-auto rounded-lg border border-border bg-black p-2 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] @4xl/landing:h-88"
       >
-        <ul ref={listRef} className="flex flex-col gap-1 pb-1">
+        <ul ref={listRef} className="flex flex-col gap-2">
           {entries.map((entry) => (
             <CatalogRow key={entry.href} entry={entry} />
           ))}
         </ul>
         {!entries.length && (
-          <p className="flex min-h-44 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+          <p className="flex min-h-44 items-center justify-center px-6 text-center text-sm text-neutral-400">
             {empty}
           </p>
         )}

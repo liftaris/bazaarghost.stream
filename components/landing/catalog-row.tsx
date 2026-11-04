@@ -11,7 +11,7 @@ export function CatalogRow({ entry }: { entry: LandingEntry }) {
       <Link
         href={entry.href}
         prefetch={false}
-        className="flex min-h-22 items-center gap-3 rounded-lg px-3 py-3 outline-none transition-colors hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        className="flex min-h-22 items-center gap-3 rounded-md bg-card px-3 py-3 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
         {entry.visual.kind === "avatar" ? (
           <Avatar className="size-10 shrink-0">
