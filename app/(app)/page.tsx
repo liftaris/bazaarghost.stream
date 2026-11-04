@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
+/** The snapshot is hourly; serve the rendered page from cache and refresh it in the background. */
+export const revalidate = 300;
+
 /** Search-first landing page with an hourly public archive snapshot. */
 export default async function RootPage() {
   const snapshot = await getLandingSnapshot().catch((error: unknown) => {
