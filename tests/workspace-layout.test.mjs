@@ -40,6 +40,7 @@ test("mobile workspace tabs retain both panes and preserve desktop regions", () 
     "react/jsx-runtime": jsxRuntime,
     "@/components/embed-drawer": { EmbedDrawer: "EmbedDrawer" },
     "@/components/embed-panel": { EmbedPanel: "EmbedPanel" },
+    "lucide-react": { Video: "Video" },
     "@/components/ui/resizable": {
       ResizablePanelGroup: "ResizablePanelGroup",
       ResizablePanel: "ResizablePanel",
@@ -55,28 +56,32 @@ test("mobile workspace tabs retain both panes and preserve desktop regions", () 
     "@/lib/utils": { cn: (...values) => values.filter(Boolean).join(" ") },
   });
   const { SearchLayout } = load("@/components/search/desktop-layout");
-  const render = (detail = "retained details") =>
-    h.render(() => SearchLayout({ searchResults: "retained results", detail }));
+  const render = (detail = "retained details", detailKey = "") =>
+    h.render(() =>
+      SearchLayout({ searchResults: "retained results", detail, detailKey })
+    );
   let tree = render();
   assert.equal(tree.props.value, "results");
   let nodes = elements(tree);
-  let embed = nodes.find((node) => node.type === "EmbedPanel");
-  const triggers = elements(embed.props.mobileNavigation).filter(
+  const tabsList = nodes.find((node) => node.type === "TabsList");
+  assert.equal(
+    tree.props.children[0],
+    tabsList,
+    "tabs sit above both the results and the recording pane"
+  );
+  const triggers = elements(tabsList).filter(
     (node) => node.type === "TabsTrigger"
   );
   assert.deepEqual(
-    triggers.map((node) => node.props.children),
-    ["Search Results", "Details"]
+    triggers.map((node) => node.props.value),
+    ["results", "details"]
   );
+  assert.equal(triggers[1].props["aria-label"], "Recording");
   assert.equal(triggers[1].props.disabled, false);
   tree.props.onValueChange("details");
   tree = render();
   nodes = elements(tree);
   assert.equal(tree.props.value, "details");
-  assert.equal(
-    nodes.find((node) => node.type === "EmbedPanel").props.mobileTab,
-    "details"
-  );
   const panes = nodes.filter((node) => node.type === "TabsContent");
   assert.equal(panes.length, 2);
   assert(panes.every((node) => node.props.forceMount));
@@ -98,12 +103,20 @@ test("mobile workspace tabs retain both panes and preserve desktop regions", () 
     "results",
     "clearing detail leaves a usable tab selected"
   );
-  embed = elements(tree).find((node) => node.type === "EmbedPanel");
+  const list = elements(tree).find((node) => node.type === "TabsList");
   assert.equal(
-    elements(embed.props.mobileNavigation).find(
+    elements(list).find(
       (node) => node.props.value === "details"
     ).props.disabled,
     true
+  );
+  tree.props.onValueChange("results");
+  render("retained details", "selected");
+  tree = render("retained details", "selected");
+  assert.equal(
+    tree.props.value,
+    "details",
+    "selecting a result opens the recording tab"
   );
 });
 
