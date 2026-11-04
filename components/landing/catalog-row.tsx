@@ -11,7 +11,7 @@ export function CatalogRow({ entry }: { entry: LandingEntry }) {
       <Link
         href={entry.href}
         prefetch={false}
-        className="flex min-h-22 items-center gap-3 rounded-md bg-card px-3 py-3 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        className="flex min-h-22 items-center gap-3 rounded-md bg-card px-3 py-3 shadow-[0_1px_2px_rgb(0_0_0/0.08),0_2px_6px_rgb(0_0_0/0.06)] outline-none transition-colors hover:bg-background dark:shadow-[inset_0_1px_0_rgb(255_255_255/0.05),0_2px_8px_rgb(0_0_0/0.55)] dark:hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
         {entry.visual.kind === "avatar" ? (
           <Avatar className="size-10 shrink-0">
