@@ -4,7 +4,6 @@ import type { Metadata, Viewport } from "next";
 import { AppShell } from "@/components/app-shell";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { BookmarksProvider } from "@/components/social/bookmarks-provider";
-import { getServerSession } from "@/lib/session-server";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -126,20 +125,19 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Per-user: pages under this layout must not export `revalidate` (ISR would cache one user's session for everyone).
-  const session = await getServerSession();
+  // No per-user data here: the client resolves the session, so pages can be static and cached.
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`antialiased font-sans ${inter.variable} ${jetbrainsMono.variable} ${averiaLibre.variable}`}
       >
         <ThemeProvider>
-          <AuthProvider initialState={session.status === "unknown" ? null : session}>
+          <AuthProvider>
             <BookmarksProvider>
               <div className="min-h-screen bg-background">
                 <AppShell>{children}</AppShell>

@@ -32,7 +32,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <SearchHandoffContext.Provider value={searchHandoff}>
       <EmbedProvider>
-        <PlayerHotkeys />
+        <Suspense fallback={null}>
+          <PlayerHotkeys />
+        </Suspense>
         <div
           className={cn(
             "flex flex-col",

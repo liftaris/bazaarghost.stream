@@ -1,6 +1,6 @@
 import { backendFetch } from "@/lib/backend-server";
 
-const PUBLIC_READS = new Set(["matchups", "stats", "search", "streamers", "recordings"]);
+const PUBLIC_READS = new Set(["matchups", "stats", "search", "streamers", "recordings", "sessions", "platforms", "channels"]);
 const SESSION_COOKIE = /(?:^|;\s*)(?:bazaarghost_session|__Host-bazaarghost_session|mock_session)=/;
 
 /** Same-origin gateway. No administrative credentials or arbitrary upstream URLs. */
