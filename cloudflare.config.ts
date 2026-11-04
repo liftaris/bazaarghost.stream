@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => ({
     ...cache,
     name:
       mode === "validation" ? "bazaarghost-frontend-validation" : "bazaarghost",
-    entrypoint: "vinext/server/fetch-handler",
+    entrypoint: "worker/entry.ts",
     domains:
       mode === "validation"
         ? []
