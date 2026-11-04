@@ -9,7 +9,9 @@ import { useEmbedState } from "@/components/embed-provider";
 import { useSessionPlayer } from "@/components/session-player";
 import { prefetch } from "@/lib/api-cache";
 import type { SessionCard, StreamerCard } from "@/lib/api-contract";
-import { filterParams, type PlatformFilter } from "@/lib/search-filters";
+import { filterParams, parseDay, parsePlatformList, type PlatformFilter } from "@/lib/search-filters";
+import { isWorkspacePath } from "@/lib/workspace-routes";
+import { deriveSearchMode } from "./lib/route-utils";
 
 import { useSearchUrl } from "./hooks/use-search-url";
 import { streamerIdOf, useStreamerOptions } from "./hooks/use-streamer-options";
@@ -33,6 +35,27 @@ import { PlatformFilter as PlatformFilterButtons } from "./platform-filter";
  * Top-level search workspace: the URL model ({@link useSearchUrl}) drives one list per mode on
  * the left and one right panel; nothing here remounts when the mode or selection changes.
  */
+/** Start the first page of the list this URL shows while React is still mounting (same params as the list hooks). */
+function warmListFromLocation() {
+  const { pathname, search } = window.location;
+  if (!isWorkspacePath(pathname)) return;
+  const params = new URLSearchParams(search);
+  const include = parsePlatformList(params.get("platform"));
+  const filters: ListFilters = {
+    q: params.get("q") ?? "",
+    include,
+    exclude: parsePlatformList(params.get("xplatform")).filter((id) => !include.includes(id)),
+    from: parseDay(params.get("from")),
+    to: parseDay(params.get("to")),
+  };
+  const streamerId = streamerIdOf(params.get("streamer"));
+  const mode = deriveSearchMode(pathname, params.get("list"));
+  if (mode === "ghosts") prefetchPage("/search", ghostSearchParams(filters, streamerId, params.get("channel")));
+  else if (mode === "streamers") prefetchPage("/streamers", streamerListParams(filters));
+  else if (mode === "recordings") prefetchPage("/sessions", recordingSearchParams(filters, streamerId));
+}
+if (typeof window !== "undefined") warmListFromLocation();
+
 export default function SearchPanel({
   navHost,
 }: {
