@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { UserMenu } from "@/components/auth/user-menu";
 import { SavedLink } from "@/components/social/saved-link";
+import { ReportButton } from "@/components/report";
 import { BrandIcon } from "@/components/platform-icon";
 import {
   Sheet,
@@ -113,85 +114,90 @@ export default function Navbar({
             </div>
           )}
           <div ref={searchRef} className={workspace ? "contents" : "hidden"} />
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Open menu"
-                className={cn(
-                  "justify-self-end pointer-coarse:size-11",
-                  workspace && "col-start-3 row-start-1 @xl/nav:col-start-4"
-                )}
+          <div
+            className={cn(
+              "flex items-center gap-1 justify-self-end",
+              workspace && "col-start-3 row-start-1 @xl/nav:col-start-4"
+            )}
+          >
+            <ReportButton />
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Open menu"
+                  className="pointer-coarse:size-11"
+                >
+                  <Menu />
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="right"
+                className="w-72 font-serif pr-[env(safe-area-inset-right)]"
               >
-                <Menu />
-              </Button>
-            </SheetTrigger>
-            <SheetContent
-              side="right"
-              className="w-72 font-serif pr-[env(safe-area-inset-right)]"
-            >
-              <SheetHeader className="shrink-0 pt-[max(1rem,env(safe-area-inset-top))]">
-                <SheetTitle className="text-left">Menu</SheetTitle>
-              </SheetHeader>
-              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pointer-coarse:[&_button]:min-h-11 pointer-coarse:[&_button]:min-w-11 pointer-coarse:[&_a]:min-h-11 pointer-coarse:[&_a]:min-w-11">
-                {[
-                  ["/search", "Search"],
-                  ["/how-it-works", "How It Works"],
-                  ["/contact", "Contact"],
-                ].map(([href, label]) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setIsOpen(false)}
-                    className="flex shrink-0 items-center rounded-sm py-1 text-lg font-medium text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {label}
-                  </Link>
-                ))}
-                <Separator />
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  <Button variant="ghost" size="icon" asChild>
+                <SheetHeader className="shrink-0 pt-[max(1rem,env(safe-area-inset-top))]">
+                  <SheetTitle className="text-left">Menu</SheetTitle>
+                </SheetHeader>
+                <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pointer-coarse:[&_button]:min-h-11 pointer-coarse:[&_button]:min-w-11 pointer-coarse:[&_a]:min-h-11 pointer-coarse:[&_a]:min-w-11">
+                  {[
+                    ["/search", "Search"],
+                    ["/how-it-works", "How It Works"],
+                    ["/contact", "Contact"],
+                  ].map(([href, label]) => (
                     <Link
-                      href="/donate"
-                      aria-label="Donate"
+                      key={href}
+                      href={href}
                       onClick={() => setIsOpen(false)}
+                      className="flex shrink-0 items-center rounded-sm py-1 text-lg font-medium text-muted-foreground transition-colors hover:text-foreground"
                     >
-                      <Heart />
+                      {label}
                     </Link>
-                  </Button>
-                  <Button variant="ghost" size="icon" asChild>
-                    <a
-                      href="https://discord.gg/a5wRFRe6m3"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Join Discord"
+                  ))}
+                  <Separator />
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <Button variant="ghost" size="icon" asChild>
+                      <Link
+                        href="/donate"
+                        aria-label="Donate"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Heart />
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="icon" asChild>
+                      <a
+                        href="https://discord.gg/a5wRFRe6m3"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Join Discord"
+                      >
+                        <BrandIcon icon={siDiscord} />
+                      </a>
+                    </Button>
+                    <SavedLink onNavigate={() => setIsOpen(false)} />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        setTheme(resolvedTheme === "dark" ? "light" : "dark")
+                      }
+                      aria-label="Toggle theme"
                     >
-                      <BrandIcon icon={siDiscord} />
-                    </a>
-                  </Button>
-                  <SavedLink onNavigate={() => setIsOpen(false)} />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() =>
-                      setTheme(resolvedTheme === "dark" ? "light" : "dark")
-                    }
-                    aria-label="Toggle theme"
-                  >
-                    {mounted ? (
-                      resolvedTheme === "dark" ? (
-                        <Sun />
-                      ) : (
-                        <Moon />
-                      )
-                    ) : null}
-                  </Button>
+                      {mounted ? (
+                        resolvedTheme === "dark" ? (
+                          <Sun />
+                        ) : (
+                          <Moon />
+                        )
+                      ) : null}
+                    </Button>
+                  </div>
+                  <UserMenu onNavigate={() => setIsOpen(false)} />
                 </div>
-                <UserMenu onNavigate={() => setIsOpen(false)} />
-              </div>
-            </SheetContent>
-          </Sheet>
+              </SheetContent>
+            </Sheet>
+          </div>
           {landing && (
             <div className="col-span-full mx-auto flex w-full max-w-2xl flex-col gap-6 pb-4 font-serif @xl/nav:pb-6">
               <p className="text-center text-xl text-muted-foreground @xl/nav:text-2xl">
