@@ -27,6 +27,10 @@ export default defineConfig(({ mode }) => ({
       IMAGES: bindings.images(),
       VINEXT_KV_CACHE: bindings.kv(),
       REPORTS: bindings.kv(),
+      REPORT_LIMITER: bindings.rateLimit({
+        namespace: "1001",
+        simple: { limit: 5, period: 60 },
+      }),
       FLAGS: bindings.flagship({ id: "836d1b9e-a6e4-4db8-b342-cd991811e839" }),
       BACKEND: bindings.worker({
         worker:

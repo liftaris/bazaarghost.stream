@@ -37,6 +37,13 @@ export function ReportForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category, message, ...snapshot }),
       });
+      if (response.status === 429) {
+        setError(
+          "You've sent several reports just now. Try again in a minute."
+        );
+        setSending(false);
+        return;
+      }
       if (!response.ok) throw new Error();
       toast.success("Report sent. Thank you!");
       onSent();

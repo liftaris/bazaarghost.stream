@@ -38,7 +38,8 @@ test("handleReport stores one KV entry per valid report", async () => {
   const shared = compile("lib/reports.ts").replace(/^export /gm, "");
   const mf = new Miniflare({ workers: [{ config: {
     name: "frontend", compatibilityDate: "2026-08-22",
-    env: { REPORTS: { type: "kv", id: "reports" } },
+    env: { REPORTS: { type: "kv", id: "reports" },
+      REPORT_LIMITER: { type: "rate-limit", namespace: "1001", simple: { limit: 3, period: 60 } } },
     manifest: { mainModule: "index.js", modules: { "index.js": { type: "esm",
       contents: `import { env } from "cloudflare:workers";\n${shared}\n${handler.replace(/^import \{ env \}.*$/m, "")}\nexport default { fetch: handleReport };` } } },
   } }] });
@@ -47,9 +48,15 @@ test("handleReport stores one KV entry per valid report", async () => {
     assert.equal((await post(valid)).status, 201);
     assert.equal((await post({ ...valid, category: "x" })).status, 400);
     assert.equal((await post(valid, { origin: "http://evil" })).status, 403);
+    const other = { "cf-connecting-ip": "203.0.113.9" };
+    assert.equal((await post(valid, other)).status, 201);
+    assert.equal((await post(valid, other)).status, 201);
+    assert.equal((await post(valid, other)).status, 201);
+    assert.equal((await post(valid, other)).status, 429);
+    assert.equal((await post(valid, { "cf-connecting-ip": "203.0.113.10" })).status, 201);
     const kv = await mf.getKVNamespace("REPORTS");
     const { keys } = await kv.list({ prefix: "report:" });
-    assert.equal(keys.length, 1);
+    assert.equal(keys.length, 5);
     assert.equal(keys[0].metadata.target, "matchup:42");
     const stored = JSON.parse(await kv.get(keys[0].name));
     assert.equal(stored.context.url, "x");

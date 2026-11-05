@@ -17,6 +17,10 @@ export async function handleReport(request: Request): Promise<Response> {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin)
     return json({ error: "Forbidden" }, 403);
+  const client = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const { success } = await env.REPORT_LIMITER.limit({ key: client });
+  if (!success)
+    return json({ error: "Too many reports. Try again in a minute." }, 429);
   const text = await request.text();
   if (text.length > REPORT_BODY_MAX)
     return json({ error: "Report is too large" }, 413);
