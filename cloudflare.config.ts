@@ -43,7 +43,10 @@ export default defineConfig(({ mode }) => ({
         worker:
           mode === "validation"
             ? "bazaarghost-validation"
-            : (process.env.BACKEND_WORKER ?? "bazaarghost-validation"),
+            : (process.env.BACKEND_WORKER ??
+              (mode === "production"
+                ? "bazaarghost-production"
+                : "bazaarghost-validation")),
         dev: { remote: process.env.BACKEND_REMOTE === "true" },
       }),
     },
