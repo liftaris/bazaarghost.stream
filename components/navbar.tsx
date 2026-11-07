@@ -100,12 +100,6 @@ export default function Navbar({
                 Search
               </Link>
               <Link
-                href="/how-it-works"
-                className="rounded-sm hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-              >
-                How it works
-              </Link>
-              <Link
                 href="/contact"
                 className="rounded-sm hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
               >
@@ -142,7 +136,6 @@ export default function Navbar({
                 <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pointer-coarse:[&_button]:min-h-11 pointer-coarse:[&_button]:min-w-11 pointer-coarse:[&_a]:min-h-11 pointer-coarse:[&_a]:min-w-11">
                   {[
                     ["/search", "Search"],
-                    ["/how-it-works", "How It Works"],
                     ["/contact", "Contact"],
                   ].map(([href, label]) => (
                     <Link

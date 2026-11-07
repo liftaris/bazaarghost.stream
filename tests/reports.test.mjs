@@ -27,7 +27,7 @@ test("resolveTarget prefers the URL resource, then the player", () => {
   assert.deepEqual(resolveTarget("/search", { ...idle, matchupId: 9, opponent: "bob" }), { kind: "matchup", id: "9", label: "bob" });
   assert.equal(resolveTarget("/search", { ...idle, sessionId: "s1" }).id, "s1");
   assert.deepEqual(resolveTarget("/kripp", idle), { kind: "streamer", id: "kripp", label: "kripp" });
-  assert.equal(resolveTarget("/how-it-works", idle).kind, "page");
+  assert.equal(resolveTarget("/contact", idle).kind, "page");
 });
 
 test("handleReport stores one KV entry per valid report", async () => {

@@ -2,6 +2,9 @@ const nextConfig = {
   // output: "export", // Forces static HTML export
   // images: { unoptimized: true },
   pageExtensions: ["ts", "tsx", "js", "jsx", "md", "mdx"],
+  async redirects() {
+    return [{ source: "/how-it-works", destination: "/", permanent: true }];
+  },
   images: {
     // Environment variable kill switch for image optimization
     unoptimized: process.env.NEXT_PUBLIC_DISABLE_IMAGE_OPT === "true",
