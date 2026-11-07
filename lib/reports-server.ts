@@ -1,6 +1,9 @@
 import { env } from "cloudflare:workers";
 import { parseReport, REPORT_BODY_MAX, type StoredReport } from "@/lib/reports";
 
+/** Reports hold country, user agent and referer, so they expire instead of piling up. */
+const REPORT_TTL_SECONDS = 180 * 24 * 60 * 60;
+
 const json = (body: unknown, status: number) =>
   Response.json(body, {
     status,
@@ -21,6 +24,8 @@ export async function handleReport(request: Request): Promise<Response> {
   const { success } = await env.REPORT_LIMITER.limit({ key: client });
   if (!success)
     return json({ error: "Too many reports. Try again in a minute." }, 429);
+  if (Number(request.headers.get("content-length")) > REPORT_BODY_MAX)
+    return json({ error: "Report is too large" }, 413);
   const text = await request.text();
   if (text.length > REPORT_BODY_MAX)
     return json({ error: "Report is too large" }, 413);
@@ -47,6 +52,7 @@ export async function handleReport(request: Request): Promise<Response> {
     `report:${report.createdAt}:${report.id}`,
     JSON.stringify(report),
     {
+      expirationTtl: REPORT_TTL_SECONDS,
       metadata: {
         category: report.category,
         target: `${report.target.kind}:${report.target.id ?? ""}`,

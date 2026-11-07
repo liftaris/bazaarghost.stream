@@ -13,7 +13,14 @@ export default defineConfig(({ mode }) => ({
       mode === "validation"
         ? []
         : ["bazaarghost.stream", "www.bazaarghost.stream"],
-    workersDev: true,
+    workersDev: mode === "validation",
+    observability: {
+      enabled: true,
+      headSamplingRate: 1,
+      redactQueryString: true,
+      issues: { enabled: true },
+      traces: { enabled: true, headSamplingRate: 0.1 },
+    },
     compatibilityDate: "2026-10-17",
     compatibilityFlags: ["nodejs_compat"],
     assets: {
