@@ -97,9 +97,9 @@ export function StreamerPicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[280px] p-0" align="start">
+      <PopoverContent className="w-[280px] p-0" align="start" aria-label="Select streamer">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search streamers..." value={query} onValueChange={onQuery} />
+          <CommandInput placeholder="Search streamers..." aria-label="Search streamers" value={query} onValueChange={onQuery} />
           <CommandList>
             <CommandEmpty>No streamer found.</CommandEmpty>
             <CommandGroup>

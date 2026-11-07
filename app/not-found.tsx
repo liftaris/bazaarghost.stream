@@ -1,3 +1,8 @@
+import type { Metadata } from "next";
+
+/** Missing pages keep a distinct title so tabs and history read correctly. */
+export const metadata: Metadata = { title: "Page not found" };
+
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center font-serif">

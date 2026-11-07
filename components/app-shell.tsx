@@ -35,6 +35,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Suspense fallback={null}>
           <PlayerHotkeys />
         </Suspense>
+        <a
+          href="#main"
+          className="sr-only rounded-md bg-background font-serif text-sm text-foreground focus:not-sr-only focus:px-3 focus:py-2 focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:outline-2 focus:outline-foreground"
+        >
+          Skip to content
+        </a>
         <div
           className={cn(
             "flex flex-col",
@@ -48,6 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           />
           {children}
           <main
+            id={workspace ? "main" : undefined}
             className={cn(
               "min-h-0 flex-1 flex-col",
               workspace ? "flex" : "hidden"

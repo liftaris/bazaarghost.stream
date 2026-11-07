@@ -98,22 +98,26 @@ export function SessionStats({ matches }: { matches: MatchupCard[] }) {
             {stats.heroes.length ? (
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2 @sm:grid-cols-4">
                 {stats.heroes.map(({ hero, count }) => (
-                  <div key={hero} className="min-w-0">
-                    <div className="flex items-center justify-between gap-2 text-xs">
-                      <dt>
-                        <HeroIcon hero={hero} />
-                      </dt>
-                      <dd className="tabular-nums text-muted-foreground">
-                        {count}
-                      </dd>
-                    </div>
-                    <div aria-hidden className="mt-1 h-1 rounded-full bg-muted">
-                      <div
-                        data-chart-bar
-                        className="h-full rounded-full bg-[color-mix(in_srgb,var(--chart-3)_80%,var(--foreground))]"
-                        style={{ width: `${(count / maxHero) * 100}%` }}
-                      />
-                    </div>
+                  <div
+                    key={hero}
+                    className="relative flex min-w-0 items-center justify-between gap-2 pb-2 text-xs"
+                  >
+                    <dt>
+                      <HeroIcon hero={hero} />
+                    </dt>
+                    <dd className="tabular-nums text-muted-foreground">
+                      {count}
+                      <span
+                        aria-hidden
+                        className="absolute inset-x-0 bottom-0 h-1 rounded-full bg-muted"
+                      >
+                        <span
+                          data-chart-bar
+                          className="block h-full rounded-full bg-[color-mix(in_srgb,var(--chart-3)_80%,var(--foreground))]"
+                          style={{ width: `${(count / maxHero) * 100}%` }}
+                        />
+                      </span>
+                    </dd>
                   </div>
                 ))}
               </dl>

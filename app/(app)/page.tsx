@@ -22,7 +22,7 @@ export default async function RootPage() {
     return null;
   });
   return (
-    <main className="@container/landing mx-auto flex w-full max-w-6xl flex-1 flex-col px-5 pb-6 font-serif [--primary-foreground:var(--foreground)] dark:[--primary-foreground:var(--background)]">
+    <main id="main" className="@container/landing mx-auto flex w-full max-w-6xl flex-1 flex-col px-5 pb-6 font-serif [--primary-foreground:var(--foreground)] dark:[--primary-foreground:var(--background)]">
       <LandingCatalog snapshot={snapshot} />
     </main>
   );
