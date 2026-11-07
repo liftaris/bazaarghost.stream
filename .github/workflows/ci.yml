@@ -1,9 +1,9 @@
 name: CI
 on:
   push:
-    branches: [migrate/cloudflare, main]
+    branches: [migrate/cloudflare, dev, main]
   pull_request:
-    branches: [migrate/cloudflare, main]
+    branches: [migrate/cloudflare, dev, main]
 permissions:
   contents: read
 concurrency:

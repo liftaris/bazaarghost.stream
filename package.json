@@ -13,6 +13,7 @@
     "deploy": "vinext-cloudflare deploy",
     "typecheck": "vinext typegen && cf workers types && tsc --noEmit",
     "deploy:validation": "vite build --mode validation && cf deploy --prebuilt --mode validation",
+    "deploy:preview": "vite build --mode preview && cf deploy --prebuilt --mode preview",
     "postinstall": "patch-package"
   },
   "dependencies": {

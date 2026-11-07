@@ -1,7 +1,10 @@
-const VALIDATION = import.meta.env.MODE === "validation";
+const MODE = import.meta.env.MODE;
 
-export const SITE_URL = VALIDATION
-  ? "https://bazaarghost-frontend-validation.kaio-8df.workers.dev"
-  : "https://bazaarghost.stream";
+export const SITE_URL =
+  MODE === "validation"
+    ? "https://bazaarghost-frontend-validation.kaio-8df.workers.dev"
+    : MODE === "preview"
+      ? "https://preview.bazaarghost.stream"
+      : "https://bazaarghost.stream";
 
-export const INDEXABLE = !VALIDATION;
+export const INDEXABLE = MODE !== "validation" && MODE !== "preview";
