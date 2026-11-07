@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { backendFetch } from "./backend-server";
-import type { ChannelLookup, MatchupCard, MatchupDetail, Page, Playback, Recording, Session, Streamer, TimelineMarker } from "./api-contract";
+import type { ChannelLookup, MatchupCard, MatchupDetail, Page, Playback, Recording, Session, Streamer, StreamerCard, TimelineMarker } from "./api-contract";
 import { recordingPath } from "./sources";
 
 /** Share the current public matchup between metadata and rendering within one request. */
@@ -104,6 +104,20 @@ export async function getRecentMatchups(limit: number): Promise<MatchupCard[]> {
   let cursor: string | null = null;
   while (out.length < limit) {
     const page: Page<MatchupCard> | null = await publicGet("/search", { cursor, limit: Math.min(100, limit - out.length) });
+    if (!page) break;
+    out.push(...page.items);
+    cursor = page.nextCursor;
+    if (!cursor) break;
+  }
+  return out;
+}
+
+/** Up to `limit` public streamers, paged in backend order. */
+export async function getStreamers(limit: number): Promise<StreamerCard[]> {
+  const out: StreamerCard[] = [];
+  let cursor: string | null = null;
+  while (out.length < limit) {
+    const page: Page<StreamerCard> | null = await publicGet("/streamers", { cursor, limit: Math.min(100, limit - out.length) });
     if (!page) break;
     out.push(...page.items);
     cursor = page.nextCursor;

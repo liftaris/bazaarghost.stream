@@ -10,7 +10,7 @@ import "./globals.css";
 
 import { Inter, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
-import { SITE_URL } from "@/lib/site";
+import { INDEXABLE, SITE_URL } from "@/lib/site";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -104,11 +104,11 @@ export const metadata: Metadata = {
 
   // Robots
   robots: {
-    index: true,
-    follow: true,
+    index: INDEXABLE,
+    follow: INDEXABLE,
     googleBot: {
-      index: true,
-      follow: true,
+      index: INDEXABLE,
+      follow: INDEXABLE,
       "max-video-preview": -1,
       "max-image-preview": "large",
       "max-snippet": -1,
