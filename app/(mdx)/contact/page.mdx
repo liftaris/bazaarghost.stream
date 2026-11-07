@@ -1,11 +1,17 @@
 import Link from "next/link";
 
-## Contact
+export const metadata = {
+  title: "Contact",
+  description: "How to reach Liftaris, the maker of BazaarGhost, on Discord or by email.",
+  alternates: { canonical: "/contact" },
+};
+
+# Contact
 
 I go by Liftaris online, Kaio otherwise.
 
 I built this site as a fun project, and to scratch an itch I and many other Bazaar players have to see their ghosts beyond their own runs.
 
-Best place to reach me is through the <Link className="text-accent" href="https://discord.gg/a5wRFRe6m3">Bazaar Ghost Discord</Link>
+Best place to reach me is through the <Link className="text-foreground underline" href="https://discord.gg/a5wRFRe6m3">Bazaar Ghost Discord</Link>
 
-You can also send me an email at <span className="text-accent">liftaris@gmail.com</span>
+You can also send me an email at <a className="text-foreground underline" href="mailto:liftaris@gmail.com">liftaris@gmail.com</a>

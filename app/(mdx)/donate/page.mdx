@@ -2,6 +2,14 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 
+export const metadata = {
+  title: "Donate",
+  description: "Support BazaarGhost's running costs through Ko-fi.",
+  alternates: { canonical: "/donate" },
+};
+
+# Donate
+
 The support for Bazaar Ghost has been overwhelmingly positive, and already **thousands** have visited the site. While that is awesome,
 it does mean that running the site will cost more than I initially predicted for what was a little hobby/side project.
 
@@ -15,7 +23,7 @@ back into the costs of running and improving the site.
 
 <Button
   asChild
-  className="text-white font-semibold text-base font-inter no-underline"
+  className="text-[#1a1a1a] font-semibold text-base font-inter no-underline"
 >
   <Link
     href="https://ko-fi.com/B0B71O1JSX"
@@ -28,7 +36,7 @@ back into the costs of running and improving the site.
       width={24}
       height={24}
       className="mr-2 font-sans"
-      style={{ width: "24", height: "24" }}
+      style={{ width: 24, height: 24 }}
     />
     Buy me a Gumball on Ko-fi
   </Link>
