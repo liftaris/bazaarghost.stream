@@ -4,6 +4,20 @@ import { parseReport, REPORT_BODY_MAX, type StoredReport } from "@/lib/reports";
 /** Reports hold country, user agent and referer, so they expire instead of piling up. */
 const REPORT_TTL_SECONDS = 180 * 24 * 60 * 60;
 
+/** KV rejects metadata over 1024 bytes once serialized, so the message preview shrinks to fit. */
+function listMetadata(report: StoredReport) {
+  const base = {
+    category: report.category,
+    target: `${report.target.kind}:${report.target.id ?? ""}`,
+  };
+  let message = report.message.slice(0, 200);
+  const size = (m: string) =>
+    new TextEncoder().encode(JSON.stringify({ ...base, message: m })).length;
+  while (message && size(message) > 1000)
+    message = message.slice(0, Math.floor(message.length / 2));
+  return { ...base, message };
+}
+
 const json = (body: unknown, status: number) =>
   Response.json(body, {
     status,
@@ -53,11 +67,7 @@ export async function handleReport(request: Request): Promise<Response> {
     JSON.stringify(report),
     {
       expirationTtl: REPORT_TTL_SECONDS,
-      metadata: {
-        category: report.category,
-        target: `${report.target.kind}:${report.target.id ?? ""}`,
-        message: report.message.slice(0, 200),
-      },
+      metadata: listMetadata(report),
     }
   );
   return json({ id: report.id }, 201);
